@@ -22,11 +22,10 @@ class ProductUpload extends Model
         'ram',
         'location',
         'address',
-        'price',         // For products
+        'price',     
         'description',
         'is_active',
 
-        // New fields for services/professionals
         'specialization',
         'qualification',
         'availability',

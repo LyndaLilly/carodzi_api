@@ -61,10 +61,19 @@ class ProductUploadController extends Controller
             // Save images
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $path = $image->store('products', 'public');
+                    $subfolder = 'products';
+                    $uploadDir = public_path("uploads/{$subfolder}");
+
+                    if (! file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                    $image->move($uploadDir, $filename);
+
                     ProductUploadImage::create([
                         'productupload_id' => $product->id,
-                        'image_path'       => $path,
+                        'image_path'       => "{$subfolder}/{$filename}",
                     ]);
                 }
             }
@@ -183,12 +192,22 @@ class ProductUploadController extends Controller
             }
 
             // Handle new images if uploaded
+
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $path = $image->store('products', 'public');
+                    $subfolder = 'products';
+                    $uploadDir = public_path("uploads/{$subfolder}");
+
+                    if (! file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                    $image->move($uploadDir, $filename);
+
                     ProductUploadImage::create([
                         'productupload_id' => $product->id,
-                        'image_path'       => $path,
+                        'image_path'       => "{$subfolder}/{$filename}",
                     ]);
                 }
             }
@@ -213,11 +232,14 @@ class ProductUploadController extends Controller
 
     public function deleteProduct(Request $request)
     {
-        $productId = $request->input('product_id'); // get from request body
+        $productId = $request->input('product_id');
         $product   = ProductUpload::findOrFail($productId);
 
         foreach ($product->images as $image) {
-            \Storage::disk('public')->delete($image->image_path);
+            $imagePath = public_path("uploads/{$image->image_path}");
+            if (file_exists($imagePath)) {
+                unlink($imagePath);
+            }
             $image->delete();
         }
 

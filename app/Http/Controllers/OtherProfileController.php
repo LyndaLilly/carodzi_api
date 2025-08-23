@@ -9,6 +9,21 @@ use Illuminate\Support\Facades\Validator;
 
 class OtherProfileController extends Controller
 {
+   
+    protected function uploadFile($file, $subfolder)
+    {
+        $uploadDir = public_path("uploads/{$subfolder}");
+
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move($uploadDir, $filename);
+
+        return "{$subfolder}/{$filename}";
+    }
+
     public function storeOther(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -34,10 +49,14 @@ class OtherProfileController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $request->all();
+        $data = $request->except(['profile_image', 'certificate_file']);
 
         if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $request->file('profile_image')->store('profile_images', 'public');
+            $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
+        }
+
+        if ($request->hasFile('certificate_file')) {
+            $data['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
         }
 
         $profile = OtherProfile::create($data);
@@ -55,7 +74,6 @@ class OtherProfileController extends Controller
         $sellerId = $request->user()->id;
         $profile  = OtherProfile::where('seller_id', $sellerId)->firstOrFail();
 
-        // Validate only fields that are present in the request
         $validated = $request->validate([
             'gender'                => 'sometimes|in:male,female',
             'date_of_birth'         => 'sometimes|date',
@@ -74,14 +92,25 @@ class OtherProfileController extends Controller
             'business_bank_account' => 'sometimes|nullable|string|max:50',
         ]);
 
-        // Handle file uploads, keep old if not sent
         if ($request->hasFile('profile_image')) {
-            $validated['profile_image'] = $request->file('profile_image')->store('profile_images', 'public');
+            // Delete old file if exists
+            if ($profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
+                unlink(public_path("uploads/{$profile->profile_image}"));
+            }
+            $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
         } else {
-            unset($validated['profile_image']); // Keep existing file
+            unset($validated['profile_image']);
         }
 
-        // Update profile with only the validated fields
+        if ($request->hasFile('certificate_file')) {
+            if ($profile->certificate_file && file_exists(public_path("uploads/{$profile->certificate_file}"))) {
+                unlink(public_path("uploads/{$profile->certificate_file}"));
+            }
+            $validated['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
+        } else {
+            unset($validated['certificate_file']);
+        }
+
         $profile->update($validated);
 
         Seller::where('id', $sellerId)->update(['profile_updated' => 1]);
@@ -100,7 +129,7 @@ class OtherProfileController extends Controller
 
         $profile = OtherProfile::where('seller_id', $sellerId)->first();
 
-        if (! $profile) {
+        if (!$profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Profile not found',

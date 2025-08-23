@@ -9,6 +9,20 @@ use Illuminate\Support\Facades\Validator;
 
 class ProfessionalProfileController extends Controller
 {
+    protected function uploadFile($file, $subfolder)
+    {
+        $uploadDir = public_path("uploads/{$subfolder}");
+
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move($uploadDir, $filename);
+
+        return "{$subfolder}/{$filename}";
+    }
+
     public function storeProfessional(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -28,7 +42,7 @@ class ProfessionalProfileController extends Controller
             'school_name'           => 'nullable|string',
             'graduation_year'       => 'nullable|digits:4|integer',
             'experience_years'      => 'nullable|integer',
-            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,png|max:5120',
+            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'bank_name'             => 'nullable|string',
             'business_bank_name'    => 'nullable|string',
             'business_bank_account' => 'nullable|string',
@@ -38,19 +52,18 @@ class ProfessionalProfileController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $request->all();
+        $data = $request->except(['profile_image', 'certificate_file']);
 
         if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $request->file('profile_image')->store('profile_images', 'public');
+            $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
         }
 
         if ($request->hasFile('certificate_file')) {
-            $data['certificate_file'] = $request->file('certificate_file')->store('certificates', 'public');
+            $data['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
         }
 
         $profile = ProfessionalProfile::create($data);
 
-        // Update sellers table
         Seller::where('id', $request->seller_id)->update(['profile_updated' => 1]);
 
         return response()->json([
@@ -82,28 +95,30 @@ class ProfessionalProfileController extends Controller
             'bank_name'             => 'nullable|string',
             'business_bank_name'    => 'nullable|string',
             'business_bank_account' => 'nullable|string',
+            'profile_image'         => 'sometimes|nullable|image|max:2048',
+            'certificate_file'      => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        // Handle profile image
         if ($request->hasFile('profile_image')) {
-            $image                      = $request->file('profile_image');
-            $imageName                  = time() . '_' . $image->getClientOriginalName();
-            $imagePath                  = $image->storeAs('profile_images', $imageName, 'public');
-            $validated['profile_image'] = $imagePath;
+            if ($profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
+                unlink(public_path("uploads/{$profile->profile_image}"));
+            }
+            $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
+        } else {
+            unset($validated['profile_image']);
         }
 
-        // Handle certificate file
         if ($request->hasFile('certificate_file')) {
-            $file                          = $request->file('certificate_file');
-            $fileName                      = time() . '_' . $file->getClientOriginalName();
-            $filePath                      = $file->storeAs('certificates', $fileName, 'public');
-            $validated['certificate_file'] = $filePath;
+            if ($profile->certificate_file && file_exists(public_path("uploads/{$profile->certificate_file}"))) {
+                unlink(public_path("uploads/{$profile->certificate_file}"));
+            }
+            $validated['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
+        } else {
+            unset($validated['certificate_file']);
         }
 
-        // Update profile
         $profile->update($validated);
 
-        // Mark seller profile as updated
         Seller::where('id', $sellerId)->update(['profile_updated' => 1]);
 
         return response()->json([
@@ -117,10 +132,10 @@ class ProfessionalProfileController extends Controller
     public function showProfessionalProfile(Request $request)
     {
         $sellerId = $request->user()->id;
-        
+
         $profile = ProfessionalProfile::where('seller_id', $sellerId)->first();
 
-        if (! $profile) {
+        if (!$profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Professional profile not found',
@@ -133,5 +148,4 @@ class ProfessionalProfileController extends Controller
             'seller'  => Seller::find($sellerId),
         ]);
     }
-
 }
