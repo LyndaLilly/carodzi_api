@@ -1,7 +1,6 @@
 <?php
 namespace App\Http\Controllers;
 
-
 use App\Mail\EmailVerificationCodeMail;
 use App\Models\Seller;
 use Carbon\Carbon;
@@ -41,10 +40,9 @@ class SellerController extends Controller
             ], 422);
         }
 
-         Log::info('Password received from frontend: ' . $request->password);
+        Log::info('Password received from frontend: ' . $request->password);
 
         $verificationCode = rand(100000, 999999);
-
 
         $seller = Seller::create([
             'firstname'               => $request->firstname,
@@ -321,32 +319,152 @@ class SellerController extends Controller
         ]);
     }
 
-  public function SellerLogin(Request $request)
-{
-    Log::info('Login attempt for: ' . $request->email);
+    public function SellerLogin(Request $request)
+    {
+        Log::info('Login attempt for: ' . $request->email);
 
-    $seller = Seller::where('email', $request->email)->first();
+        $seller = Seller::where('email', $request->email)->first();
 
-    if (! $seller) {
-        Log::warning('Seller not found');
-        return response()->json(['message' => 'Invalid credentials'], 401);
-    }
+        if (! $seller) {
+            Log::warning('Seller not found');
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
 
-    if (! Hash::check($request->password, $seller->password)) {
-        Log::warning('Password mismatch', [
-            'input_password' => $request->password,
-            'hashed' => $seller->password
+        if (! Hash::check($request->password, $seller->password)) {
+            Log::warning('Password mismatch', [
+                'input_password' => $request->password,
+                'hashed'         => $seller->password,
+            ]);
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        if (! $seller->verified) {
+            Log::warning('Seller not verified', ['email' => $request->email]);
+            return response()->json(['message' => 'Please verify your email before logging in.'], 403);
+        }
+
+        $token = $seller->createToken('seller_token')->plainTextToken;
+
+        return response()->json([
+            'seller' => $seller,
+            'token'  => $token,
         ]);
-        return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
-    $token = $seller->createToken('seller_token')->plainTextToken;
+    public function sellerLogout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
 
-    return response()->json([
-        'seller' => $seller,
-        'token'  => $token,
-    ]);
-}
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Logged out successfully.',
+        ]);
+    }
 
+    public function me(Request $request)
+    {
+        $seller = $request->user()->load(['profile', 'professionalProfile']);
+
+        // Normalize file URLs
+        if ($seller->profile && $seller->profile->profile_image) {
+            $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+        }
+
+        if ($seller->professionalProfile) {
+            if ($seller->professionalProfile->profile_image) {
+                $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
+            }
+            if ($seller->professionalProfile->certificate_file) {
+                $seller->professionalProfile->certificate_file = url('storage/' . $seller->professionalProfile->certificate_file);
+            }
+        }
+
+        return response()->json([
+            'seller'  => $seller, // Return everything
+            'profile' => $seller->is_professional
+            ? $seller->professionalProfile
+            : $seller->profile,
+        ]);
+    }
+
+    public function updateSellerCategory(Request $request)
+    {
+        $request->validate([
+            'category_id'     => 'required|exists:sellers_category,id',
+            'sub_category_id' => 'required|exists:sellers_subcategory,id',
+            'is_professional' => 'required|boolean',
+        ]);
+
+        $seller                  = $request->user();
+        $seller->category_id     = $request->category_id;
+        $seller->sub_category_id = $request->sub_category_id;
+        $seller->is_professional = $request->is_professional;
+        $seller->save();
+
+        // Load profile & professionalProfile
+        $seller->load(['profile', 'professionalProfile']);
+
+        if ($seller->profile && $seller->profile->profile_image) {
+            $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+        }
+
+        if ($seller->professionalProfile) {
+            if ($seller->professionalProfile->profile_image) {
+                $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
+            }
+            if ($seller->professionalProfile->certificate) {
+                $seller->professionalProfile->certificate = url('storage/' . $seller->professionalProfile->certificate);
+            }
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Category updated successfully.',
+            'seller'  => $seller,
+            'profile' => $seller->is_professional
+            ? $seller->professionalProfile
+            : $seller->profile,
+        ]);
+    }
+
+    public function updateProductCategory(Request $request)
+    {
+        $request->validate([
+            'product_id'      => 'required|exists:product_categories,id',
+            'sub_product_id'  => 'required|exists:product_subcategories,id',
+            'is_professional' => 'required|boolean',
+        ]);
+
+        $seller                  = $request->user();
+        $seller->product_id      = $request->product_id;
+        $seller->sub_product_id  = $request->sub_product_id;
+        $seller->is_professional = $request->is_professional;
+        $seller->save();
+
+        // Load profile & professionalProfile
+        $seller->load(['profile', 'professionalProfile']);
+
+        if ($seller->profile && $seller->profile->profile_image) {
+            $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+        }
+
+        if ($seller->professionalProfile) {
+            if ($seller->professionalProfile->profile_image) {
+                $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
+            }
+            if ($seller->professionalProfile->certificate) {
+                $seller->professionalProfile->certificate = url('storage/' . $seller->professionalProfile->certificate);
+            }
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Product category updated successfully.',
+            'seller'  => $seller,
+            'profile' => $seller->is_professional
+            ? $seller->professionalProfile
+            : $seller->profile,
+        ]);
+    }
 
 }

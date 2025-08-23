@@ -1,14 +1,14 @@
 <?php
 namespace App\Models;
 
-use Laravel\Sanctum\HasApiTokens; // ✅ ADD THIS
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class Seller extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable; // ✅ UPDATE THIS LINE
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'firstname',
@@ -27,6 +27,8 @@ class Seller extends Authenticatable
         'email_verified_at',
         'password_reset_code',
         'password_reset_sent_at',
+        'category_id',     // ✅ added
+        'sub_category_id', // ✅ added
     ];
 
     protected $hidden = [
@@ -42,7 +44,41 @@ class Seller extends Authenticatable
         'status'                  => 'boolean',
         'is_subscribed'           => 'boolean',
         'subscription_expires_at' => 'datetime',
-        'email_verified_at',
-        'password_reset_sent_at',
+        'email_verified_at'       => 'datetime',
+        'password_reset_sent_at'  => 'datetime',
+        'category_id'             => 'integer',
+        'sub_category_id'         => 'integer',
+        'product_id'              => 'integer',
+        'sub_product_id'          => 'integer',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(SellerCategory::class, 'category_id');
+    }
+
+    public function subcategory()
+    {
+        return $this->belongsTo(SellerSubcategory::class, 'sub_category_id');
+    }
+
+    public function productcategory()
+    {
+        return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    public function productsubcategory()
+    {
+        return $this->belongsTo(ProductSubcategory::class, 'sub_category_id');
+    }
+
+    public function profile()
+    {
+        return $this->hasOne(OtherProfile::class, 'seller_id', 'id');
+    }
+
+    public function professionalProfile()
+    {
+        return $this->hasOne(ProfessionalProfile::class, 'seller_id', 'id');
+    }
 }
