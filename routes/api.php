@@ -79,6 +79,7 @@ Route::middleware('auth:admin')->get('/admin/me', function (Request $request) {
         'user' => $admin,
     ]);
 });
+
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin');
 Route::post('/admin/register', [AdminAuthController::class, 'register'])

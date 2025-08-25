@@ -69,13 +69,12 @@ class AdminAuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
-    {
-        Auth::guard('admin')->logout();
+  public function logout(Request $request)
+{
+ 
+    $request->user()->currentAccessToken()->delete();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+    return response()->json(['message' => 'Logged out']);
+}
 
-        return response()->json(['message' => 'Logged out']);
-    }
 }
