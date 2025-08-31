@@ -7,9 +7,10 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\BuyerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\BuyerProfileController;
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -62,6 +63,28 @@ Route::middleware('auth:sanctum')->group(function () {
     // Delete product (expects product_id in request body)
     Route::post('/products/delete', [ProductUploadController::class, 'deleteProduct']);
 });
+
+Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
+
+
+//Buyers
+
+Route::post('/buyers/register', [BuyerController::class, 'registerBuyer']);
+Route::post('/buyers/verify-email', [BuyerController::class, 'verifyEmail']);
+Route::post('/buyers/resend-verification', [BuyerController::class, 'resendVerificationEmail']);
+Route::post('/buyers/forgot-password', [BuyerController::class, 'requestPasswordReset']);
+Route::post('/buyers/verify-reset-code', [BuyerController::class, 'verifyPasswordResetCode']);
+Route::post('/buyers/resend-reset-code', [BuyerController::class, 'resendPasswordResetCode']);
+Route::post('/buyers/reset-password', [BuyerController::class, 'resetPassword']);
+Route::post('/buyers/login', [BuyerController::class, 'BuyerLogin']);
+Route::middleware('auth:sanctum')->post('/buyers/logout', [BuyerController::class, 'buyerLogout']);
+Route::middleware('auth:sanctum')->get('/buyer/me', [BuyerController::class, 'me']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/buyer/profile-fill', [BuyerProfileController::class, 'profileFill']);
+   Route::patch('/buyer/profile', [BuyerProfileController::class, 'update']);
+    Route::get('/buyer/profile', [BuyerProfileController::class, 'show']);
+});
+
 
 
 

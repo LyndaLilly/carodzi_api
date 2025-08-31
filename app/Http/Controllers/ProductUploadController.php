@@ -251,4 +251,14 @@ class ProductUploadController extends Controller
         ]);
     }
 
+    public function getAllProductsForBuyers()
+{
+    $products = ProductUpload::with('images','seller')->latest()->get();
+    return response()->json([
+        'success' => true,
+        'products' => $products
+    ]);
+}
+
+
 }

@@ -14,6 +14,11 @@ return [
             'provider' => 'sellers',
         ],
 
+          'buyer' => [
+            'driver' => 'sanctum',
+            'provider' => 'buyers',
+        ],
+
         'admin' => [
             'driver' => 'sanctum',
             'provider' => 'admins',
@@ -32,6 +37,12 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Seller::class,
         ],
+
+          'buyers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Buyer::class,
+        ],
+
 
         'admins' => [
             'driver' => 'eloquent',
