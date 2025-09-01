@@ -50,6 +50,10 @@ Route::middleware('auth:sanctum')->post('/seller/update-category', [SellerContro
 
 Route::middleware('auth:sanctum')->post('/seller/update-product-category', [SellerController::class, 'updateProductCategory']);
 
+Route::get('/products/popular', [ProductUploadController::class, 'getPopularProducts']);
+Route::get('/services/popular', [ProductUploadController::class, 'getPopularServices']);
+
+
 // Get all products for a seller
 Route::get('/products/seller/{sellerId}', [ProductUploadController::class, 'getAllProducts']);
 
@@ -85,8 +89,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/buyer/profile', [BuyerProfileController::class, 'show']);
 });
 
-Route::get('/products/popular', [ProductUploadController::class, 'getPopularProducts']);
-Route::get('/services/popular', [ProductUploadController::class, 'getPopularServices']);
 
 
 

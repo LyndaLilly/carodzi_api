@@ -117,21 +117,38 @@ class ProductUploadController extends Controller
         ]);
     }
 
-    public function getPopularProducts()
-    {
+   public function getPopularProducts()
+{
+    Log::info('getPopularProducts endpoint hit');
+
+    try {
         $products = ProductUpload::with('images', 'seller')
             ->whereHas('seller', function ($q) {
                 $q->where('is_professional', 0); // normal sellers
             })
             ->latest()
-            ->take(8) // top 8
+            ->take(8)
             ->get();
+
+        Log::info('Popular products fetched', ['count' => $products->count()]);
 
         return response()->json([
             'success'  => true,
             'products' => $products,
         ]);
+    } catch (\Exception $e) {
+        Log::error('Error fetching popular products', [
+            'message' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error fetching products',
+            'error'   => $e->getMessage(),
+        ], 500);
     }
+}
+
 
     public function getPopularServices()
     {
