@@ -85,6 +85,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/buyer/profile', [BuyerProfileController::class, 'show']);
 });
 
+Route::get('/products/popular', [ProductUploadController::class, 'getPopularProducts']);
+Route::get('/services/popular', [ProductUploadController::class, 'getPopularServices']);
+
 
 
 

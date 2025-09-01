@@ -117,6 +117,38 @@ class ProductUploadController extends Controller
         ]);
     }
 
+    public function getPopularProducts()
+    {
+        $products = ProductUpload::with('images', 'seller')
+            ->whereHas('seller', function ($q) {
+                $q->where('is_professional', 0); // normal sellers
+            })
+            ->latest()
+            ->take(8) // top 8
+            ->get();
+
+        return response()->json([
+            'success'  => true,
+            'products' => $products,
+        ]);
+    }
+
+    public function getPopularServices()
+    {
+        $services = ProductUpload::with('images', 'seller')
+            ->whereHas('seller', function ($q) {
+                $q->where('is_professional', 1); // professional sellers
+            })
+            ->latest()
+            ->take(8) // top 8
+            ->get();
+
+        return response()->json([
+            'success'  => true,
+            'services' => $services,
+        ]);
+    }
+
     public function getSingleProduct($id)
     {
         $product = ProductUpload::with('images', 'seller')->findOrFail($id);
@@ -252,13 +284,12 @@ class ProductUploadController extends Controller
     }
 
     public function getAllProductsForBuyers()
-{
-    $products = ProductUpload::with('images','seller')->latest()->get();
-    return response()->json([
-        'success' => true,
-        'products' => $products
-    ]);
-}
-
+    {
+        $products = ProductUpload::with('images', 'seller')->latest()->get();
+        return response()->json([
+            'success'  => true,
+            'products' => $products,
+        ]);
+    }
 
 }
