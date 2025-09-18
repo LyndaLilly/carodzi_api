@@ -20,6 +20,7 @@ class ProductUploadController extends Controller
             // Common rules for everyone
             $rules = [
                 'seller_id'      => 'required|exists:sellers,id',
+                'name'           => 'required|string|max:255', 
                 'category_id'    => 'required|exists:product_categories,id',
                 'subcategory_id' => 'required|exists:product_subcategories,id',
                 'location'       => 'required|string',
@@ -117,38 +118,37 @@ class ProductUploadController extends Controller
         ]);
     }
 
-   public function getPopularProducts()
-{
-    Log::info('getPopularProducts endpoint hit');
+    public function getPopularProducts()
+    {
+        Log::info('getPopularProducts endpoint hit');
 
-    try {
-        $products = ProductUpload::with('images', 'seller')
-            ->whereHas('seller', function ($q) {
-                $q->where('is_professional', 0); // normal sellers
-            })
-            ->latest()
-            ->take(8)
-            ->get();
+        try {
+            $products = ProductUpload::with('images', 'seller')
+                ->whereHas('seller', function ($q) {
+                    $q->where('is_professional', 0); // normal sellers
+                })
+                ->latest()
+                ->take(8)
+                ->get();
 
-        Log::info('Popular products fetched', ['count' => $products->count()]);
+            Log::info('Popular products fetched', ['count' => $products->count()]);
 
-        return response()->json([
-            'success'  => true,
-            'products' => $products,
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Error fetching popular products', [
-            'message' => $e->getMessage(),
-        ]);
+            return response()->json([
+                'success'  => true,
+                'products' => $products,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching popular products', [
+                'message' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Error fetching products',
-            'error'   => $e->getMessage(),
-        ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching products',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
-}
-
 
     public function getPopularServices()
     {
@@ -187,6 +187,7 @@ class ProductUploadController extends Controller
 
             // Validation rules
             $rules = [
+                'name'           => 'sometimes|string', 
                 'category_id'    => 'sometimes|exists:product_categories,id',
                 'subcategory_id' => 'sometimes|exists:product_subcategories,id',
                 'location'       => 'sometimes|string',

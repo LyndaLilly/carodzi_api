@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
 use Illuminate\Http\Request;
+use App\Models\ProductUpload;
 
 class ProductCategoryController extends Controller
 {
@@ -107,4 +108,20 @@ class ProductCategoryController extends Controller
 
         return response()->json(['subcategories' => $subcategories]);
     }
+
+public function showSubcategory($id)
+{
+    $subcategory = ProductSubcategory::findOrFail($id);
+
+    // Get products linked to this subcategory
+    $products = ProductUpload::where('subcategory_id', $id)
+        ->with('images') // eager load product images if you want
+        ->get();
+
+    return response()->json([
+        'subcategory' => $subcategory,
+        'products' => $products,
+    ]);
+}
+
 }

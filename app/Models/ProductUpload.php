@@ -12,6 +12,7 @@ class ProductUpload extends Model
     protected $table = 'productupload';
 
     protected $fillable = [
+         'name', 
         'seller_id',
         'category_id',
         'subcategory_id',

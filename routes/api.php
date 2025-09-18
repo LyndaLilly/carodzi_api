@@ -69,6 +69,8 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
+Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
+
 
 
 //Buyers
