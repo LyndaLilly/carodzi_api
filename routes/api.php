@@ -59,7 +59,7 @@ Route::get('/products/seller/{sellerId}', [ProductUploadController::class, 'getA
 
 // Get single product
 Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct']);
-Route::get('/product/{id}/recommended', [ProductController::class, 'getRecommended']);
+Route::get('/products/{id}/recommended', [ProductController::class, 'getRecommended']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Update product (expects product_id in request body + _method=PATCH if using FormData)
