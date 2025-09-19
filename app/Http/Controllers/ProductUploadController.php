@@ -168,9 +168,21 @@ class ProductUploadController extends Controller
 
     public function getSingleProduct($id)
     {
-        $product = ProductUpload::with('images', 'seller')->findOrFail($id);
+        $product = ProductUpload::with([
+            'images',
+            'seller.profile',
+            'seller.professionalProfile',
+        ])->findOrFail($id);
 
         $product->is_professional = $product->seller ? $product->seller->is_professional : 0;
+
+        if ($product->seller) {
+            if ($product->seller->is_professional) {
+                $product->seller->profile_image = $product->seller->professionalProfile->profile_image ?? null;
+            } else {
+                $product->seller->profile_image = $product->seller->profile->profile_image ?? null;
+            }
+        }
 
         return response()->json([
             'success' => true,
