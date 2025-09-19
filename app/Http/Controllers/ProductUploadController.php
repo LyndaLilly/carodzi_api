@@ -20,7 +20,7 @@ class ProductUploadController extends Controller
             // Common rules for everyone
             $rules = [
                 'seller_id'      => 'required|exists:sellers,id',
-                'name'           => 'required|string|max:255', 
+                'name'           => 'required|string|max:255',
                 'category_id'    => 'required|exists:product_categories,id',
                 'subcategory_id' => 'required|exists:product_subcategories,id',
                 'location'       => 'required|string',
@@ -179,21 +179,47 @@ class ProductUploadController extends Controller
     }
 
     public function getRecommended($id)
-{
-    $product = ProductUpload::findOrFail($id);
+    {
+        try {
+            Log::info("🔎 Fetching recommended products for product ID: {$id}");
 
-    $recommended = ProductUpload::with('images', 'seller')
-        ->where('subcategory_id', $product->subcategory_id)
-        ->where('id', '!=', $id)
-        ->inRandomOrder()
-        ->take(6)
-        ->get();
+            // Try to fetch the main product
+            $product = ProductUpload::findOrFail($id);
+            Log::info("✅ Found product", ['id' => $product->id, 'subcategory_id' => $product->subcategory_id]);
 
-    return response()->json([
-        'success' => true,
-        'recommended' => $recommended,
-    ]);
-}
+            // Fetch recommended products from the same subcategory
+            $recommended = ProductUpload::with('images', 'seller')
+                ->where('subcategory_id', $product->subcategory_id)
+                ->where('id', '!=', $id)
+                ->inRandomOrder()
+                ->take(6)
+                ->get();
+
+            Log::info("✅ Recommended products fetched", ['count' => $recommended->count()]);
+
+            return response()->json([
+                'success'     => true,
+                'recommended' => $recommended,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error("❌ Product not found for recommended lookup", ['id' => $id]);
+            return response()->json([
+                'success' => false,
+                'message' => "Product with ID {$id} not found",
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("❌ Error fetching recommended products", [
+                'id'      => $id,
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch recommended products',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function updateProduct(Request $request)
     {
@@ -204,7 +230,7 @@ class ProductUploadController extends Controller
 
             // Validation rules
             $rules = [
-                'name'           => 'sometimes|string', 
+                'name'           => 'sometimes|string',
                 'category_id'    => 'sometimes|exists:product_categories,id',
                 'subcategory_id' => 'sometimes|exists:product_subcategories,id',
                 'location'       => 'sometimes|string',
