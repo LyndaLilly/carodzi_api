@@ -59,6 +59,7 @@ Route::get('/products/seller/{sellerId}', [ProductUploadController::class, 'getA
 
 // Get single product
 Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct']);
+Route::get('/product/{id}/recommended', [ProductController::class, 'getRecommended']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Update product (expects product_id in request body + _method=PATCH if using FormData)
@@ -67,6 +68,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Delete product (expects product_id in request body)
     Route::post('/products/delete', [ProductUploadController::class, 'deleteProduct']);
 });
+
+
 
 Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);

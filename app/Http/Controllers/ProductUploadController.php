@@ -178,6 +178,23 @@ class ProductUploadController extends Controller
         ]);
     }
 
+    public function getRecommended($id)
+{
+    $product = ProductUpload::findOrFail($id);
+
+    $recommended = ProductUpload::with('images', 'seller')
+        ->where('subcategory_id', $product->subcategory_id)
+        ->where('id', '!=', $id)
+        ->inRandomOrder()
+        ->take(6)
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'recommended' => $recommended,
+    ]);
+}
+
     public function updateProduct(Request $request)
     {
         try {
