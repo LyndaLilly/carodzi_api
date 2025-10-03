@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Seller;
@@ -12,10 +13,10 @@ class PublicSellerController extends Controller
         $query = Seller::with([
             'profile',
             'professionalProfile',
-            'products.images',
+            'products.images'
         ])->where('profile_updated', 1);
 
-        // Filter professional sellers
+        // Professional sellers filter
         if ($request->type === 'professional') {
             $query->where('is_professional', 1);
 
@@ -23,21 +24,12 @@ class PublicSellerController extends Controller
                 $query->where('status', $request->verified == '1' ? 1 : 0);
             }
         }
-        // Filter normal sellers
+        // Other sellers filter
         elseif ($request->type === 'other') {
             $query->where('is_professional', 0);
         }
 
-        $sellers = $query->get()->map(function ($seller) {
-            // Add a uniform profile_image field for frontend
-            if ($seller->is_professional) {
-                $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
-            } else {
-                $seller->profile_image = $seller->profile->profile_image ?? null;
-            }
-
-            return $seller;
-        });
+        $sellers = $query->get();
 
         return response()->json([
             'success' => true,
@@ -48,20 +40,18 @@ class PublicSellerController extends Controller
     // Single seller with active products
     public function show($id)
     {
-        $seller = Seller::with(['profile', 'professionalProfile', 'products.images'])
-            ->where('profile_updated', 1)
-            ->findOrFail($id);
-
-        // Uniform profile_image field
-        if ($seller->is_professional) {
-            $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
-        } else {
-            $seller->profile_image = $seller->profile->profile_image ?? null;
-        }
+        $seller = Seller::with([
+            'profile',
+            'professionalProfile',
+            'products.images'
+        ])
+        ->where('profile_updated', 1)
+        ->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'seller'  => $seller,
+            'seller' => $seller,
         ]);
     }
+
 }
