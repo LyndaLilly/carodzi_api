@@ -81,4 +81,9 @@ class Seller extends Authenticatable
     {
         return $this->hasOne(ProfessionalProfile::class, 'seller_id', 'id');
     }
+
+    public function products()
+    {
+        return $this->hasMany(\App\Models\ProductUpload::class, 'seller_id', 'id');
+    }
 }
