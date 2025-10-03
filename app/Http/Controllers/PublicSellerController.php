@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Seller;
@@ -13,7 +12,7 @@ class PublicSellerController extends Controller
         $query = Seller::with([
             'profile',
             'professionalProfile',
-            'products.images'
+            'products.images',
         ])->where('profile_updated', 1);
 
         // Professional sellers filter
@@ -43,41 +42,32 @@ class PublicSellerController extends Controller
         $seller = Seller::with([
             'profile',
             'professionalProfile',
-            'products.images'
+            'products.images',
         ])
-        ->where('profile_updated', 1)
-        ->findOrFail($id);
+            ->where('profile_updated', 1)
+            ->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'seller' => $seller,
+            'seller'  => $seller,
         ]);
     }
 
-    // Fetch all sellers for homepage (professional only if verified)
+    // Fetch all sellers for homepage
     public function homepageSellers()
     {
         $sellers = Seller::with([
             'profile',
             'professionalProfile',
-            'products.images'
+            'products.images',
         ])
-        ->where('profile_updated', 1)
-        ->where(function ($query) {
-            $query->where('is_professional', 0) // other sellers
-                  ->orWhere(function ($q) {
-                      $q->where('is_professional', 1) // professional
-                        ->where('status', 1);       // only verified
-                  });
-        })
-        ->get();
+            ->where('profile_updated', 1)
+            ->get();
 
         return response()->json([
             'success' => true,
             'sellers' => $sellers,
         ]);
     }
-
-    
 
 }
