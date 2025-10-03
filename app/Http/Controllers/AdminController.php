@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SellerCategory;
+use App\Models\SellerSubcategory;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
@@ -27,23 +28,24 @@ class AdminController extends Controller
         $request->validate([
             'name'        => 'required|string|unique:sellers_subcategory,name',
             'category_id' => 'required|exists:sellers_category,id',
+            'auto_verify' => 'nullable|boolean',
         ]);
 
-        $subcategory = \DB::table('sellers_subcategory')->insertGetId([
+        $subcategory = SellerSubcategory::create([
             'name'        => $request->name,
             'category_id' => $request->category_id,
-            'created_at'  => now(),
-            'updated_at'  => now(),
+            'auto_verify' => $request->auto_verify ?? 0, // default 0
         ]);
 
         return response()->json([
-            'message'        => 'Seller subcategory created successfully',
-            'subcategory_id' => $subcategory,
+            'message'     => 'Seller subcategory created successfully',
+            'subcategory' => $subcategory,
         ], 201);
     }
 
     public function getSellerCategories()
     {
+        // eager load subcategories including auto_verify flag
         $categories = SellerCategory::with('subcategories')->get();
 
         return response()->json([
@@ -53,8 +55,9 @@ class AdminController extends Controller
 
     public function getSubcategoriesByCategory($categoryId)
     {
-        $subcategories = \DB::table('sellers_subcategory')
+        $subcategories = DB::table('sellers_subcategory')
             ->where('category_id', $categoryId)
+            ->select('id', 'name', 'auto_verify') // 👈 include auto_verify
             ->get();
 
         return response()->json([

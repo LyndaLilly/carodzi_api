@@ -8,7 +8,8 @@ class SellerSubcategory extends Model
 {
     protected $table = 'sellers_subcategory'; 
 
-    protected $fillable = ['category_id', 'name'];
+    // 👇 include auto_verify so it can be mass assigned
+    protected $fillable = ['category_id', 'name', 'auto_verify'];
 
     public function category()
     {

@@ -382,8 +382,8 @@ class SellerController extends Controller
         return response()->json([
             'seller'  => $seller, // Return everything
             'profile' => $seller->is_professional
-            ? $seller->professionalProfile
-            : $seller->profile,
+                ? $seller->professionalProfile
+                : $seller->profile,
         ]);
     }
 
@@ -395,35 +395,28 @@ class SellerController extends Controller
             'is_professional' => 'required|boolean',
         ]);
 
-        $seller                  = $request->user();
+        $seller = $request->user();
+
+        // Get the subcategory
+        $subCategory = \App\Models\SellerSubcategory::findOrFail($request->sub_category_id);
+
+        $seller->status = $subCategory->auto_verify == 0 ? 1 : 0;
+
+
         $seller->category_id     = $request->category_id;
         $seller->sub_category_id = $request->sub_category_id;
         $seller->is_professional = $request->is_professional;
         $seller->save();
 
-        // Load profile & professionalProfile
         $seller->load(['profile', 'professionalProfile']);
-
-        if ($seller->profile && $seller->profile->profile_image) {
-            $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
-        }
-
-        if ($seller->professionalProfile) {
-            if ($seller->professionalProfile->profile_image) {
-                $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
-            }
-            if ($seller->professionalProfile->certificate) {
-                $seller->professionalProfile->certificate = url('storage/' . $seller->professionalProfile->certificate);
-            }
-        }
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Category updated successfully.',
             'seller'  => $seller,
             'profile' => $seller->is_professional
-            ? $seller->professionalProfile
-            : $seller->profile,
+                ? $seller->professionalProfile
+                : $seller->profile,
         ]);
     }
 
@@ -462,8 +455,8 @@ class SellerController extends Controller
             'message' => 'Product category updated successfully.',
             'seller'  => $seller,
             'profile' => $seller->is_professional
-            ? $seller->professionalProfile
-            : $seller->profile,
+                ? $seller->professionalProfile
+                : $seller->profile,
         ]);
     }
 

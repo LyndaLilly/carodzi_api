@@ -11,7 +11,7 @@ return new class extends Migration
      */
 public function up()
 {
-    Schema::table('product_uploads', function (Blueprint $table) {
+    Schema::table('productupload', function (Blueprint $table) {
         $table->unsignedBigInteger('views')->default(0);
     });
 }
@@ -22,7 +22,7 @@ public function up()
      */
     public function down(): void
     {
-        Schema::table('product_uploads', function (Blueprint $table) {
+        Schema::table('productupload', function (Blueprint $table) {
             //
         });
     }

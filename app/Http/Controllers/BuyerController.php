@@ -4,13 +4,12 @@ namespace App\Http\Controllers;
 use App\Mail\BuyerEmailResetPasswordCode;
 use App\Mail\EmailVerifyBuyer;
 use App\Models\Buyer;
+use App\Models\BuyerProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use App\Models\BuyerProfile;
-
 
 class BuyerController extends Controller
 {
@@ -42,20 +41,38 @@ class BuyerController extends Controller
             ], 422);
         }
 
-        Log::info('Password received from frontend: ' . $request->password);
+        Log::info('Validation passed. Proceeding with buyer creation.');
+
+        Log::info('Password received from frontend (before hashing): ' . $request->password);
 
         $verificationCode = rand(100000, 999999);
+        Log::info('Generated verification code for buyer: ' . $verificationCode);
 
-        $buyer = Buyer::create([
-            'firstname'         => $request->firstname,
-            'lastname'          => $request->lastname,
-            'email'             => $request->email,
-            'password'          => Hash::make($request->password),
-            'role'              => $request->role,
-            'verification_code' => $verificationCode,
-            'verified'          => false,
-            'profile_updated'   => false,
-        ]);
+        try {
+            $buyer = Buyer::create([
+                'firstname'         => $request->firstname,
+                'lastname'          => $request->lastname,
+                'email'             => $request->email,
+                'password'          => Hash::make($request->password),
+                'role'              => $request->role,
+                'verification_code' => $verificationCode,
+                'verified'          => false,
+                'profile_updated'   => false,
+            ]);
+
+            Log::info('Buyer successfully created in database.', ['buyer_id' => $buyer->id, 'email' => $buyer->email]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create buyer in database.', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to register buyer due to DB error.',
+            ], 500);
+        }
 
         try {
             Mail::to($buyer->email)->send(new EmailVerifyBuyer($buyer->firstname, $verificationCode));
@@ -352,16 +369,15 @@ class BuyerController extends Controller
         ]);
     }
 
-  public function me(Request $request)
-{
-    $buyer = $request->user();
-    $profile = BuyerProfile::where('buyer_id', $buyer->id)->first();
+    public function me(Request $request)
+    {
+        $buyer   = $request->user();
+        $profile = BuyerProfile::where('buyer_id', $buyer->id)->first();
 
-    return response()->json([
-        'buyer'   => $buyer,
-        'profile' => $profile,
-    ]);
-}
-
+        return response()->json([
+            'buyer'   => $buyer,
+            'profile' => $profile,
+        ]);
+    }
 
 }

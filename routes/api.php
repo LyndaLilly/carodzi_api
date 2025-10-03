@@ -11,6 +11,7 @@ use App\Http\Controllers\BuyerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BuyerProfileController;
+use App\Http\Controllers\PublicSellerController;
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -73,6 +74,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
+Route::get('/public-sellers', [PublicSellerController::class, 'index']);   // list
+Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
 
 
 
