@@ -76,6 +76,7 @@ Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyer
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
 Route::get('/public-sellers', [PublicSellerController::class, 'index']);   // list
 Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
+Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers']);
 
 
 

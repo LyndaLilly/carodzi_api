@@ -54,4 +54,30 @@ class PublicSellerController extends Controller
         ]);
     }
 
+    // Fetch all sellers for homepage (professional only if verified)
+    public function homepageSellers()
+    {
+        $sellers = Seller::with([
+            'profile',
+            'professionalProfile',
+            'products.images'
+        ])
+        ->where('profile_updated', 1)
+        ->where(function ($query) {
+            $query->where('is_professional', 0) // other sellers
+                  ->orWhere(function ($q) {
+                      $q->where('is_professional', 1) // professional
+                        ->where('status', 1);       // only verified
+                  });
+        })
+        ->get();
+
+        return response()->json([
+            'success' => true,
+            'sellers' => $sellers,
+        ]);
+    }
+
+    
+
 }
