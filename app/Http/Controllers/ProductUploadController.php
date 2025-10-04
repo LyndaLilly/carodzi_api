@@ -180,13 +180,13 @@ class ProductUploadController extends Controller
             'images',
             'seller.profile',
             'seller.professionalProfile',
-            'category', // Ensure category relation is defined in your ProductUpload model
+            'category', // Ensure category relation exists in ProductUpload model
         ])->findOrFail($id);
 
         // Determine if seller is professional
         $product->is_professional = $product->seller ? $product->seller->is_professional : 0;
 
-        // Handle seller profile image
+        // Handle seller profile image and verification
         if ($product->seller) {
             if ($product->seller->is_professional) {
                 $product->seller->profile_image = $product->seller->professionalProfile->profile_image ?? null;
@@ -194,16 +194,14 @@ class ProductUploadController extends Controller
                 $product->seller->profile_image = $product->seller->profile->profile_image ?? null;
             }
 
-            // ✅ Verification logic
-            // Only show verified tick if:
+            // ✅ Verification logic:
             // (1) The category requires verification (auto_verify = 1)
             // (2) The seller has status = 1 (meaning verified)
             $requiresVerification = $product->category && $product->category->auto_verify == 1;
             $isVerified           = $product->seller->status == 1;
 
-            $product->is_verified = $requiresVerification && $isVerified;
-        } else {
-            $product->is_verified = false;
+            // Attach verification info directly to the seller
+            $product->seller->is_verified = $requiresVerification && $isVerified;
         }
 
         return response()->json([
