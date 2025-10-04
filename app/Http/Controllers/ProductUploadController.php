@@ -358,7 +358,21 @@ class ProductUploadController extends Controller
 
     public function getAllProductsForBuyers()
     {
-        $products = ProductUpload::with('images', 'seller')->latest()->get();
+        $products = ProductUpload::with(['images', 'seller.subcategory'])->latest()->get();
+
+        $products->transform(function ($product) {
+            $seller = $product->seller;
+
+            $requiresVerification = $seller
+            && $seller->subcategory
+            && $seller->subcategory->auto_verify == 1;
+
+            // ✅ Add dynamic field
+            $product->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
+
+            return $product;
+        });
+
         return response()->json([
             'success'  => true,
             'products' => $products,
