@@ -409,7 +409,7 @@ class ProductUploadController extends Controller
         ]);
     }
 
-     public function search(Request $request)
+    public function search(Request $request)
     {
         $query = $request->input('query');
 
@@ -420,18 +420,33 @@ class ProductUploadController extends Controller
             ], 400);
         }
 
-        // Search products by product name, category, subcategory, or seller name
         $results = ProductUpload::with(['images', 'category', 'subcategory', 'seller.profile'])
-            ->where('name', 'like', "%{$query}%")
-            ->orWhereHas('category', function ($q) use ($query) {
+            ->where(function ($q) use ($query) {
+                // ✅ Product name
                 $q->where('name', 'like', "%{$query}%");
+
+                // ✅ Category name
+                $q->orWhereHas('category', function ($cat) use ($query) {
+                    $cat->where('name', 'like', "%{$query}%");
+                });
+
+                // ✅ Subcategory name
+                $q->orWhereHas('subcategory', function ($sub) use ($query) {
+                    $sub->where('name', 'like', "%{$query}%");
+                });
+
+                // ✅ Seller business name
+                $q->orWhereHas('seller.profile', function ($prof) use ($query) {
+                    $prof->where('business_name', 'like', "%{$query}%");
+                });
+
+                // ✅ Seller first and last name (main seller table)
+                $q->orWhereHas('seller', function ($seller) use ($query) {
+                    $seller->where('firstname', 'like', "%{$query}%")
+                        ->orWhere('lastname', 'like', "%{$query}%");
+                });
             })
-            ->orWhereHas('subcategory', function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%");
-            })
-            ->orWhereHas('seller.profile', function ($q) use ($query) {
-                $q->where('business_name', 'like', "%{$query}%");
-            })
+            ->limit(20)
             ->get();
 
         return response()->json([
