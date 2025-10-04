@@ -1,11 +1,10 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
-use Illuminate\Http\Request;
 use App\Models\ProductUpload;
+use Illuminate\Http\Request;
 
 class ProductCategoryController extends Controller
 {
@@ -16,7 +15,6 @@ class ProductCategoryController extends Controller
 
         return response()->json(['categories' => $categories]);
     }
-
 
     public function storeCategory(Request $request)
     {
@@ -29,12 +27,11 @@ class ProductCategoryController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Product category created successfully',
+            'message'  => 'Product category created successfully',
             'category' => $category,
         ], 201);
     }
 
- 
     public function updateCategory(Request $request, $id)
     {
         $request->validate([
@@ -47,7 +44,6 @@ class ProductCategoryController extends Controller
         return response()->json(['message' => 'Product category updated successfully', 'category' => $category]);
     }
 
-  
     public function deleteCategory($id)
     {
         $category = ProductCategory::findOrFail($id);
@@ -58,36 +54,34 @@ class ProductCategoryController extends Controller
         return response()->json(['message' => 'Product category deleted successfully']);
     }
 
-    
     public function storeSubcategory(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|unique:product_subcategories,name',
+            'name'        => 'required|string|unique:product_subcategories,name',
             'category_id' => 'required|exists:product_categories,id',
         ]);
 
         $subcategory = ProductSubcategory::create([
-            'name' => $request->name,
+            'name'        => $request->name,
             'category_id' => $request->category_id,
         ]);
 
         return response()->json([
-            'message' => 'Product subcategory created successfully',
+            'message'     => 'Product subcategory created successfully',
             'subcategory' => $subcategory,
         ], 201);
     }
 
-
     public function updateSubcategory(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required|string|unique:product_subcategories,name,' . $id,
+            'name'        => 'required|string|unique:product_subcategories,name,' . $id,
             'category_id' => 'required|exists:product_categories,id',
         ]);
 
         $subcategory = ProductSubcategory::findOrFail($id);
         $subcategory->update([
-            'name' => $request->name,
+            'name'        => $request->name,
             'category_id' => $request->category_id,
         ]);
 
@@ -109,19 +103,51 @@ class ProductCategoryController extends Controller
         return response()->json(['subcategories' => $subcategories]);
     }
 
-public function showSubcategory($id)
-{
-    $subcategory = ProductSubcategory::findOrFail($id);
+    public function showSubcategory($id)
+    {
+        $subcategory = ProductSubcategory::findOrFail($id);
 
-    // Get products linked to this subcategory
-    $products = ProductUpload::where('subcategory_id', $id)
-        ->with('images') // eager load product images if you want
-        ->get();
+        // Get products linked to this subcategory
+        $products = ProductUpload::where('subcategory_id', $id)
+            ->with('images') // eager load product images if you want
+            ->get();
 
-    return response()->json([
-        'subcategory' => $subcategory,
-        'products' => $products,
-    ]);
-}
+        return response()->json([
+            'subcategory' => $subcategory,
+            'products'    => $products,
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (! $query) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Search query is required',
+            ], 400);
+        }
+
+        // Search products by product name, category, subcategory, or seller name
+        $results = ProductUpload::with(['images', 'category', 'subcategory', 'seller.profile'])
+            ->where('name', 'like', "%{$query}%")
+            ->orWhereHas('category', function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%");
+            })
+            ->orWhereHas('subcategory', function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%");
+            })
+            ->orWhereHas('seller.profile', function ($q) use ($query) {
+                $q->where('business_name', 'like', "%{$query}%");
+            })
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'count'   => $results->count(),
+            'results' => $results,
+        ]);
+    }
 
 }
