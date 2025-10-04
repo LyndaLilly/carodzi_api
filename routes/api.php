@@ -2,16 +2,16 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BuyerController;
+use App\Http\Controllers\BuyerProfileController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
+use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\BuyerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BuyerProfileController;
-use App\Http\Controllers\PublicSellerController;
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -54,7 +54,6 @@ Route::middleware('auth:sanctum')->post('/seller/update-product-category', [Sell
 Route::get('/products/popular', [ProductUploadController::class, 'getPopularProducts']);
 Route::get('/services/popular', [ProductUploadController::class, 'getPopularServices']);
 
-
 // Get all products for a seller
 Route::get('/products/seller/{sellerId}', [ProductUploadController::class, 'getAllProducts']);
 
@@ -70,16 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/products/delete', [ProductUploadController::class, 'deleteProduct']);
 });
 
-
-
 Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
+Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
-Route::get('/search', [ProductCategoryController::class, 'search']);
-Route::get('/public-sellers', [PublicSellerController::class, 'index']);   // list
+
+Route::get('/public-sellers', [PublicSellerController::class, 'index']);     // list
 Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
 Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers']);
-
-
 
 //Buyers
 
@@ -95,13 +91,9 @@ Route::middleware('auth:sanctum')->post('/buyers/logout', [BuyerController::clas
 Route::middleware('auth:sanctum')->get('/buyer/me', [BuyerController::class, 'me']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/buyer/profile-fill', [BuyerProfileController::class, 'profileFill']);
-   Route::patch('/buyer/profile', [BuyerProfileController::class, 'update']);
+    Route::patch('/buyer/profile', [BuyerProfileController::class, 'update']);
     Route::get('/buyer/profile', [BuyerProfileController::class, 'show']);
 });
-
-
-
-
 
 //Admins Routes
 
@@ -152,4 +144,3 @@ Route::middleware('auth:admin')->group(function () {
 Route::get('/admin/product-categories', [ProductCategoryController::class, 'index']);
 
 Route::get('/admin/product-subcategories/{categoryId}', [ProductCategoryController::class, 'subcategoriesByCategory']);
-

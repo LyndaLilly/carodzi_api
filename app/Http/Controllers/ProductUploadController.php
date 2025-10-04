@@ -409,4 +409,36 @@ class ProductUploadController extends Controller
         ]);
     }
 
+     public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (! $query) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Search query is required',
+            ], 400);
+        }
+
+        // Search products by product name, category, subcategory, or seller name
+        $results = ProductUpload::with(['images', 'category', 'subcategory', 'seller.profile'])
+            ->where('name', 'like', "%{$query}%")
+            ->orWhereHas('category', function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%");
+            })
+            ->orWhereHas('subcategory', function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%");
+            })
+            ->orWhereHas('seller.profile', function ($q) use ($query) {
+                $q->where('business_name', 'like', "%{$query}%");
+            })
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'count'   => $results->count(),
+            'results' => $results,
+        ]);
+    }
+
 }
