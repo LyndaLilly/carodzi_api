@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Seller;
@@ -13,6 +14,7 @@ class PublicSellerController extends Controller
             'profile',
             'professionalProfile',
             'products.images',
+            'subcategory'
         ])->where('profile_updated', 1);
 
         // Professional sellers filter
@@ -30,6 +32,13 @@ class PublicSellerController extends Controller
 
         $sellers = $query->get();
 
+        // Attach computed is_verified field
+        $sellers->transform(function ($seller) {
+            $requiresVerification = $seller->subcategory && $seller->subcategory->verification_required == 1;
+            $seller->is_verified = ($seller->status == 1 && $requiresVerification);
+            return $seller;
+        });
+
         return response()->json([
             'success' => true,
             'sellers' => $sellers,
@@ -43,9 +52,14 @@ class PublicSellerController extends Controller
             'profile',
             'professionalProfile',
             'products.images',
+            'subcategory'
         ])
             ->where('profile_updated', 1)
             ->findOrFail($id);
+
+        // Attach computed is_verified field
+        $requiresVerification = $seller->subcategory && $seller->subcategory->verification_required == 1;
+        $seller->is_verified = ($seller->status == 1 && $requiresVerification);
 
         return response()->json([
             'success' => true,
@@ -60,14 +74,21 @@ class PublicSellerController extends Controller
             'profile',
             'professionalProfile',
             'products.images',
+            'subcategory'
         ])
             ->where('profile_updated', 1)
             ->get();
+
+        // Attach computed is_verified field
+        $sellers->transform(function ($seller) {
+            $requiresVerification = $seller->subcategory && $seller->subcategory->verification_required == 1;
+            $seller->is_verified = ($seller->status == 1 && $requiresVerification);
+            return $seller;
+        });
 
         return response()->json([
             'success' => true,
             'sellers' => $sellers,
         ]);
     }
-
 }
