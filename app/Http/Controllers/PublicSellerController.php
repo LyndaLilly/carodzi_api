@@ -34,8 +34,9 @@ class PublicSellerController extends Controller
 
         // Attach computed is_verified field
         $sellers->transform(function ($seller) {
-            $requiresVerification = $seller->subcategory && $seller->subcategory->verification_required == 1;
-            $seller->is_verified = ($seller->status == 1 && $requiresVerification);
+            $autoVerify = $seller->subcategory && $seller->subcategory->auto_verify == 1;
+            // if subcategory allows auto_verify, treat seller as verified if status == 1
+            $seller->is_verified = ($seller->status == 1 && $autoVerify);
             return $seller;
         });
 
@@ -58,8 +59,8 @@ class PublicSellerController extends Controller
             ->findOrFail($id);
 
         // Attach computed is_verified field
-        $requiresVerification = $seller->subcategory && $seller->subcategory->verification_required == 1;
-        $seller->is_verified = ($seller->status == 1 && $requiresVerification);
+        $autoVerify = $seller->subcategory && $seller->subcategory->auto_verify == 1;
+        $seller->is_verified = ($seller->status == 1 && $autoVerify);
 
         return response()->json([
             'success' => true,
@@ -81,8 +82,8 @@ class PublicSellerController extends Controller
 
         // Attach computed is_verified field
         $sellers->transform(function ($seller) {
-            $requiresVerification = $seller->subcategory && $seller->subcategory->verification_required == 1;
-            $seller->is_verified = ($seller->status == 1 && $requiresVerification);
+            $autoVerify = $seller->subcategory && $seller->subcategory->auto_verify == 1;
+            $seller->is_verified = ($seller->status == 1 && $autoVerify);
             return $seller;
         });
 
