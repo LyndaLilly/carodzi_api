@@ -152,13 +152,21 @@ class ProductUploadController extends Controller
 
     public function getPopularServices()
     {
-        $services = ProductUpload::with('images', 'seller')
+        $services = ProductUpload::with(['images', 'seller.subcategory'])
             ->whereHas('seller', function ($q) {
-                $q->where('is_professional', 1); // professional sellers
+                $q->where('is_professional', 1);
             })
             ->latest()
-            ->take(8) // top 8
+            ->take(8)
             ->get();
+
+        // ✅ Compute verified status for each service
+        $services->transform(function ($service) {
+            $seller               = $service->seller;
+            $requiresVerification = $seller && $seller->subcategory && $seller->subcategory->auto_verify == 1;
+            $service->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
+            return $service;
+        });
 
         return response()->json([
             'success'  => true,
