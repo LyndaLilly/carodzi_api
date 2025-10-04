@@ -180,7 +180,8 @@ class ProductUploadController extends Controller
             'images',
             'seller.profile',
             'seller.professionalProfile',
-            'category', // Ensure category relation exists in ProductUpload model
+            'seller.subcategory', // ✅ add this line so we can check auto_verify
+            'category',
         ])->findOrFail($id);
 
         // Determine if seller is professional
@@ -194,14 +195,23 @@ class ProductUploadController extends Controller
                 $product->seller->profile_image = $product->seller->profile->profile_image ?? null;
             }
 
-            // ✅ Verification logic:
-            // (1) The category requires verification (auto_verify = 1)
-            // (2) The seller has status = 1 (meaning verified)
-            $requiresVerification = $product->category && $product->category->auto_verify == 1;
-            $isVerified           = $product->seller->status == 1;
+            // ✅ Updated Verification Logic:
+            // Verified if:
+            // (1) seller->status == 1  OR
+            // (2) seller->subcategory->auto_verify == 1  OR
+            // (3) category->auto_verify == 1
+            $autoVerifySubcategory = $product->seller->subcategory
+                ? $product->seller->subcategory->auto_verify == 1
+                : false;
+
+            $autoVerifyCategory = $product->category
+                ? $product->category->auto_verify == 1
+                : false;
+
+            $isVerified = $product->seller->status == 1 || $autoVerifySubcategory || $autoVerifyCategory;
 
             // Attach verification info directly to the seller
-            $product->seller->is_verified = $requiresVerification && $isVerified;
+            $product->seller->is_verified = $isVerified;
         }
 
         return response()->json([
