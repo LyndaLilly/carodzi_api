@@ -9,15 +9,40 @@ class CartController extends Controller
 {
     public function index()
     {
-        $buyer = Auth::user();
+        $buyer = Auth::user(); // Assuming buyer is authenticated
 
-        $cartItems = Cart::with('product')
+        if (! $buyer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        // Eager load product with its images
+        $cartItems = Cart::with(['product.images'])
             ->where('buyer_id', $buyer->id)
             ->get();
 
+        // Transform data to include first image, name, price, quantity
+        $data = $cartItems->map(function ($cart) {
+            $product = $cart->product;
+
+            return [
+                'cart_id'    => $cart->id,
+                'product_id' => $product->id,
+                'name'       => $product->name,
+                'price'      => $product->price,
+                'quantity'   => $cart->quantity,
+                'total'      => $product->price * $cart->quantity,
+                'image'      => $product->images->first()?->image_path
+                    ? asset('public/uploads/' . $product->images->first()->image_path)
+                    : null, // fallback if no image
+            ];
+        });
+
         return response()->json([
             'success' => true,
-            'data'    => $cartItems,
+            'data'    => $data,
         ]);
     }
 
