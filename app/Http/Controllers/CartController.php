@@ -7,38 +7,59 @@ use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
+    /**
+     * Helper to get full image URL, same as ProductUploadController
+     */
+    private function getImageUrl($path)
+    {
+        if (!$path) return null;
+
+        if (str_starts_with($path, 'http')) {
+            return $path;
+        }
+
+        return asset('uploads/' . $path);
+    }
+
+    /**
+     * Transform a cart item to include product details and first image
+     */
+    private function transformCartItem($cart)
+    {
+        $product = $cart->product;
+
+        $image = $product->images->first()?->image_path;
+        $image = $this->getImageUrl($image);
+
+        $isProfessional = $product->seller ? $product->seller->is_professional : 0;
+
+        return [
+            'cart_id'         => $cart->id,
+            'product_id'      => $product->id,
+            'name'            => $product->name,
+            'price'           => $product->price,
+            'quantity'        => $cart->quantity,
+            'total'           => $product->price * $cart->quantity,
+            'image'           => $image,
+            'is_professional' => $isProfessional,
+        ];
+    }
+
     public function index()
     {
-        $buyer = Auth::user(); // Assuming buyer is authenticated
-
-        if (! $buyer) {
+        $buyer = Auth::user();
+        if (!$buyer) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
             ], 401);
         }
 
-        // Eager load product with its images
-        $cartItems = Cart::with(['product.images'])
+        $cartItems = Cart::with(['product.images', 'product.seller'])
             ->where('buyer_id', $buyer->id)
             ->get();
 
-        // Transform data to include first image, name, price, quantity
-        $data = $cartItems->map(function ($cart) {
-            $product = $cart->product;
-
-            return [
-                'cart_id'    => $cart->id,
-                'product_id' => $product->id,
-                'name'       => $product->name,
-                'price'      => $product->price,
-                'quantity'   => $cart->quantity,
-                'total'      => $product->price * $cart->quantity,
-                'image'      => $product->images->first()?->image_path
-                    ? asset('uploads/' . $product->images->first()->image_path)
-                    : null, // fallback if no image
-            ];
-        });
+        $data = $cartItems->map(fn($cart) => $this->transformCartItem($cart));
 
         return response()->json([
             'success' => true,
@@ -55,7 +76,6 @@ class CartController extends Controller
             'quantity'   => 'nullable|integer|min:1',
         ]);
 
-        // Check if product already exists in cart
         $existing = Cart::where('buyer_id', $buyer->id)
             ->where('product_id', $validated['product_id'])
             ->first();
@@ -73,10 +93,14 @@ class CartController extends Controller
             'quantity'   => $validated['quantity'] ?? 1,
         ]);
 
+        // Reload the cart item with product & images
+        $cart->load(['product.images', 'product.seller']);
+        $cartData = $this->transformCartItem($cart);
+
         return response()->json([
             'success' => true,
             'message' => 'Product added to cart successfully.',
-            'data'    => $cart,
+            'data'    => $cartData,
         ]);
     }
 
@@ -99,8 +123,7 @@ class CartController extends Controller
     public function destroy($id)
     {
         $buyer = Auth::user();
-
-        $cart = Cart::where('buyer_id', $buyer->id)->findOrFail($id);
+        $cart  = Cart::where('buyer_id', $buyer->id)->findOrFail($id);
         $cart->delete();
 
         return response()->json([
@@ -112,7 +135,6 @@ class CartController extends Controller
     public function clear()
     {
         $buyer = Auth::user();
-
         Cart::where('buyer_id', $buyer->id)->delete();
 
         return response()->json([
