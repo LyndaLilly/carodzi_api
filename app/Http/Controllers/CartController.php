@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
@@ -18,7 +17,7 @@ class CartController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $cartItems,
+            'data'    => $cartItems,
         ]);
     }
 
@@ -28,29 +27,37 @@ class CartController extends Controller
 
         $validated = $request->validate([
             'product_id' => 'required|exists:productupload,id',
-            'quantity' => 'nullable|integer|min:1',
+            'quantity'   => 'nullable|integer|min:1',
         ]);
 
-        $cart = Cart::updateOrCreate(
-            [
-                'buyer_id' => $buyer->id,
-                'product_id' => $validated['product_id'],
-            ],
-            [
-                'quantity' => $validated['quantity'] ?? 1,
-            ]
-        );
+        // Check if product already exists in cart
+        $existing = Cart::where('buyer_id', $buyer->id)
+            ->where('product_id', $validated['product_id'])
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product already added to cart.',
+            ], 200);
+        }
+
+        $cart = Cart::create([
+            'buyer_id'   => $buyer->id,
+            'product_id' => $validated['product_id'],
+            'quantity'   => $validated['quantity'] ?? 1,
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Product added to cart successfully.',
-            'data' => $cart,
+            'data'    => $cart,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $buyer = Auth::user();
+        $buyer     = Auth::user();
         $validated = $request->validate([
             'quantity' => 'required|integer|min:1',
         ]);
