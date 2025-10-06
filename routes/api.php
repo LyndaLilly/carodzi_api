@@ -90,6 +90,7 @@ Route::post('/buyers/reset-password', [BuyerController::class, 'resetPassword'])
 Route::post('/buyers/login', [BuyerController::class, 'BuyerLogin']);
 Route::middleware('auth:sanctum')->post('/buyers/logout', [BuyerController::class, 'buyerLogout']);
 Route::middleware('auth:sanctum')->get('/buyer/me', [BuyerController::class, 'me']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/buyer/profile-fill', [BuyerProfileController::class, 'profileFill']);
     Route::patch('/buyer/profile', [BuyerProfileController::class, 'update']);
@@ -99,9 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);
-    Route::put('/cart/{id}', [CartController::class, 'update']);
-    Route::delete('/cart/{id}', [CartController::class, 'destroy']);
-    Route::delete('/cart', [CartController::class, 'clear']);
+    Route::put('/cart-update/{id}', [CartController::class, 'update']);
+    Route::delete('/cart-delete/{id}', [CartController::class, 'destroy']);
+    Route::delete('/cart-clear', [CartController::class, 'clear']);
 });
 
 //Admins Routes
