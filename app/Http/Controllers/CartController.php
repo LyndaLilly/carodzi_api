@@ -27,7 +27,7 @@ class CartController extends Controller
         $buyer = Auth::user();
 
         $validated = $request->validate([
-            'product_id' => 'required|exists:product_uploads,id',
+            'product_id' => 'required|exists:productupload,id',
             'quantity' => 'nullable|integer|min:1',
         ]);
 
