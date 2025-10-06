@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerProfileController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductUploadController;
@@ -93,6 +94,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/buyer/profile-fill', [BuyerProfileController::class, 'profileFill']);
     Route::patch('/buyer/profile', [BuyerProfileController::class, 'update']);
     Route::get('/buyer/profile', [BuyerProfileController::class, 'show']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart', [CartController::class, 'store']);
+    Route::put('/cart/{id}', [CartController::class, 'update']);
+    Route::delete('/cart/{id}', [CartController::class, 'destroy']);
+    Route::delete('/cart', [CartController::class, 'clear']);
 });
 
 //Admins Routes

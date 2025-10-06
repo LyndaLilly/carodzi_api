@@ -31,15 +31,20 @@ class Buyer extends Authenticatable
     ];
 
     protected $casts = [
-        'verified'                => 'boolean',
-        'profile_updated'         => 'boolean',
-        'email_verified_at'       => 'datetime',
-        'password_reset_sent_at'  => 'datetime',
+        'verified'               => 'boolean',
+        'profile_updated'        => 'boolean',
+        'email_verified_at'      => 'datetime',
+        'password_reset_sent_at' => 'datetime',
     ];
 
-     public function profile()
+    public function profile()
     {
         return $this->hasOne(BuyerProfile::class, 'buyer_id');
+    }
+
+    public function carts()
+    {
+        return $this->hasMany(Cart::class, 'buyer_id');
     }
 
 }
