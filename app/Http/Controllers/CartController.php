@@ -35,7 +35,7 @@ class CartController extends Controller
                 'quantity'   => $cart->quantity,
                 'total'      => $product->price * $cart->quantity,
                 'image'      => $product->images->first()?->image_path
-                    ? asset('public/uploads/' . $product->images->first()->image_path)
+                    ? asset('uploads/' . $product->images->first()->image_path)
                     : null, // fallback if no image
             ];
         });
