@@ -400,8 +400,7 @@ class SellerController extends Controller
         // Get the subcategory
         $subCategory = \App\Models\SellerSubcategory::findOrFail($request->sub_category_id);
 
-        $seller->status = $subCategory->auto_verify == 0 ? 1 : 0;
-
+        $seller->status = 0;
 
         $seller->category_id     = $request->category_id;
         $seller->sub_category_id = $request->sub_category_id;

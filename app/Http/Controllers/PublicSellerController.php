@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Seller;
@@ -14,7 +13,7 @@ class PublicSellerController extends Controller
             'profile',
             'professionalProfile',
             'products.images',
-            'subcategory'
+            'subcategory',
         ])->where('profile_updated', 1);
 
         // Professional sellers filter
@@ -53,13 +52,13 @@ class PublicSellerController extends Controller
             'profile',
             'professionalProfile',
             'products.images',
-            'subcategory'
+            'subcategory',
         ])
             ->where('profile_updated', 1)
             ->findOrFail($id);
 
         // Attach computed is_verified field
-        $autoVerify = $seller->subcategory && $seller->subcategory->auto_verify == 1;
+        $autoVerify          = $seller->subcategory && $seller->subcategory->auto_verify == 1;
         $seller->is_verified = ($seller->status == 1 && $autoVerify);
 
         return response()->json([
@@ -75,15 +74,15 @@ class PublicSellerController extends Controller
             'profile',
             'professionalProfile',
             'products.images',
-            'subcategory'
+            'subcategory',
         ])
             ->where('profile_updated', 1)
             ->get();
 
         // Attach computed is_verified field
         $sellers->transform(function ($seller) {
-            $autoVerify = $seller->subcategory && $seller->subcategory->auto_verify == 1;
-            $seller->is_verified = ($seller->status == 1 && $autoVerify);
+            $autoVerify          = $seller->subcategory && $seller->subcategory->auto_verify == 1;
+            $seller->is_verified = ($autoVerify && $seller->status == 1);
             return $seller;
         });
 
