@@ -12,13 +12,15 @@ class CartController extends Controller
      */
     private function getImageUrl($path)
     {
-        if (!$path) return null;
+        if (! $path) {
+            return null;
+        }
 
         if (str_starts_with($path, 'http')) {
             return $path;
         }
 
-        return asset('uploads/' . $path);
+        return asset('public/uploads/' . $path); // ✅ include public in URL
     }
 
     /**
@@ -48,7 +50,7 @@ class CartController extends Controller
     public function index()
     {
         $buyer = Auth::user();
-        if (!$buyer) {
+        if (! $buyer) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
