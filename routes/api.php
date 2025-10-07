@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerProfileController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\WishController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductUploadController;
@@ -103,6 +104,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart-update/{id}', [CartController::class, 'update']);
     Route::delete('/cart-delete/{id}', [CartController::class, 'destroy']);
     Route::delete('/cart-clear', [CartController::class, 'clear']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/wish', [WishController::class, 'index']);
+    Route::post('/wish', [WishController::class, 'store']);
+    Route::put('/wish-update/{id}', [WishController::class, 'update']);
+    Route::delete('/wish-delete/{id}', [WishController::class, 'destroy']);
+    Route::delete('/wish-clear', [WishController::class, 'clear']);
 });
 
 //Admins Routes
