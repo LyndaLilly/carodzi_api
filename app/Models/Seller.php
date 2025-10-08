@@ -86,4 +86,9 @@ class Seller extends Authenticatable
     {
         return $this->hasMany(\App\Models\ProductUpload::class, 'seller_id', 'id');
     }
+
+       public function orders()
+    {
+        return $this->hasMany(Order::class, 'seller_id');
+    }
 }

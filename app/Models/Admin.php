@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // If you want API tokens
 
+
 class Admin extends Authenticatable
 {
     use HasApiTokens, Notifiable;

@@ -114,6 +114,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/wish-clear', [WishController::class, 'clear']);
 });
 
+// 🧾 Orders
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+});
+
 //Admins Routes
 
 Route::middleware('auth:admin')->get('/admin/me', function (Request $request) {

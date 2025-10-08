@@ -51,5 +51,9 @@ class Buyer extends Authenticatable
     {
         return $this->hasMany(Wish::class, 'buyer_id');
     }
+       public function orders()
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
 
 }

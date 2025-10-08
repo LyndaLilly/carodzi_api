@@ -62,4 +62,9 @@ class ProductUpload extends Model
     {
         return $this->seller ? (int) $this->seller->is_professional : 0;
     }
+
+       public function orders()
+    {
+        return $this->hasMany(Order::class, 'product_id');
+    }
 }
