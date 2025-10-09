@@ -7,29 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'buyer_id',
-        'delivery_address',
-        'delivery_location',
-        'delivery_fee',
-        'payment_reference',
-        'payment_method',
-        'payment_status',
-        'crypto_proof',
-        'order_status',
+        'buyer_fullname',
+        'buyer_email',
+        'buyer_phone',
+        'buyer_delivery_location',
         'total_amount',
+        'payment_method',
+        'status',
     ];
-
-    // Relationships
-    public function buyer()
-    {
-        return $this->belongsTo(Buyer::class, 'buyer_id');
-    }
 
     public function items()
     {
-        return $this->hasMany(OrderItem::class, 'order_id');
+        return $this->hasMany(OrderItem::class);
     }
 }
+

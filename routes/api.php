@@ -117,12 +117,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // 🧾 Orders
 
-Route::middleware('auth:sanctum')->group(function () {
+// Route::middleware('auth:sanctum')->group(function () {
+//     Route::post('/orders', [OrderController::class, 'store']);
+//     Route::get('/orders', [OrderController::class, 'index']);
+//     Route::get('/orders/{id}', [OrderController::class, 'show']);
+// });
+
+Route::middleware('auth:buyer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
-    Route::post('/orders/crypto', [OrderController::class, 'storeCryptoOrder']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
 });
+
 
 //Admins Routes
 

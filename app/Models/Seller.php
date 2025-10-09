@@ -91,4 +91,9 @@ class Seller extends Authenticatable
     {
         return $this->hasMany(Order::class, 'seller_id');
     }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class, 'seller_id');
+    }
 }
