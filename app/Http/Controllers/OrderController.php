@@ -10,7 +10,9 @@ use App\Notifications\AdminOrderCreated;
 use App\Notifications\SellerOrderAlert;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+// 👈 add this at the top
 
 class OrderController extends Controller
 {
@@ -78,68 +80,90 @@ class OrderController extends Controller
         ]);
     }
 
+    public function storeCryptoOrder(Request $request)
+    {
+        // 🪵 Log incoming request data
+        Log::info('Incoming Crypto Order Request:', $request->all());
 
-    /**
- * 💰 Store a new Bitcoin (Crypto) order
- */
-public function storeCryptoOrder(Request $request)
-{
-    $request->validate([
-        'product_id'        => 'required|exists:productupload,id',
-        'quantity'          => 'required|integer|min:1',
-        'delivery_address'  => 'required|string',
-        'delivery_location' => 'nullable|string',
-        'delivery_fee'      => 'nullable|numeric',
-        'crypto_proof'      => 'required|string', // hash, screenshot URL, or file path
-    ]);
+        try {
+            $request->validate([
+                'product_id'        => 'required|exists:productupload,id',
+                'quantity'          => 'required|integer|min:1',
+                'delivery_address'  => 'required|string',
+                'delivery_location' => 'nullable|string',
+                'delivery_fee'      => 'nullable|numeric',
+                'crypto_proof'      => 'required|string', // hash, screenshot URL, or file path
+            ]);
 
-    $buyer = Auth::user();
+            $buyer = Auth::user();
 
-    if (! $buyer || ! $buyer instanceof Buyer) {
-        return response()->json(['message' => 'Unauthorized or invalid buyer'], 401);
+            if (! $buyer || ! $buyer instanceof Buyer) {
+                Log::warning('Unauthorized buyer detected during crypto order attempt.');
+                return response()->json(['message' => 'Unauthorized or invalid buyer'], 401);
+            }
+
+            // 🧩 Log before product/seller fetch
+            Log::info('Fetching product and seller', ['product_id' => $request->product_id]);
+
+            $product = ProductUpload::findOrFail($request->product_id);
+            $seller  = Seller::find($product->seller_id);
+
+            // 💰 Calculate total
+            $productPrice = $product->price;
+            $deliveryFee  = $request->delivery_fee ?? 0;
+            $totalAmount  = ($productPrice * $request->quantity) + $deliveryFee;
+
+            // 🪵 Log before order creation
+            Log::info('Creating order', [
+                'buyer_id'     => $buyer->id,
+                'seller_id'    => $seller ? $seller->id : null,
+                'total_amount' => $totalAmount,
+            ]);
+
+            $order = Order::create([
+                'buyer_id'          => $buyer->id,
+                'seller_id'         => $seller ? $seller->id : null,
+                'product_id'        => $product->id,
+                'product_name'      => $product->name,
+                'product_price'     => $productPrice,
+                'quantity'          => $request->quantity,
+                'delivery_address'  => $request->delivery_address,
+                'delivery_location' => $request->delivery_location,
+                'delivery_fee'      => $deliveryFee,
+                'payment_method'    => 'crypto',
+                'payment_status'    => 'pending',
+                'crypto_proof'      => $request->crypto_proof,
+                'total_amount'      => $totalAmount,
+            ]);
+
+            Log::info('✅ Crypto order created successfully', ['order_id' => $order->id]);
+
+            // 📨 Notify Admin by email
+            $admins = Admin::where('status', true)->get();
+            Notification::send($admins, new AdminOrderCreated($order));
+
+            // 🔔 Notify Seller
+            if ($seller) {
+                $seller->notify(new SellerOrderAlert($order));
+            }
+
+            return response()->json([
+                'message' => 'Crypto order submitted successfully! Awaiting admin confirmation.',
+                'order'   => $order,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('❌ Crypto order failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'An error occurred while processing the crypto order.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
-
-    // 🧩 Get product and seller
-    $product = ProductUpload::findOrFail($request->product_id);
-    $seller  = Seller::find($product->seller_id);
-
-    // 💰 Calculate total
-    $productPrice = $product->price;
-    $deliveryFee  = $request->delivery_fee ?? 0;
-    $totalAmount  = ($productPrice * $request->quantity) + $deliveryFee;
-
-    // 📝 Create the crypto order
-    $order = Order::create([
-        'buyer_id'          => $buyer->id,
-        'seller_id'         => $seller ? $seller->id : null,
-        'product_id'        => $product->id,
-        'product_name'      => $product->name,
-        'product_price'     => $productPrice,
-        'quantity'          => $request->quantity,
-        'delivery_address'  => $request->delivery_address,
-        'delivery_location' => $request->delivery_location,
-        'delivery_fee'      => $deliveryFee,
-        'payment_method'    => 'crypto',
-        'payment_status'    => 'pending',
-        'crypto_proof'      => $request->crypto_proof,
-        'total_amount'      => $totalAmount,
-    ]);
-
-    // 📨 Notify Admin by email
-    $admins = Admin::where('status', true)->get();
-    Notification::send($admins, new AdminOrderCreated($order));
-
-    // 🔔 Notify Seller (dashboard only)
-    if ($seller) {
-        $seller->notify(new SellerOrderAlert($order));
-    }
-
-    return response()->json([
-        'message' => 'Crypto order submitted successfully! Awaiting admin confirmation.',
-        'order'   => $order,
-    ]);
-}
-
 
     public function index()
     {
@@ -163,7 +187,5 @@ public function storeCryptoOrder(Request $request)
 
         return response()->json($order);
     }
-
-
 
 }
