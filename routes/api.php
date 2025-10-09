@@ -6,6 +6,7 @@ use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerProfileController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\WishController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductUploadController;
