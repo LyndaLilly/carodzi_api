@@ -10,29 +10,33 @@ class CreateOrdersTable extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            
-            $table->unsignedBigInteger('buyer_id'); // buyer placing the order
-            
-            // Buyer delivery information
-            $table->string('delivery_fullname');
-            $table->string('delivery_email');
-            $table->string('delivery_phone');
-            $table->text('delivery_location'); // can include address, city, etc.
-            
-            $table->decimal('total_amount', 12, 2); // total price of all items
-            
-            $table->enum('payment_method', ['paystack', 'bitcoin']);
+
+            // Buyer info
+            $table->string('buyer_fullname');
+            $table->string('buyer_email');
+            $table->string('buyer_phone');
+            $table->text('buyer_delivery_location');
+
+            // Product info (single product per order)
+            $table->unsignedBigInteger('product_id');
+            $table->unsignedBigInteger('seller_id');
+            $table->integer('quantity')->default(1);
+            $table->decimal('price', 12, 2);
+            $table->decimal('total_amount', 12, 2);
+
+            // Payment & status info
+            $table->string('payment_method')->default('contact_seller');
+            $table->enum('status', ['pending', 'in_progress', 'completed', 'cancelled'])->default('pending');
             $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
-            
-            $table->text('bitcoin_proof')->nullable(); // for bitcoin: hash or screenshot URL
-            $table->string('paystack_reference')->nullable(); // for paystack payments
-            
-            $table->text('notes')->nullable(); // optional buyer notes
-            
+            $table->text('bitcoin_proof')->nullable();
+            $table->string('paystack_reference')->nullable();
+            $table->text('notes')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
-            
-            $table->foreign('buyer_id')->references('id')->on('buyers')->onDelete('cascade');
+
+            $table->foreign('product_id')->references('id')->on('productupload')->onDelete('cascade');
+            $table->foreign('seller_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
