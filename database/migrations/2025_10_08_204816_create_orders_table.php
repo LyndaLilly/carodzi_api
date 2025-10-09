@@ -6,45 +6,37 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function up()
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
 
-            // Buyer (customer)
-            $table->foreignId('buyer_id')->nullable()->constrained('buyers')->onDelete('set null');
+            $table->foreignId('buyer_id')->constrained('buyers')->onDelete('cascade');
+            $table->foreignId('seller_id')->nullable()->constrained('sellers')->onDelete('cascade');
+            $table->foreignId('product_id')->constrained('productupload')->onDelete('cascade');
 
-            // Seller (product owner)
-            $table->foreignId('seller_id')->nullable()->constrained('sellers')->onDelete('set null');
-
-            // Product (from productupload)
-            $table->foreignId('product_id')->nullable()->constrained('productupload')->onDelete('set null');
             $table->string('product_name');
-            $table->decimal('product_price', 10, 2);
+            $table->decimal('product_price', 15, 2);
             $table->integer('quantity')->default(1);
 
-            // Delivery info
-            $table->string('delivery_address')->nullable();
+            $table->text('delivery_address');
             $table->string('delivery_location')->nullable();
             $table->decimal('delivery_fee', 10, 2)->default(0);
 
-            // Payment info (Paystack or Crypto)
-            $table->string('payment_reference')->nullable(); // Paystack ref or crypto tx hash
-            $table->enum('payment_method', ['paystack', 'crypto', 'other'])->default('paystack');
+            $table->enum('payment_method', ['paystack', 'crypto', 'other'])->default('other');
+            $table->string('payment_reference')->nullable();  // paystack reference
+            $table->string('crypto_proof')->nullable();       // bitcoin hash or uploaded proof
+
             $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
-            $table->text('crypto_proof')->nullable(); // store hash, link, or screenshot path
+            $table->enum('order_status', ['pending', 'processing', 'completed', 'rejected'])->default('pending');
 
-            // Admin order management
-            $table->enum('order_status', ['pending', 'completed', 'rejected'])->default('pending');
-
-            // Totals
-            $table->decimal('total_amount', 10, 2)->default(0);
+            $table->decimal('total_amount', 15, 2)->default(0);
 
             $table->timestamps();
         });
     }
 
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('orders');
     }

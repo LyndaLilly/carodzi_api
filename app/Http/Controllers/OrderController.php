@@ -78,6 +78,69 @@ class OrderController extends Controller
         ]);
     }
 
+
+    /**
+ * 💰 Store a new Bitcoin (Crypto) order
+ */
+public function storeCryptoOrder(Request $request)
+{
+    $request->validate([
+        'product_id'        => 'required|exists:productupload,id',
+        'quantity'          => 'required|integer|min:1',
+        'delivery_address'  => 'required|string',
+        'delivery_location' => 'nullable|string',
+        'delivery_fee'      => 'nullable|numeric',
+        'crypto_proof'      => 'required|string', // hash, screenshot URL, or file path
+    ]);
+
+    $buyer = Auth::user();
+
+    if (! $buyer || ! $buyer instanceof Buyer) {
+        return response()->json(['message' => 'Unauthorized or invalid buyer'], 401);
+    }
+
+    // 🧩 Get product and seller
+    $product = ProductUpload::findOrFail($request->product_id);
+    $seller  = Seller::find($product->seller_id);
+
+    // 💰 Calculate total
+    $productPrice = $product->price;
+    $deliveryFee  = $request->delivery_fee ?? 0;
+    $totalAmount  = ($productPrice * $request->quantity) + $deliveryFee;
+
+    // 📝 Create the crypto order
+    $order = Order::create([
+        'buyer_id'          => $buyer->id,
+        'seller_id'         => $seller ? $seller->id : null,
+        'product_id'        => $product->id,
+        'product_name'      => $product->name,
+        'product_price'     => $productPrice,
+        'quantity'          => $request->quantity,
+        'delivery_address'  => $request->delivery_address,
+        'delivery_location' => $request->delivery_location,
+        'delivery_fee'      => $deliveryFee,
+        'payment_method'    => 'crypto',
+        'payment_status'    => 'pending',
+        'crypto_proof'      => $request->crypto_proof,
+        'total_amount'      => $totalAmount,
+    ]);
+
+    // 📨 Notify Admin by email
+    $admins = Admin::where('status', true)->get();
+    Notification::send($admins, new AdminOrderCreated($order));
+
+    // 🔔 Notify Seller (dashboard only)
+    if ($seller) {
+        $seller->notify(new SellerOrderAlert($order));
+    }
+
+    return response()->json([
+        'message' => 'Crypto order submitted successfully! Awaiting admin confirmation.',
+        'order'   => $order,
+    ]);
+}
+
+
     public function index()
     {
         $buyer = Auth::user();
@@ -100,5 +163,7 @@ class OrderController extends Controller
 
         return response()->json($order);
     }
+
+
 
 }
