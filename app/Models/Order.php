@@ -11,11 +11,6 @@ class Order extends Model
 
     protected $fillable = [
         'buyer_id',
-        'seller_id',
-        'product_id',
-        'product_name',
-        'product_price',
-        'quantity',
         'delivery_address',
         'delivery_location',
         'delivery_fee',
@@ -27,25 +22,14 @@ class Order extends Model
         'total_amount',
     ];
 
-    /*--------------------------------
-    | 🔗 RELATIONSHIPS
-    --------------------------------*/
-    
-    // Each order belongs to a buyer
+    // Relationships
     public function buyer()
     {
         return $this->belongsTo(Buyer::class, 'buyer_id');
     }
 
-    // Each order belongs to a seller (product owner)
-    public function seller()
+    public function items()
     {
-        return $this->belongsTo(Seller::class, 'seller_id');
-    }
-
-    // Each order references a product from productupload
-    public function product()
-    {
-        return $this->belongsTo(ProductUpload::class, 'product_id');
+        return $this->hasMany(OrderItem::class, 'order_id');
     }
 }
