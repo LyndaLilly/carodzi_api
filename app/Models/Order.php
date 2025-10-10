@@ -11,9 +11,10 @@ class Order extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'buyer_fullname',
-        'buyer_email',
-        'buyer_phone',
+        'buyer_id',
+        'delivery_fullname',
+        'delivery_email',
+        'delivery_phone',
         'buyer_delivery_location',
         'product_id',
         'seller_id',

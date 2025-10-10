@@ -14,10 +14,10 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'buyer_fullname' => 'required|string|max:255',
-            'buyer_email' => 'required|email',
-            'buyer_phone' => 'required|string|max:20',
+        $validated = $request->validate([
+            'delivery_fullname' => 'required|string|max:255',
+            'delivery_email' => 'required|email',
+            'delivery_phone' => 'required|string|max:20',
             'buyer_delivery_location' => 'required|string|max:255',
             'product_id' => 'required|integer|exists:productupload,id',
             'quantity' => 'required|integer|min:1',
@@ -34,9 +34,10 @@ class OrderController extends Controller
 
             // ✅ Create a single order linked directly to the product
             $order = Order::create([
-                'buyer_fullname' => $request->buyer_fullname,
-                'buyer_email' => $request->buyer_email,
-                'buyer_phone' => $request->buyer_phone,
+                'buyer_id' => auth()->id() ?? null, // optional if buyers can order while logged in
+                'delivery_fullname' => $request->delivery_fullname,
+                'delivery_email' => $request->delivery_email,
+                'delivery_phone' => $request->delivery_phone,
                 'buyer_delivery_location' => $request->buyer_delivery_location,
                 'product_id' => $request->product_id,
                 'seller_id' => $product->seller_id,
@@ -47,7 +48,7 @@ class OrderController extends Controller
                 'status' => 'pending',
             ]);
 
-             \Log::info('Order validated successfully', $validated);
+            \Log::info('✅ Order created successfully', $order->toArray());
 
             DB::commit();
 
@@ -58,6 +59,7 @@ class OrderController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
+            \Log::error('❌ Order creation failed', ['error' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Failed to place order.',
                 'details' => $e->getMessage(),
