@@ -36,7 +36,7 @@ class CreateOrdersTable extends Migration
             $table->softDeletes();
 
             $table->foreign('product_id')->references('id')->on('productupload')->onDelete('cascade');
-            $table->foreign('seller_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('seller_id')->references('id')->on('sellers')->onDelete('cascade');
         });
     }
 
