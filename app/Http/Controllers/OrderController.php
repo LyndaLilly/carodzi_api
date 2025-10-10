@@ -5,6 +5,8 @@ use App\Models\Order;
 use App\Models\ProductUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\NewOrderNotification;
+
 
 class OrderController extends Controller
 {
