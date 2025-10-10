@@ -3,10 +3,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\ProductUpload;
+use App\Notifications\NewOrderNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Notifications\NewOrderNotification;
-
 
 class OrderController extends Controller
 {
@@ -49,8 +48,10 @@ class OrderController extends Controller
                 'payment_status'          => 'pending',
             ]);
 
-            // --- Notify the seller via Laravel Notification ---
             $seller = $product->seller;
+            \Log::info('Seller for notification:', ['seller' => $seller]);
+
+            // --- Notify the seller via Laravel Notification ---
             if ($seller) {
                 $seller->notify(new NewOrderNotification($product->name));
             }
