@@ -45,7 +45,7 @@ class OrderController extends Controller
                 'price' => $request->price,
                 'total_amount' => $request->total_price,
                 'payment_method' => $request->payment_method ?? 'contact_seller',
-                'status' => 'pending',
+                'payment_status' => 'pending',
             ]);
 
             \Log::info('✅ Order created successfully', $order->toArray());
