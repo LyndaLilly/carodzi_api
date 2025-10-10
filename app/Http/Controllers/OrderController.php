@@ -47,6 +47,8 @@ class OrderController extends Controller
                 'status' => 'pending',
             ]);
 
+             \Log::info('Order validated successfully', $validated);
+
             DB::commit();
 
             return response()->json([
