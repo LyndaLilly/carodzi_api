@@ -15,6 +15,10 @@ use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SellerNotificationController;
+
+
+
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -80,6 +84,8 @@ Route::get('/public-sellers', [PublicSellerController::class, 'index']);     // 
 Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
 Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers']);
 
+Route::middleware('auth:sanctum')->get('/seller/notifications', [SellerNotificationController::class, 'index']);
+
 //Buyers
 
 Route::post('/buyers/register', [BuyerController::class, 'registerBuyer']);
@@ -116,13 +122,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // 🧾 Orders
-
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::post('/orders', [OrderController::class, 'store']);
-//     Route::get('/orders', [OrderController::class, 'index']);
-//     Route::get('/orders/{id}', [OrderController::class, 'show']);
-// });
-
 Route::middleware('auth:buyer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders', [OrderController::class, 'index']);

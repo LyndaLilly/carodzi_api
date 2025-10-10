@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Order;
@@ -15,15 +14,15 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'delivery_fullname' => 'required|string|max:255',
-            'delivery_email' => 'required|email',
-            'delivery_phone' => 'required|string|max:20',
+            'delivery_fullname'       => 'required|string|max:255',
+            'delivery_email'          => 'required|email',
+            'delivery_phone'          => 'required|string|max:20',
             'buyer_delivery_location' => 'required|string|max:255',
-            'product_id' => 'required|integer|exists:productupload,id',
-            'quantity' => 'required|integer|min:1',
-            'price' => 'required|numeric|min:0',
-            'total_price' => 'required|numeric|min:0',
-            'payment_method' => 'nullable|string|max:50',
+            'product_id'              => 'required|integer|exists:productupload,id',
+            'quantity'                => 'required|integer|min:1',
+            'price'                   => 'required|numeric|min:0',
+            'total_price'             => 'required|numeric|min:0',
+            'payment_method'          => 'nullable|string|max:50',
         ]);
 
         try {
@@ -34,26 +33,32 @@ class OrderController extends Controller
 
             // ✅ Create a single order linked directly to the product
             $order = Order::create([
-                'buyer_id' => auth()->id() ?? null, // optional if buyers can order while logged in
-                'delivery_fullname' => $request->delivery_fullname,
-                'delivery_email' => $request->delivery_email,
-                'delivery_phone' => $request->delivery_phone,
+                'buyer_id'                => auth()->id() ?? null, // optional if buyers can order while logged in
+                'delivery_fullname'       => $request->delivery_fullname,
+                'delivery_email'          => $request->delivery_email,
+                'delivery_phone'          => $request->delivery_phone,
                 'buyer_delivery_location' => $request->buyer_delivery_location,
-                'product_id' => $request->product_id,
-                'seller_id' => $product->seller_id,
-                'quantity' => $request->quantity,
-                'price' => $request->price,
-                'total_amount' => $request->total_price,
-                'payment_method' => $request->payment_method ?? 'contact_seller',
-                'payment_status' => 'pending',
+                'product_id'              => $request->product_id,
+                'seller_id'               => $product->seller_id,
+                'quantity'                => $request->quantity,
+                'price'                   => $request->price,
+                'total_amount'            => $request->total_price,
+                'payment_method'          => $request->payment_method ?? 'contact_seller',
+                'payment_status'          => 'pending',
             ]);
+
+            // --- Notify the seller via Laravel Notification ---
+            $seller = $product->seller;
+            if ($seller) {
+                $seller->notify(new NewOrderNotification($product->name));
+            }
 
             \Log::info('✅ Order created successfully', $order->toArray());
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Order placed successfully!',
+                'message'  => 'Order placed successfully!',
                 'order_id' => $order->id,
             ], 201);
 
@@ -61,7 +66,7 @@ class OrderController extends Controller
             DB::rollBack();
             \Log::error('❌ Order creation failed', ['error' => $e->getMessage()]);
             return response()->json([
-                'error' => 'Failed to place order.',
+                'error'   => 'Failed to place order.',
                 'details' => $e->getMessage(),
             ], 500);
         }
