@@ -86,6 +86,12 @@ Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers
 
 Route::middleware('auth:sanctum')->get('/seller/notifications', [SellerNotificationController::class, 'index']);
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/seller/notifications/{id}/read', [SellerNotificationController::class, 'markAsRead']);
+    Route::post('/seller/notifications/read-all', [SellerNotificationController::class, 'markAllAsRead']);
+});
+
+
 //Buyers
 
 Route::post('/buyers/register', [BuyerController::class, 'registerBuyer']);

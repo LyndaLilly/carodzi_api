@@ -40,4 +40,55 @@ class SellerNotificationController extends Controller
             return response()->json(['error' => 'Failed to fetch notifications'], 500);
         }
     }
+
+    /**
+ * Mark a single notification as read
+ */
+public function markAsRead(Request $request, $id)
+{
+    $seller = $request->user('sanctum');
+    if (!$seller) {
+        Log::warning("Seller not authenticated while marking notification as read.");
+        return response()->json(['error' => 'Unauthenticated'], 401);
+    }
+
+    try {
+        $notification = $seller->notifications()->where('id', $id)->first();
+
+        if (!$notification) {
+            return response()->json(['error' => 'Notification not found'], 404);
+        }
+
+        $notification->markAsRead();
+
+        Log::info("Notification ID {$id} marked as read for seller ID {$seller->id}");
+
+        return response()->json(['message' => 'Notification marked as read']);
+    } catch (\Exception $e) {
+        Log::error("Error marking notification as read: ".$e->getMessage());
+        return response()->json(['error' => 'Failed to mark notification'], 500);
+    }
+}
+
+/**
+ * Optional: mark all notifications as read
+ */
+public function markAllAsRead(Request $request)
+{
+    $seller = $request->user('sanctum');
+    if (!$seller) {
+        Log::warning("Seller not authenticated while marking all notifications as read.");
+        return response()->json(['error' => 'Unauthenticated'], 401);
+    }
+
+    try {
+        $seller->unreadNotifications->markAsRead();
+        Log::info("All notifications marked as read for seller ID {$seller->id}");
+        return response()->json(['message' => 'All notifications marked as read']);
+    } catch (\Exception $e) {
+        Log::error("Error marking all notifications as read: ".$e->getMessage());
+        return response()->json(['error' => 'Failed to mark notifications'], 500);
+    }
+}
+
 }
