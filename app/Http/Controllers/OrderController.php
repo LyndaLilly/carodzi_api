@@ -97,4 +97,17 @@ class OrderController extends Controller
 
         return response()->json($order);
     }
+
+    public function buyerOrders()
+    {
+        $buyerId = auth()->id();
+
+        $orders = Order::with(['product', 'seller'])
+            ->where('buyer_id', $buyerId)
+            ->latest()
+            ->get();
+
+        return response()->json($orders);
+    }
+
 }

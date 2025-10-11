@@ -91,9 +91,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // 🟢 Product Reviews
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/reviews', [ProductReviewController::class, 'store']);                                     
-    Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);       
-    Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']); 
+    Route::post('/reviews', [ProductReviewController::class, 'store']);
+    Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);
+    Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']);
 });
 
 //Buyers
@@ -134,9 +134,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // 🧾 Orders
 Route::middleware('auth:buyer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
-    Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
 });
+
+
 
 //Admins Routes
 
@@ -169,6 +171,7 @@ Route::middleware(['auth:admin', 'is.superadmin'])->group(function () {
 Route::middleware(['auth:admin'])->group(function () {
     Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
     Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
+    Route::get('/orders', [OrderController::class, 'index']);
 });
 
 Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCategories']);
