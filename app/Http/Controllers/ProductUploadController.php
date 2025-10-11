@@ -174,14 +174,61 @@ class ProductUploadController extends Controller
         ]);
     }
 
+    // public function getSingleProduct($id)
+    // {
+    //     $product = ProductUpload::with([
+    //         'images',
+    //         'seller.profile',
+    //         'seller.professionalProfile',
+    //         'seller.subcategory', // ✅ add this line so we can check auto_verify
+    //         'category',
+    //     ])->findOrFail($id);
+
+    //     // Determine if seller is professional
+    //     $product->is_professional = $product->seller ? $product->seller->is_professional : 0;
+
+    //     // Handle seller profile image and verification
+    //     if ($product->seller) {
+    //         if ($product->seller->is_professional) {
+    //             $product->seller->profile_image = $product->seller->professionalProfile->profile_image ?? null;
+    //         } else {
+    //             $product->seller->profile_image = $product->seller->profile->profile_image ?? null;
+    //         }
+
+    //         // ✅ Updated Verification Logic:
+    //         // Verified if:
+    //         // (1) seller->status == 1  OR
+    //         // (2) seller->subcategory->auto_verify == 1  OR
+    //         // (3) category->auto_verify == 1
+    //         $autoVerifySubcategory = $product->seller->subcategory
+    //             ? $product->seller->subcategory->auto_verify == 1
+    //             : false;
+
+    //         $autoVerifyCategory = $product->category
+    //             ? $product->category->auto_verify == 1
+    //             : false;
+
+    //         $isVerified = $product->seller->status == 1 || $autoVerifySubcategory || $autoVerifyCategory;
+
+    //         // Attach verification info directly to the seller
+    //         $product->seller->is_verified = $isVerified;
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'product' => $product,
+    //     ]);
+    // }
+
     public function getSingleProduct($id)
     {
         $product = ProductUpload::with([
             'images',
             'seller.profile',
             'seller.professionalProfile',
-            'seller.subcategory', // ✅ add this line so we can check auto_verify
+            'seller.subcategory',
             'category',
+            'reviews.buyer', // 👈 include reviews + buyer info
         ])->findOrFail($id);
 
         // Determine if seller is professional
@@ -195,11 +242,6 @@ class ProductUploadController extends Controller
                 $product->seller->profile_image = $product->seller->profile->profile_image ?? null;
             }
 
-            // ✅ Updated Verification Logic:
-            // Verified if:
-            // (1) seller->status == 1  OR
-            // (2) seller->subcategory->auto_verify == 1  OR
-            // (3) category->auto_verify == 1
             $autoVerifySubcategory = $product->seller->subcategory
                 ? $product->seller->subcategory->auto_verify == 1
                 : false;
@@ -210,9 +252,12 @@ class ProductUploadController extends Controller
 
             $isVerified = $product->seller->status == 1 || $autoVerifySubcategory || $autoVerifyCategory;
 
-            // Attach verification info directly to the seller
             $product->seller->is_verified = $isVerified;
         }
+
+        // ✅ Add computed fields
+        $product->average_rating = $product->reviews->avg('rating');
+        $product->review_count   = $product->reviews->count();
 
         return response()->json([
             'success' => true,

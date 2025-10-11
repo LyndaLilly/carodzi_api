@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +11,7 @@ class ProductUpload extends Model
     protected $table = 'productupload';
 
     protected $fillable = [
-         'name', 
+        'name',
         'seller_id',
         'category_id',
         'subcategory_id',
@@ -23,14 +22,14 @@ class ProductUpload extends Model
         'ram',
         'location',
         'address',
-        'price',     
+        'price',
         'description',
         'is_active',
 
         'specialization',
         'qualification',
         'availability',
-        'rate',          // For services
+        'rate', // For services
     ];
 
     // Automatically include in JSON
@@ -57,14 +56,19 @@ class ProductUpload extends Model
         return $this->hasMany(ProductUploadImage::class, 'productupload_id');
     }
 
-
     public function getIsProfessionalAttribute()
     {
         return $this->seller ? (int) $this->seller->is_professional : 0;
     }
 
-       public function orders()
+    public function orders()
     {
         return $this->hasMany(Order::class, 'product_id');
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(ProductReview::class, 'productupload_id');
+    }
+
 }

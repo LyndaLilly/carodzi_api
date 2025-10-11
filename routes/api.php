@@ -5,20 +5,18 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerProfileController;
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\WishController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\SellerNotificationController;
+use App\Http\Controllers\WishController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\SellerNotificationController;
-
-
-
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -91,6 +89,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seller/notifications/read-all', [SellerNotificationController::class, 'markAllAsRead']);
 });
 
+// 🟢 Product Reviews
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/reviews', [ProductReviewController::class, 'store']);                                     
+    Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);       
+    Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']); 
+});
 
 //Buyers
 
@@ -133,7 +137,6 @@ Route::middleware('auth:buyer')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
 });
-
 
 //Admins Routes
 
