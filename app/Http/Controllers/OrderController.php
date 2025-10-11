@@ -123,9 +123,6 @@ class OrderController extends Controller
                                 if (! preg_match('/^https?:\/\//', $image->image_url)) {
                                     $image->image_url = asset('public/uploads/' . ltrim($image->image_url, '/'));
                                 }
-                            } else {
-                                // 🖼️ Optional fallback if no image exists
-                                $image->image_url = asset('public/uploads/default.png');
                             }
                         }
                     }
