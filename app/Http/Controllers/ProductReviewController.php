@@ -1,12 +1,10 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\ProductReview;
-use App\Models\Order;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ProductReviewController extends Controller
 {
@@ -16,14 +14,33 @@ class ProductReviewController extends Controller
         try {
             $validated = $request->validate([
                 'productupload_id' => 'required|exists:productupload,id',
-                'order_id'         => 'required|exists:orders,id|unique:product_reviews,order_id',
+                'order_id'         => 'required|exists:orders,id',
                 'rating'           => 'required|integer|min:1|max:5',
                 'review'           => 'nullable|string',
             ]);
 
-            // Get buyer ID — from auth or payload
             $buyerId = Auth::id() ?? $request->input('buyer_id');
 
+            // Check if the buyer has already reviewed this product
+            $existingReview = ProductReview::where('buyer_id', $buyerId)
+                ->where('productupload_id', $validated['productupload_id'])
+                ->first();
+
+            if ($existingReview) {
+                // Update existing review
+                $existingReview->update([
+                    'rating' => $validated['rating'],
+                    'review' => $validated['review'] ?? $existingReview->review,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Review updated successfully!',
+                    'review'  => $existingReview,
+                ], 200);
+            }
+
+            // Create new review
             $review = ProductReview::create([
                 'productupload_id' => $validated['productupload_id'],
                 'buyer_id'         => $buyerId,
@@ -50,7 +67,7 @@ class ProductReviewController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create review',
+                'message' => 'Failed to create/update review',
                 'error'   => $e->getMessage(),
             ], 500);
         }
@@ -79,7 +96,7 @@ class ProductReviewController extends Controller
             ->avg('rating');
 
         return response()->json([
-            'success' => true,
+            'success'        => true,
             'average_rating' => round($average ?? 0, 1),
         ]);
     }
