@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+
+    /**
+     * Helper to get full image URL
+     */
     private function getImageUrl($path)
     {
         if (! $path) {
@@ -19,9 +23,8 @@ class OrderController extends Controller
             return $path;
         }
 
-        return asset('public/uploads/' . $path); // ✅ include public in URL
+        return asset('public/uploads/' . ltrim($path, '/'));
     }
-
     /**
      * Store a single order (one product per order)
      */
@@ -122,21 +125,15 @@ class OrderController extends Controller
                 ], 401);
             }
 
-            $orders = Order::with(['product.images', 'seller'])
+            $orders = Order::with(['product.images'])
                 ->where('buyer_id', $buyerId)
                 ->latest()
                 ->get()
                 ->map(function ($order) {
-                    // ✅ Safely handle product and images
-                    if ($order->product && $order->product->images) {
-                        foreach ($order->product->images as $image) {
-                            // Use the helper function to generate full URL
-                            $image->image_url = $this->getImageUrl($image->image_url);
-                        }
-                    }
+                    // Safely get first product image
+                    $firstImage = $order->product?->images?->first()?->image_url;
 
-                    // Optionally include first image for convenience
-                    $firstImage                 = $order->product?->images->first()?->image_url;
+                    // Generate full URL
                     $order->product_first_image = $this->getImageUrl($firstImage);
 
                     return $order;
