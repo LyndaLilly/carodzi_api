@@ -9,10 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-
-    /**
-     * ✅ Helper to format full image URL (same logic as CartController)
-     */
     private function getImageUrl($path)
     {
         if (! $path) {
@@ -23,8 +19,9 @@ class OrderController extends Controller
             return $path;
         }
 
-        return asset('public/uploads/' . $path);
+        return asset('public/uploads/' . $path); // ✅ include public in URL
     }
+
     /**
      * Store a single order (one product per order)
      */
@@ -120,55 +117,34 @@ class OrderController extends Controller
             $buyerId = auth()->id();
 
             if (! $buyerId) {
-                \Log::warning('⚠️ Buyer not authenticated while trying to fetch orders');
                 return response()->json([
                     'error' => 'Unauthorized. Please log in as a buyer.',
                 ], 401);
             }
-
-            \Log::info('🔍 Fetching orders for buyer ID:', ['buyer_id' => $buyerId]);
 
             $orders = Order::with(['product.images', 'seller'])
                 ->where('buyer_id', $buyerId)
                 ->latest()
                 ->get()
                 ->map(function ($order) {
-                    $product = $order->product;
+                    // ✅ Safely handle product and images
+                    if ($order->product && $order->product->images) {
+                        foreach ($order->product->images as $image) {
+                            // Use the helper function to generate full URL
+                            $image->image_url = $this->getImageUrl($image->image_url);
+                        }
+                    }
 
-                    // ✅ Get first product image using the same helper logic
-                    $firstImagePath = $product?->images->first()?->image_path;
-                    $firstImageUrl  = $this->getImageUrl($firstImagePath);
+                    // Optionally include first image for convenience
+                    $firstImage                 = $order->product?->images->first()?->image_url;
+                    $order->product_first_image = $this->getImageUrl($firstImage);
 
-                    return [
-                        'order_id'       => $order->id,
-                        'product_id'     => $product?->id,
-                        'product_name'   => $product?->name,
-                        'product_image'  => $firstImageUrl,
-                        'quantity'       => $order->quantity,
-                        'price'          => $order->price,
-                        'total'          => $order->total_amount,
-                        'payment_status' => $order->payment_status,
-                        'seller'         => [
-                            'id'   => $order->seller?->id,
-                            'name' => $order->seller?->business_name,
-                        ],
-                    ];
+                    return $order;
                 });
 
-            \Log::info('✅ Orders fetched successfully', ['total_orders' => $orders->count()]);
-
-            return response()->json([
-                'success' => true,
-                'orders'  => $orders,
-            ]);
+            return response()->json($orders);
 
         } catch (\Throwable $e) {
-            \Log::error('❌ Failed to fetch buyer orders', [
-                'error_message' => $e->getMessage(),
-                'file'          => $e->getFile(),
-                'line'          => $e->getLine(),
-            ]);
-
             return response()->json([
                 'error'   => 'Something went wrong while fetching your orders.',
                 'details' => $e->getMessage(),
