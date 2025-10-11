@@ -9,22 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-
-    /**
-     * Helper to get full image URL
-     */
-    private function getImageUrl($path)
-    {
-        if (! $path) {
-            return null;
-        }
-
-        if (str_starts_with($path, 'http')) {
-            return $path;
-        }
-
-        return asset('public/uploads/' . ltrim($path, '/'));
-    }
     /**
      * Store a single order (one product per order)
      */
@@ -120,28 +104,40 @@ class OrderController extends Controller
             $buyerId = auth()->id();
 
             if (! $buyerId) {
+                \Log::warning('⚠️ Buyer not authenticated while trying to fetch orders');
                 return response()->json([
                     'error' => 'Unauthorized. Please log in as a buyer.',
                 ], 401);
             }
 
-            $orders = Order::with(['product.images'])
+            \Log::info('🔍 Fetching orders for buyer ID:', ['buyer_id' => $buyerId]);
+
+            $orders = Order::with(['product.images', 'seller'])
                 ->where('buyer_id', $buyerId)
                 ->latest()
                 ->get()
                 ->map(function ($order) {
-                    // Safely get first product image
-                    $firstImage = $order->product?->images?->first()?->image_url;
-
-                    // Generate full URL
-                    $order->product_first_image = $this->getImageUrl($firstImage);
-
+                    if ($order->product && $order->product->images) {
+                        foreach ($order->product->images as $image) {
+                            // Prepend full URL for frontend display
+                            $image->image_url = asset('public/uploads/' . $image->image_url);
+                        }
+                    }
                     return $order;
                 });
+
+            \Log::info('✅ Orders fetched successfully', ['total_orders' => $orders->count()]);
 
             return response()->json($orders);
 
         } catch (\Throwable $e) {
+            \Log::error('❌ Failed to fetch buyer orders', [
+                'error_message' => $e->getMessage(),
+                'file'          => $e->getFile(),
+                'line'          => $e->getLine(),
+                'trace'         => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'error'   => 'Something went wrong while fetching your orders.',
                 'details' => $e->getMessage(),
