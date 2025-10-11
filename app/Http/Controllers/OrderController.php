@@ -98,55 +98,55 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
+    private function getImageUrl($path)
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http')) {
+            return $path;
+        }
+
+        return asset('public/uploads/' . $path);
+    }
+
+    private function transformOrder($order)
+    {
+        $product    = $order->product;
+        $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
+        $image      = $this->getImageUrl($firstImage);
+
+        return [
+            'order_id'       => $order->id,
+            'product_id'     => $product->id,
+            'name'           => $product->name,
+            'price'          => $product->price,
+            'total_amount'   => $order->total_amount,
+            'payment_status' => $order->payment_status,
+            'image'          => $image, // ✅ same as cart
+            'seller'         => $order->seller?->business_name,
+        ];
+    }
+
     public function buyerOrders()
     {
-        try {
-            $buyerId = auth()->id();
-
-            if (! $buyerId) {
-                \Log::warning('⚠️ Buyer not authenticated while trying to fetch orders');
-                return response()->json([
-                    'error' => 'Unauthorized. Please log in as a buyer.',
-                ], 401);
-            }
-
-            \Log::info('🔍 Fetching orders for buyer ID:', ['buyer_id' => $buyerId]);
-
-            $orders = Order::with(['product.images', 'seller'])
-                ->where('buyer_id', $buyerId)
-                ->latest()
-                ->get()
-                ->map(function ($order) {
-                    if ($order->product && $order->product->images) {
-                        foreach ($order->product->images as $image) {
-                            if (! empty($image->image_url)) { // ✅ Only if it's not null or empty
-                                if (! preg_match('/^https?:\/\//', $image->image_url)) {
-                                    $image->image_url = asset('public/uploads/' . ltrim($image->image_url, '/'));
-                                }
-                            }
-                        }
-                    }
-
-                    return $order;
-                });
-
-            \Log::info('✅ Orders fetched successfully', ['total_orders' => $orders->count()]);
-
-            return response()->json($orders);
-
-        } catch (\Throwable $e) {
-            \Log::error('❌ Failed to fetch buyer orders', [
-                'error_message' => $e->getMessage(),
-                'file'          => $e->getFile(),
-                'line'          => $e->getLine(),
-                'trace'         => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'error'   => 'Something went wrong while fetching your orders.',
-                'details' => $e->getMessage(),
-            ], 500);
+        $buyerId = auth()->id();
+        if (! $buyerId) {
+            return response()->json(['error' => 'Unauthorized.'], 401);
         }
+
+        $orders = Order::with(['product.images', 'seller'])
+            ->where('buyer_id', $buyerId)
+            ->latest()
+            ->get();
+
+        $data = $orders->map(fn($order) => $this->transformOrder($order));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
     }
 
 }
