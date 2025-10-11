@@ -111,42 +111,52 @@ class OrderController extends Controller
         return asset('public/uploads/' . $path);
     }
 
-    private function transformOrder($order)
-    {
-        $product    = $order->product;
-        $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
-        $image      = $this->getImageUrl($firstImage);
+private function transformOrder($order)
+{
+    $product = $order->product;
+    $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
+    $image = $this->getImageUrl($firstImage);
 
-        return [
-            'order_id'       => $order->id,
-            'product_id'     => $product->id,
-            'name'           => $product->name,
-            'price'          => $product->price,
-            'total_amount'   => $order->total_amount,
-            'payment_status' => $order->payment_status,
-            'image'          => $image, // ✅ same as cart
-            'seller'         => $order->seller?->business_name,
-        ];
-    }
+    // ✅ Get review if it exists for this buyer and order
+    $review = ProductReview::where('buyer_id', $order->buyer_id)
+        ->where('order_id', $order->id)
+        ->where('productupload_id', $product->id)
+        ->first();
 
-    public function buyerOrders()
-    {
-        $buyerId = auth()->id();
-        if (! $buyerId) {
-            return response()->json(['error' => 'Unauthorized.'], 401);
-        }
+    return [
+        'order_id'       => $order->id,
+        'product_id'     => $product->id,
+        'name'           => $product->name,
+        'price'          => $product->price,
+        'total_amount'   => $order->total_amount,
+        'payment_status' => $order->payment_status,
+        'status'         => $order->status,
+        'created_at'     => $order->created_at,
+        'image'          => $image,
+        'seller'         => $order->seller?->business_name,
+        'review'         => $review ? [
+            'rating' => $review->rating,
+            'comment'=> $review->review
+        ] : null,
+    ];
+}
 
-        $orders = Order::with(['product.images', 'seller'])
-            ->where('buyer_id', $buyerId)
-            ->latest()
-            ->get();
+public function buyerOrders()
+{
+    $buyerId = auth()->id();
+    if (!$buyerId) return response()->json(['error'=>'Unauthorized'], 401);
 
-        $data = $orders->map(fn($order) => $this->transformOrder($order));
+    $orders = Order::with(['product.images', 'seller'])
+        ->where('buyer_id', $buyerId)
+        ->latest()
+        ->get();
 
-        return response()->json([
-            'success' => true,
-            'data'    => $data,
-        ]);
-    }
+    $data = $orders->map(fn($order) => $this->transformOrder($order));
+
+    return response()->json([
+        'success' => true,
+        'data' => $data,
+    ]);
+}
 
 }
