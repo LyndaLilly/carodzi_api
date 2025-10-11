@@ -111,25 +111,23 @@ class OrderController extends Controller
         return asset('public/uploads/' . $path);
     }
 
-  private function transformOrder($order)
-{
-    $product    = $order->product;
-    $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
-    $image      = $this->getImageUrl($firstImage);
+    private function transformOrder($order)
+    {
+        $product    = $order->product;
+        $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
+        $image      = $this->getImageUrl($firstImage);
 
-    return [
-        'order_id'       => $order->id,
-        'product_id'     => $product?->id,
-        'name'           => $product?->name,
-        'price'          => $product?->price,
-        'total_amount'   => $order->total_amount,
-        'payment_status' => $order->payment_status,
-        'image'          => $image,
-        'seller'         => $order->seller?->business_name,
-        'created_at'     => $order->created_at ? $order->created_at->toIso8601String() : null,
-    ];
-}
-
+        return [
+            'order_id'       => $order->id,
+            'product_id'     => $product->id,
+            'name'           => $product->name,
+            'price'          => $product->price,
+            'total_amount'   => $order->total_amount,
+            'payment_status' => $order->payment_status,
+            'image'          => $image, // ✅ same as cart
+            'seller'         => $order->seller?->business_name,
+        ];
+    }
 
     public function buyerOrders()
     {
@@ -143,17 +141,7 @@ class OrderController extends Controller
             ->latest()
             ->get();
 
-        // Attach reviewed flag
-        $data = $orders->map(function ($order) use ($buyerId) {
-            $reviewExists = ProductReview::where('buyer_id', $buyerId)
-                ->where('product_id', $order->product_id)
-                ->where('order_id', $order->id)
-                ->exists();
-
-            $transformed             = $this->transformOrder($order);
-            $transformed['reviewed'] = $reviewExists; // ✅ add reviewed field
-            return $transformed;
-        });
+        $data = $orders->map(fn($order) => $this->transformOrder($order));
 
         return response()->json([
             'success' => true,
