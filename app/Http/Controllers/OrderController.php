@@ -100,14 +100,40 @@ class OrderController extends Controller
 
     public function buyerOrders()
     {
-        $buyerId = auth()->id();
+        try {
+            $buyerId = auth()->id();
 
-        $orders = Order::with(['product', 'seller'])
-            ->where('buyer_id', $buyerId)
-            ->latest()
-            ->get();
+            if (! $buyerId) {
+                \Log::warning('⚠️ Buyer not authenticated while trying to fetch orders');
+                return response()->json([
+                    'error' => 'Unauthorized. Please log in as a buyer.',
+                ], 401);
+            }
 
-        return response()->json($orders);
+            \Log::info('🔍 Fetching orders for buyer ID:', ['buyer_id' => $buyerId]);
+
+            $orders = Order::with(['product', 'seller'])
+                ->where('buyer_id', $buyerId)
+                ->latest()
+                ->get();
+
+            \Log::info('✅ Orders fetched successfully', ['total_orders' => $orders->count()]);
+
+            return response()->json($orders);
+        } catch (\Throwable $e) {
+            // 🔥 Log the detailed error
+            \Log::error('❌ Failed to fetch buyer orders', [
+                'error_message' => $e->getMessage(),
+                'file'          => $e->getFile(),
+                'line'          => $e->getLine(),
+                'trace'         => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error'   => 'Something went wrong while fetching your orders.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
 
 }
