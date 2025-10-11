@@ -119,12 +119,17 @@ class OrderController extends Controller
                 ->map(function ($order) {
                     if ($order->product && $order->product->images) {
                         foreach ($order->product->images as $image) {
-                            // ✅ Only prepend if it's not already a full URL
-                            if (! preg_match('/^https?:\/\//', $image->image_url)) {
-                                $image->image_url = asset('public/uploads/' . $image->image_url);
+                            if (! empty($image->image_url)) { // ✅ Only if it's not null or empty
+                                if (! preg_match('/^https?:\/\//', $image->image_url)) {
+                                    $image->image_url = asset('public/uploads/' . ltrim($image->image_url, '/'));
+                                }
+                            } else {
+                                // 🖼️ Optional fallback if no image exists
+                                $image->image_url = asset('public/uploads/default.png');
                             }
                         }
                     }
+
                     return $order;
                 });
 
