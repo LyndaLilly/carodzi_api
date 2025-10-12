@@ -101,23 +101,15 @@ class ProductReviewController extends Controller
         ]);
     }
 
-    // 🟠 Get average rating for a seller (based on all their product reviews)
-// 🟠 Get average rating for a seller (based on all their product reviews)
+  // 🟠 Get average rating for a seller (based on all their product reviews)
 public function getSellerAverageRating($sellerId)
 {
     try {
-        Log::info('🔍 Fetching seller average rating...', ['seller_id' => $sellerId]);
-
         $average = ProductReview::whereHas('product', function ($query) use ($sellerId) {
-            $query->where('user_id', $sellerId);
+            $query->where('seller_id', $sellerId); // ✅ corrected column name
         })
         ->where('is_visible', true)
         ->avg('rating');
-
-        Log::info('✅ Seller average rating query executed', [
-            'seller_id' => $sellerId,
-            'average'   => $average
-        ]);
 
         return response()->json([
             'success'        => true,
@@ -125,12 +117,9 @@ public function getSellerAverageRating($sellerId)
         ], 200);
 
     } catch (\Exception $e) {
-        Log::error('❌ Failed to fetch seller average rating', [
+        \Log::error('❌ Failed to fetch seller average rating', [
+            'error' => $e->getMessage(),
             'seller_id' => $sellerId,
-            'error'     => $e->getMessage(),
-            'file'      => $e->getFile(),
-            'line'      => $e->getLine(),
-            'trace'     => $e->getTraceAsString(),
         ]);
 
         return response()->json([
@@ -140,7 +129,6 @@ public function getSellerAverageRating($sellerId)
         ], 500);
     }
 }
-
 
 
 }
