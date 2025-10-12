@@ -9,72 +9,57 @@ use Illuminate\Support\Facades\Log;
 class ProductReviewController extends Controller
 {
     // 🟢 Create review (product + service)
-    public function store(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'productupload_id' => 'required|exists:productupload,id',
-                'order_id'         => 'required|exists:orders,id',
-                'rating'           => 'required|integer|min:1|max:5', // Product rating
-                'service_rating'   => 'nullable|integer|min:1|max:5', // Service rating (optional)
-                'review'           => 'nullable|string',
-            ]);
+  public function store(Request $request)
+{
+    try {
+        // Get the product/service info
+        $upload = ProductUpload::findOrFail($request->input('productupload_id'));
 
-            $buyerId = Auth::id() ?? $request->input('buyer_id');
+        // Check if this is a service or a normal product
+        $isService = $upload->is_professional == 1;
 
-            // Check if buyer already reviewed this product
-            $existingReview = ProductReview::where('buyer_id', $buyerId)
-                ->where('productupload_id', $validated['productupload_id'])
-                ->first();
+        // Conditional validation
+        $rules = [
+            'productupload_id' => 'required|exists:productupload,id',
+            'rating' => 'required|integer|min:1|max:5',
+            'review' => 'nullable|string',
+        ];
 
-            if ($existingReview) {
-                // 🟡 Update existing review
-                $existingReview->update([
-                    'rating'         => $validated['rating'],
-                    'service_rating' => $validated['service_rating'] ?? $existingReview->service_rating,
-                    'review'         => $validated['review'] ?? $existingReview->review,
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Review updated successfully!',
-                    'review'  => $existingReview,
-                ], 200);
-            }
-
-            // 🟢 Create new review
-            $review = ProductReview::create([
-                'productupload_id' => $validated['productupload_id'],
-                'buyer_id'         => $buyerId,
-                'order_id'         => $validated['order_id'],
-                'rating'           => $validated['rating'],
-                'service_rating'   => $validated['service_rating'] ?? null,
-                'review'           => $validated['review'] ?? null,
-                'is_approved'      => true,
-                'is_visible'       => true,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Review added successfully!',
-                'review'  => $review,
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors'  => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('❌ Review creation failed', ['error' => $e->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create/update review',
-                'error'   => $e->getMessage(),
-            ], 500);
+        // If it's NOT a service, require order_id
+        if (!$isService) {
+            $rules['order_id'] = 'required|exists:orders,id';
+        } else {
+            $rules['order_id'] = 'nullable';
         }
+
+        $validated = $request->validate($rules);
+
+        $buyerId = Auth::id();
+
+        $review = ProductReview::create([
+            'productupload_id' => $validated['productupload_id'],
+            'order_id' => $validated['order_id'] ?? null,
+            'buyer_id' => $buyerId,
+            'rating' => $validated['rating'],
+            'review' => $validated['review'] ?? null,
+            'is_approved' => true,
+            'is_visible' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review added successfully!',
+            'review' => $review,
+        ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'errors' => $e->errors(),
+        ], 422);
     }
+}
+
 
     // 🟣 Get reviews for a product
     public function getProductReviews($productId)
