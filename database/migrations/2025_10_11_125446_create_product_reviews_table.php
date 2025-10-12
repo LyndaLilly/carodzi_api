@@ -25,7 +25,8 @@ return new class extends Migration
             $table->unsignedBigInteger('order_id')->nullable()->unique();
 
             // Rating and review fields
-            $table->tinyInteger('rating')->unsigned(); // 1–5 stars
+            $table->tinyInteger('rating')->unsigned(); // 1–5 stars (product rating)
+            $table->tinyInteger('service_rating')->unsigned()->nullable(); // ⭐ Service rating (1–5)
             $table->text('review')->nullable(); // Optional text
 
             // Flags

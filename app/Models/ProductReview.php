@@ -15,7 +15,8 @@ class ProductReview extends Model
         'productupload_id',
         'buyer_id',
         'order_id',
-        'rating',
+        'rating',          // ⭐ Product rating
+        'service_rating',  // 🛠️ Service rating
         'review',
         'is_approved',
         'is_visible',
