@@ -35,7 +35,7 @@ class ProductReviewController extends Controller
 
         // Validation rules
         $rules = [
-            'productupload_id' => 'required|exists:productuploads,id', // ✅ corrected table name
+            'productupload_id' => 'required|exists:productupload,id', // ✅ corrected table name
             'rating'           => 'required|integer|min:1|max:5',
             'review'           => 'nullable|string',
         ];
