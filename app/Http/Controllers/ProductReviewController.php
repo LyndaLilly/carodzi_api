@@ -12,21 +12,35 @@ class ProductReviewController extends Controller
   public function store(Request $request)
 {
     try {
-        // Get the product/service info
-        $upload = ProductUpload::findOrFail($request->input('productupload_id'));
+        \Log::info('📩 Incoming Review Request:', $request->all());
 
-        // Check if this is a service or a normal product
+        // Try to find the product/service
+        $upload = ProductUpload::find($request->input('productupload_id'));
+
+        if (!$upload) {
+            \Log::error('❌ ProductUpload not found for ID: ' . $request->input('productupload_id'));
+            return response()->json([
+                'success' => false,
+                'message' => 'Product or Service not found',
+            ], 404);
+        }
+
+        \Log::info('✅ Found Upload:', [
+            'id' => $upload->id,
+            'is_professional' => $upload->is_professional,
+        ]);
+
+        // Determine if this is a service
         $isService = $upload->is_professional == 1;
 
-        // Conditional validation
+        // Validation rules
         $rules = [
-            'productupload_id' => 'required|exists:productupload,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'review' => 'nullable|string',
+            'productupload_id' => 'required|exists:productuploads,id', // ✅ corrected table name
+            'rating'           => 'required|integer|min:1|max:5',
+            'review'           => 'nullable|string',
         ];
 
-        // If it's NOT a service, require order_id
-        if (!$isService) {
+        if (! $isService) {
             $rules['order_id'] = 'required|exists:orders,id';
         } else {
             $rules['order_id'] = 'nullable';
@@ -35,28 +49,54 @@ class ProductReviewController extends Controller
         $validated = $request->validate($rules);
 
         $buyerId = Auth::id();
+        \Log::info('👤 Authenticated Buyer ID:', ['buyer_id' => $buyerId]);
 
+        if (!$buyerId) {
+            \Log::error('❌ No authenticated buyer found');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: No buyer ID found',
+            ], 401);
+        }
+
+        // Create review
         $review = ProductReview::create([
             'productupload_id' => $validated['productupload_id'],
-            'order_id' => $validated['order_id'] ?? null,
-            'buyer_id' => $buyerId,
-            'rating' => $validated['rating'],
-            'review' => $validated['review'] ?? null,
-            'is_approved' => true,
-            'is_visible' => true,
+            'order_id'         => $validated['order_id'] ?? null,
+            'buyer_id'         => $buyerId,
+            'rating'           => $validated['rating'],
+            'review'           => $validated['review'] ?? null,
+            'is_approved'      => true,
+            'is_visible'       => true,
         ]);
+
+        \Log::info('✅ Review Created Successfully:', $review->toArray());
 
         return response()->json([
             'success' => true,
             'message' => 'Review added successfully!',
-            'review' => $review,
+            'review'  => $review,
         ], 201);
 
     } catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::warning('⚠️ Validation failed:', $e->errors());
         return response()->json([
             'success' => false,
-            'errors' => $e->errors(),
+            'errors'  => $e->errors(),
         ], 422);
+
+    } catch (\Exception $e) {
+        \Log::error('💥 Unexpected error in ReviewController@store:', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Internal Server Error: ' . $e->getMessage(),
+        ], 500);
     }
 }
 
