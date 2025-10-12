@@ -96,6 +96,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);
 Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']);
+Route::get('/reviews/seller/{sellerId}/average', [ProductReviewController::class, 'getSellerAverageRating']);
+
+
 
 //Buyers
 
