@@ -105,8 +105,8 @@ class ProductReviewController extends Controller
 public function getSellerAverageRating($sellerId)
 {
     try {
-        $average = ProductReview::whereHas('productupload', function ($query) use ($sellerId) {
-            $query->where('user_id', $sellerId); // assuming productupload.user_id is the seller
+        $average = ProductReview::whereHas('product', function ($query) use ($sellerId) {
+            $query->where('user_id', $sellerId); // user_id is the seller
         })
         ->where('is_visible', true)
         ->avg('rating');
@@ -115,14 +115,20 @@ public function getSellerAverageRating($sellerId)
             'success'        => true,
             'average_rating' => round($average ?? 0, 1),
         ], 200);
+
     } catch (\Exception $e) {
-        Log::error('❌ Failed to fetch seller average rating', ['error' => $e->getMessage()]);
+        \Log::error('❌ Failed to fetch seller average rating', [
+            'error' => $e->getMessage(),
+            'seller_id' => $sellerId,
+        ]);
 
         return response()->json([
             'success' => false,
             'message' => 'Failed to calculate seller rating',
+            'error'   => $e->getMessage(),
         ], 500);
     }
 }
+
 
 }
