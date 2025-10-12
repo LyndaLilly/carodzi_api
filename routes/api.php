@@ -92,9 +92,10 @@ Route::middleware('auth:sanctum')->group(function () {
 // 🟢 Product Reviews
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews', [ProductReviewController::class, 'store']);
-    Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);
-    Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']);
 });
+
+Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);
+Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']);
 
 //Buyers
 
@@ -137,8 +138,6 @@ Route::middleware('auth:buyer')->group(function () {
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
 });
-
-
 
 //Admins Routes
 
