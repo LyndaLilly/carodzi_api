@@ -1,19 +1,18 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\ProfessionalProfile;
 use App\Models\Seller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 class ProfessionalProfileController extends Controller
 {
     protected function uploadFile($file, $subfolder)
     {
         $uploadDir = public_path("uploads/{$subfolder}");
-        if (!file_exists($uploadDir)) {
+        if (! file_exists($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
 
@@ -66,11 +65,15 @@ class ProfessionalProfileController extends Controller
 
         $data = $validator->validated();
 
-        // ✅ Date fix
-        if (!empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $this->formatDate($data['date_of_birth']);
+        // ✅ Save raw month-day value directly
+        if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth']; // e.g. "12-July"
         }
 
+        if (! empty($validated['mobile_number'])) {
+            $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
+            $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        }
 
         // ✅ File uploads
         if ($request->hasFile('profile_image')) {
@@ -126,9 +129,16 @@ class ProfessionalProfileController extends Controller
 
         $validated = $validator->validated();
 
-        // ✅ Fix date
-        if (!empty($validated['date_of_birth'])) {
-            $validated['date_of_birth'] = $this->formatDate($validated['date_of_birth']);
+        // ✅ Save raw month-day value directly
+        if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth']; // e.g. "12-July"
+        }
+
+        // ✅ Handle WhatsApp link generation
+
+        if (! empty($validated['mobile_number'])) {
+            $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
+            $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
 
         // ✅ File updates
@@ -161,7 +171,7 @@ class ProfessionalProfileController extends Controller
         $sellerId = $request->user()->id;
         $profile  = ProfessionalProfile::where('seller_id', $sellerId)->first();
 
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Professional profile not found',

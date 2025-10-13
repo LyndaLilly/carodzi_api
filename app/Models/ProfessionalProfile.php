@@ -19,6 +19,7 @@ class ProfessionalProfile extends Model
         'about',
         'business_email',
         'mobile_number',
+        'whatsapp_phone_link',
         'country',
         'state',
         'city',
@@ -38,17 +39,17 @@ class ProfessionalProfile extends Model
         return $this->belongsTo(Seller::class, 'seller_id');
     }
 
-    // ✅ Virtual attribute for WhatsApp link
+    // ✅ Virtual attribute for WhatsApp link (universal)
     protected $appends = ['whatsapp_link'];
 
     public function getWhatsappLinkAttribute()
     {
-        if (! $this->mobile_number) return null;
+        if (!$this->mobile_number) return null;
 
+        // Remove any non-digit characters (like +, -, spaces)
         $raw = preg_replace('/\D/', '', $this->mobile_number);
-        if (! str_starts_with($raw, '234')) {
-            $raw = '234' . ltrim($raw, '0');
-        }
+
+        // Return WhatsApp chat link (use exactly as entered with country code)
         return "https://wa.me/{$raw}";
     }
 }
