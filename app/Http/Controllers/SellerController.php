@@ -366,7 +366,7 @@ class SellerController extends Controller
         $seller = $request->user()->load([
             'profile',
             'professionalProfile',
-            'subcategory', // ✅ add this line
+            'subcategory', 
         ]);
 
         // Normalize file URLs
