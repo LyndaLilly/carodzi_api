@@ -19,7 +19,6 @@ class ProfessionalProfile extends Model
         'about',
         'business_email',
         'mobile_number',
-        'whatsapp_phone_link',
         'country',
         'state',
         'city',
@@ -37,5 +36,19 @@ class ProfessionalProfile extends Model
     public function seller()
     {
         return $this->belongsTo(Seller::class, 'seller_id');
+    }
+
+    // ✅ Virtual attribute for WhatsApp link
+    protected $appends = ['whatsapp_link'];
+
+    public function getWhatsappLinkAttribute()
+    {
+        if (! $this->mobile_number) return null;
+
+        $raw = preg_replace('/\D/', '', $this->mobile_number);
+        if (! str_starts_with($raw, '234')) {
+            $raw = '234' . ltrim($raw, '0');
+        }
+        return "https://wa.me/{$raw}";
     }
 }

@@ -1,17 +1,19 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\ProfessionalProfile;
 use App\Models\Seller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class ProfessionalProfileController extends Controller
 {
     protected function uploadFile($file, $subfolder)
     {
         $uploadDir = public_path("uploads/{$subfolder}");
-        if (! file_exists($uploadDir)) {
+        if (!file_exists($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
 
@@ -20,9 +22,18 @@ class ProfessionalProfileController extends Controller
         return "{$subfolder}/{$filename}";
     }
 
+    // ✅ Convert date to MySQL format safely
+    protected function formatDate($date)
+    {
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     public function storeProfessional(Request $request)
     {
-        // ✅ Base validation rules
         $rules = [
             'seller_id'             => 'required|exists:sellers,id',
             'gender'                => 'required|in:male,female',
@@ -43,27 +54,25 @@ class ProfessionalProfileController extends Controller
             'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
 
-        $seller = \App\Models\Seller::with('subcategory')->find($request->seller_id);
+        $seller = Seller::with('subcategory')->find($request->seller_id);
         if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
             $rules['verification_number'] = 'required|string|unique:professional_profiles';
         }
 
         $validator = Validator::make($request->all(), $rules);
-
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
         $data = $validator->validated();
 
-        // ✅ Automatically build WhatsApp link
-        $rawNumber = preg_replace('/\D/', '', $request->mobile_number);
-        if (! str_starts_with($rawNumber, '234')) {
-            $rawNumber = '234' . ltrim($rawNumber, '0');
+        // ✅ Date fix
+        if (!empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $this->formatDate($data['date_of_birth']);
         }
-        $data['whatsapp_phone_link'] = "https://wa.me/{$rawNumber}";
 
-        // ✅ Handle file uploads
+
+        // ✅ File uploads
         if ($request->hasFile('profile_image')) {
             $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
         }
@@ -117,16 +126,12 @@ class ProfessionalProfileController extends Controller
 
         $validated = $validator->validated();
 
-        // ✅ Rebuild WhatsApp link if mobile number changed
-        if ($request->filled('mobile_number')) {
-            $rawNumber = preg_replace('/\D/', '', $request->mobile_number);
-            if (! str_starts_with($rawNumber, '234')) {
-                $rawNumber = '234' . ltrim($rawNumber, '0');
-            }
-            $validated['whatsapp_phone_link'] = "https://wa.me/{$rawNumber}";
+        // ✅ Fix date
+        if (!empty($validated['date_of_birth'])) {
+            $validated['date_of_birth'] = $this->formatDate($validated['date_of_birth']);
         }
 
-        // ✅ Handle file updates
+        // ✅ File updates
         if ($request->hasFile('profile_image')) {
             if ($profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
                 unlink(public_path("uploads/{$profile->profile_image}"));
@@ -148,7 +153,6 @@ class ProfessionalProfileController extends Controller
             'success' => true,
             'message' => 'Professional profile updated successfully',
             'profile' => $profile->fresh(),
-            'seller'  => Seller::find($sellerId),
         ]);
     }
 
@@ -157,7 +161,7 @@ class ProfessionalProfileController extends Controller
         $sellerId = $request->user()->id;
         $profile  = ProfessionalProfile::where('seller_id', $sellerId)->first();
 
-        if (! $profile) {
+        if (!$profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Professional profile not found',
@@ -167,7 +171,6 @@ class ProfessionalProfileController extends Controller
         return response()->json([
             'success' => true,
             'profile' => $profile,
-            'seller'  => Seller::find($sellerId),
         ]);
     }
 }
