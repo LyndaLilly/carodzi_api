@@ -363,7 +363,11 @@ class SellerController extends Controller
 
     public function me(Request $request)
     {
-        $seller = $request->user()->load(['profile', 'professionalProfile']);
+        $seller = $request->user()->load([
+            'profile',
+            'professionalProfile',
+            'subcategory', // ✅ add this line
+        ]);
 
         // Normalize file URLs
         if ($seller->profile && $seller->profile->profile_image) {
@@ -380,7 +384,7 @@ class SellerController extends Controller
         }
 
         return response()->json([
-            'seller'  => $seller, // Return everything
+            'seller'  => $seller,
             'profile' => $seller->is_professional
                 ? $seller->professionalProfile
                 : $seller->profile,
