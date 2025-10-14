@@ -37,7 +37,6 @@ class ProductUploadController extends Controller
                     'condition'        => 'nullable|string',
                     'internal_storage' => 'nullable|string',
                     'ram'              => 'nullable|string',
-                    'address'          => 'required|string',
                 ]);
             }
 
@@ -121,7 +120,6 @@ class ProductUploadController extends Controller
                     'condition'        => 'sometimes|string|nullable',
                     'internal_storage' => 'sometimes|string|nullable',
                     'ram'              => 'sometimes|string|nullable',
-                    'address'          => 'sometimes|string|nullable',
                 ]);
             }
 

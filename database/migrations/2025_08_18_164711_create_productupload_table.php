@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('internal_storage')->nullable();
             $table->string('ram')->nullable();
             $table->string('location');
-            $table->string('address')->nullable();
+         
 
             // ✅ Price is now nullable (professionals may not use it)
             $table->decimal('price', 12, 2)->nullable();

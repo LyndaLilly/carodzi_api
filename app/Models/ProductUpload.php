@@ -21,7 +21,6 @@ class ProductUpload extends Model
     'internal_storage',
     'ram',
     'location',
-    'address',
     'price',
     'description',
     'currency',
