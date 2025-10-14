@@ -65,17 +65,18 @@ class ProfessionalProfileController extends Controller
 
         $data = $validator->validated();
 
-        // ✅ Save raw month-day value directly
+        // Format date_of_birth for MySQL
         if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth']; // e.g. "12-July"
+            $data['date_of_birth'] = $this->formatDate($data['date_of_birth']);
         }
 
-        if (! empty($validated['mobile_number'])) {
-            $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
-            $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        // Generate WhatsApp link
+        if (! empty($data['mobile_number'])) {
+            $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
+            $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
 
-        // ✅ File uploads
+        // File uploads
         if ($request->hasFile('profile_image')) {
             $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
         }
@@ -129,19 +130,18 @@ class ProfessionalProfileController extends Controller
 
         $validated = $validator->validated();
 
-        // ✅ Save raw month-day value directly
-        if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth']; // e.g. "12-July"
+        // Format date_of_birth
+        if (! empty($validated['date_of_birth'])) {
+            $validated['date_of_birth'] = $this->formatDate($validated['date_of_birth']);
         }
 
-        // ✅ Handle WhatsApp link generation
-
+        // Generate WhatsApp link
         if (! empty($validated['mobile_number'])) {
             $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
             $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
 
-        // ✅ File updates
+        // File updates
         if ($request->hasFile('profile_image')) {
             if ($profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
                 unlink(public_path("uploads/{$profile->profile_image}"));
