@@ -21,7 +21,7 @@ class ProfessionalProfileController extends Controller
         return "{$subfolder}/{$filename}";
     }
 
-    // ✅ Convert date to MySQL format safely
+   
     protected function formatDate($date)
     {
         try {
@@ -65,9 +65,8 @@ class ProfessionalProfileController extends Controller
 
         $data = $validator->validated();
 
-        // Format date_of_birth for MySQL
         if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $this->formatDate($data['date_of_birth']);
+            $data['date_of_birth'] = $data['date_of_birth'];
         }
 
         // Generate WhatsApp link
@@ -130,9 +129,8 @@ class ProfessionalProfileController extends Controller
 
         $validated = $validator->validated();
 
-        // Format date_of_birth
-        if (! empty($validated['date_of_birth'])) {
-            $validated['date_of_birth'] = $this->formatDate($validated['date_of_birth']);
+        if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth']; 
         }
 
         // Generate WhatsApp link
