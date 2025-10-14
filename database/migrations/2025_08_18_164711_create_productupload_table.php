@@ -21,15 +21,27 @@ return new class extends Migration
             $table->string('ram')->nullable();
             $table->string('location');
             $table->string('address')->nullable();
-            $table->decimal('price', 12, 2);
+
+            // ✅ Price is now nullable (professionals may not use it)
+            $table->decimal('price', 12, 2)->nullable();
+
             $table->text('description')->nullable();
+
+            // ✅ New fields required by your controller
+            $table->string('currency', 10)->nullable();
+            $table->string('specialization')->nullable();
+            $table->string('availability')->nullable();
+            $table->string('rate', 50)->nullable();
+
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 
         Schema::create('productupload_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('productupload_id')->constrained('productupload')->onDelete('cascade');
+            $table->foreignId('productupload_id')
+                ->constrained('productupload')
+                ->onDelete('cascade');
             $table->string('image_path');
             $table->timestamps();
         });

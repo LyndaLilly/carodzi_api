@@ -14,10 +14,8 @@ class ProductUploadController extends Controller
         try {
             Log::info('Product Upload Request', $request->all());
 
-            // Fetch seller type
             $seller = \App\Models\Seller::findOrFail($request->seller_id);
 
-            // Common rules for everyone
             $rules = [
                 'seller_id'      => 'required|exists:sellers,id',
                 'name'           => 'required|string|max:255',
@@ -25,12 +23,12 @@ class ProductUploadController extends Controller
                 'subcategory_id' => 'required|exists:product_subcategories,id',
                 'location'       => 'required|string',
                 'description'    => 'required|string',
+                'currency'       => 'required|string|max:10',
                 'images'         => 'required|array|min:1|max:3',
                 'images.*'       => 'image|max:2048',
                 'is_active'      => 'required|boolean',
             ];
 
-            // Product seller (not professional)
             if ($seller->is_professional == 0) {
                 $rules = array_merge($rules, [
                     'price'            => 'required|numeric',
@@ -39,27 +37,22 @@ class ProductUploadController extends Controller
                     'condition'        => 'nullable|string',
                     'internal_storage' => 'nullable|string',
                     'ram'              => 'nullable|string',
-                    'address'          => 'nullable|string',
+                    'address'          => 'required|string',
                 ]);
             }
 
-            // Service provider (professional)
             if ($seller->is_professional == 1) {
                 $rules = array_merge($rules, [
-                    'specialization' => 'required|string',
-                    'qualification'  => 'required|string',
+                    'specialization' => 'nullable|string',
                     'availability'   => 'required|string',
-                    'rate'           => 'required|numeric', // replaces price
+                    'rate'           => 'required|string|max:50', // ✅ changed to string
                 ]);
             }
 
-            // Run validation
             $validated = $request->validate($rules);
 
-            // Save record
             $product = ProductUpload::create($validated);
 
-            // Save images
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $subfolder = 'products';
@@ -83,7 +76,6 @@ class ProductUploadController extends Controller
                 'success' => true,
                 'product' => $product->load('images'),
             ]);
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -98,6 +90,104 @@ class ProductUploadController extends Controller
                 'success' => false,
                 'message' => 'Failed to upload',
                 'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateProduct(Request $request)
+    {
+        try {
+            $productId = $request->input('product_id');
+            $product   = ProductUpload::findOrFail($productId);
+            $seller    = $product->seller;
+
+            $rules = [
+                'name'           => 'sometimes|string|max:255',
+                'category_id'    => 'sometimes|exists:product_categories,id',
+                'subcategory_id' => 'sometimes|exists:product_subcategories,id',
+                'location'       => 'sometimes|string',
+                'description'    => 'sometimes|string',
+                'currency'       => 'sometimes|string|max:10',
+                'is_active'      => 'sometimes|boolean',
+                'images.*'       => 'image|max:2048',
+                'removed_images' => 'sometimes|array',
+            ];
+
+            if ($seller && $seller->is_professional == 0) {
+                $rules = array_merge($rules, [
+                    'price'            => 'sometimes|numeric',
+                    'brand'            => 'sometimes|string|nullable',
+                    'model'            => 'sometimes|string|nullable',
+                    'condition'        => 'sometimes|string|nullable',
+                    'internal_storage' => 'sometimes|string|nullable',
+                    'ram'              => 'sometimes|string|nullable',
+                    'address'          => 'sometimes|string|nullable',
+                ]);
+            }
+
+            if ($seller && $seller->is_professional == 1) {
+                $rules = array_merge($rules, [
+                    'specialization' => 'sometimes|string|nullable',
+                    'availability'   => 'sometimes|string',
+                    'rate'           => 'sometimes|string|max:50', // ✅ updated from numeric
+                ]);
+            }
+
+            $validated = $request->validate($rules);
+
+            $product->fill($validated);
+            $product->save();
+
+            // 🗑 Handle image removals
+            if ($request->filled('removed_images')) {
+                $removedIds = $request->input('removed_images');
+                ProductUploadImage::whereIn('id', $removedIds)->delete();
+            }
+
+            // ✅ Check total image count
+            $existingCount = $product->images()->count();
+            $newFilesCount = $request->hasFile('images') ? count($request->file('images')) : 0;
+
+            if ($existingCount + $newFilesCount > 3) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Maximum 3 images allowed. Please remove some images first.',
+                ], 422);
+            }
+
+            // 🖼 Add new images
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $subfolder = 'products';
+                    $uploadDir = public_path("uploads/{$subfolder}");
+
+                    if (! file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                    $image->move($uploadDir, $filename);
+
+                    ProductUploadImage::create([
+                        'productupload_id' => $product->id,
+                        'image_path'       => "{$subfolder}/{$filename}",
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'product' => $product->load('images'),
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -173,52 +263,6 @@ class ProductUploadController extends Controller
             'services' => $services,
         ]);
     }
-
-    // public function getSingleProduct($id)
-    // {
-    //     $product = ProductUpload::with([
-    //         'images',
-    //         'seller.profile',
-    //         'seller.professionalProfile',
-    //         'seller.subcategory', // ✅ add this line so we can check auto_verify
-    //         'category',
-    //     ])->findOrFail($id);
-
-    //     // Determine if seller is professional
-    //     $product->is_professional = $product->seller ? $product->seller->is_professional : 0;
-
-    //     // Handle seller profile image and verification
-    //     if ($product->seller) {
-    //         if ($product->seller->is_professional) {
-    //             $product->seller->profile_image = $product->seller->professionalProfile->profile_image ?? null;
-    //         } else {
-    //             $product->seller->profile_image = $product->seller->profile->profile_image ?? null;
-    //         }
-
-    //         // ✅ Updated Verification Logic:
-    //         // Verified if:
-    //         // (1) seller->status == 1  OR
-    //         // (2) seller->subcategory->auto_verify == 1  OR
-    //         // (3) category->auto_verify == 1
-    //         $autoVerifySubcategory = $product->seller->subcategory
-    //             ? $product->seller->subcategory->auto_verify == 1
-    //             : false;
-
-    //         $autoVerifyCategory = $product->category
-    //             ? $product->category->auto_verify == 1
-    //             : false;
-
-    //         $isVerified = $product->seller->status == 1 || $autoVerifySubcategory || $autoVerifyCategory;
-
-    //         // Attach verification info directly to the seller
-    //         $product->seller->is_verified = $isVerified;
-    //     }
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'product' => $product,
-    //     ]);
-    // }
 
     public function getSingleProduct($id)
     {
@@ -304,108 +348,6 @@ class ProductUploadController extends Controller
                 'success' => false,
                 'message' => 'Failed to fetch recommended products',
                 'error'   => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function updateProduct(Request $request)
-    {
-        try {
-            $productId = $request->input('product_id');
-            $product   = ProductUpload::findOrFail($productId);
-            $seller    = $product->seller;
-
-            // Validation rules
-            $rules = [
-                'name'           => 'sometimes|string',
-                'category_id'    => 'sometimes|exists:product_categories,id',
-                'subcategory_id' => 'sometimes|exists:product_subcategories,id',
-                'location'       => 'sometimes|string',
-                'description'    => 'sometimes|string',
-                'is_active'      => 'sometimes|boolean',
-                'images.*'       => 'image|max:2048',
-                'removed_images' => 'sometimes|array',
-            ];
-
-            if ($seller && $seller->is_professional == 0) {
-                $rules = array_merge($rules, [
-                    'price'            => 'sometimes|numeric',
-                    'brand'            => 'sometimes|string|nullable',
-                    'model'            => 'sometimes|string|nullable',
-                    'condition'        => 'sometimes|string|nullable',
-                    'internal_storage' => 'sometimes|string|nullable',
-                    'ram'              => 'sometimes|string|nullable',
-                    'address'          => 'sometimes|string|nullable',
-                ]);
-            }
-
-            if ($seller && $seller->is_professional == 1) {
-                $rules = array_merge($rules, [
-                    'specialization' => 'sometimes|string',
-                    'qualification'  => 'sometimes|string',
-                    'availability'   => 'sometimes|string',
-                    'rate'           => 'sometimes|numeric',
-                ]);
-            }
-
-            $validated = $request->validate($rules);
-
-            // Apply partial updates
-            $product->fill($validated);
-            $product->save();
-
-            // Handle removed images
-            if ($request->filled('removed_images')) {
-                $removedIds = $request->input('removed_images');
-                ProductUploadImage::whereIn('id', $removedIds)->delete();
-            }
-
-            // Count existing images after removal
-            $existingCount = $product->images()->count();
-            $newFilesCount = $request->hasFile('images') ? count($request->file('images')) : 0;
-
-            if ($existingCount + $newFilesCount > 3) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Maximum 3 images allowed. Please remove some images first.',
-                ], 422);
-            }
-
-            // Handle new images if uploaded
-
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $subfolder = 'products';
-                    $uploadDir = public_path("uploads/{$subfolder}");
-
-                    if (! file_exists($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-
-                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                    $image->move($uploadDir, $filename);
-
-                    ProductUploadImage::create([
-                        'productupload_id' => $product->id,
-                        'image_path'       => "{$subfolder}/{$filename}",
-                    ]);
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'product' => $product->load('images'),
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors'  => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
             ], 500);
         }
     }
