@@ -10,7 +10,7 @@ class ProductUpload extends Model
 
     protected $table = 'productupload';
 
-  protected $fillable = [
+ protected $fillable = [
     'name',
     'seller_id',
     'category_id',
@@ -25,11 +25,12 @@ class ProductUpload extends Model
     'description',
     'currency',
     'is_active',
-
     'specialization',
     'availability',
-    'rate', 
+    'rate',
+    'views', // ✅ added
 ];
+
 
 
     // Automatically include in JSON

@@ -32,6 +32,8 @@ return new class extends Migration
             $table->string('specialization')->nullable();
             $table->string('availability')->nullable();
             $table->string('rate', 50)->nullable();
+            $table->unsignedBigInteger('views')->default(0);
+
 
             $table->boolean('is_active')->default(true);
             $table->timestamps();

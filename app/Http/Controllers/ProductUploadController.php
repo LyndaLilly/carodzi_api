@@ -441,4 +441,31 @@ class ProductUploadController extends Controller
         ]);
     }
 
+    public function recordProductView($id)
+    {
+        try {
+            $product = ProductUpload::findOrFail($id);
+
+            // Increment the views count
+            $product->increment('views');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Product view recorded successfully',
+                'views'   => $product->views,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record product view',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }

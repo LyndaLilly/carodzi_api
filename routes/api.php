@@ -75,6 +75,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
+Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProductView']);
+
+
 Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
 
@@ -98,8 +101,6 @@ Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'get
 Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']);
 Route::get('/reviews/seller/{sellerId}/average', [ProductReviewController::class, 'getSellerAverageRating']);
 Route::get('/reviews/seller/{sellerId}/service-average', [ProductReviewController::class, 'getSellerServiceAverage']); 
-
-
 
 //Buyers
 
