@@ -467,5 +467,118 @@ class ProductUploadController extends Controller
             ], 500);
         }
     }
+    
+    public function getMostViewedProducts()
+    {
+        try {
+            $products = ProductUpload::with(['images', 'seller'])
+                ->whereHas('seller', function ($q) {
+                    $q->where('is_professional', 0);
+                })
+                ->orderByDesc('views')
+                ->take(10)
+                ->get();
+
+            return response()->json([
+                'success'  => true,
+                'products' => $products,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching most viewed products', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch most viewed products',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function getMostViewedServices()
+    {
+        try {
+            $services = ProductUpload::with(['images', 'seller.subcategory'])
+                ->whereHas('seller', function ($q) {
+                    $q->where('is_professional', 1); // Professional sellers (services)
+                })
+                ->orderByDesc('views')
+                ->take(10)
+                ->get();
+
+            // Add computed verification status
+            $services->transform(function ($service) {
+                $seller               = $service->seller;
+                $requiresVerification = $seller && $seller->subcategory && $seller->subcategory->auto_verify == 1;
+                $service->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
+                return $service;
+            });
+
+            return response()->json([
+                'success'  => true,
+                'services' => $services,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching most viewed services', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch most viewed services',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getMostViewedAll()
+{
+    try {
+        // Fetch most viewed products (non-professionals)
+        $products = ProductUpload::with(['images', 'seller'])
+            ->whereHas('seller', function ($q) {
+                $q->where('is_professional', 0);
+            })
+            ->orderByDesc('views')
+            ->take(10)
+            ->get();
+
+        // Fetch most viewed services (professionals)
+        $services = ProductUpload::with(['images', 'seller.subcategory'])
+            ->whereHas('seller', function ($q) {
+                $q->where('is_professional', 1);
+            })
+            ->orderByDesc('views')
+            ->take(10)
+            ->get();
+
+        // Compute verification flag for services
+        $services->transform(function ($service) {
+            $seller = $service->seller;
+            $requiresVerification = $seller && $seller->subcategory && $seller->subcategory->auto_verify == 1;
+            $service->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
+            return $service;
+        });
+
+        return response()->json([
+            'success'  => true,
+            'products' => $products,
+            'services' => $services,
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Error fetching most viewed items', [
+            'message' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch most viewed items',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
+
 
 }
