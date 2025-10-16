@@ -75,10 +75,11 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/products', [ProductUploadController::class, 'getAllProductsForBuyers']);
-Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProductView']);
 Route::get('/products/most-viewed', [ProductUploadController::class, 'getMostViewedProducts']);
 Route::get('/services/most-viewed', [ProductUploadController::class, 'getMostViewedServices']);
 Route::get('/most-viewed', [ProductUploadController::class, 'getMostViewedAll']);
+
+Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProductView']);
 
 
 
