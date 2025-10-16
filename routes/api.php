@@ -62,9 +62,7 @@ Route::get('/services/popular', [ProductUploadController::class, 'getPopularServ
 // Get all products for a seller
 Route::get('/products/seller/{sellerId}', [ProductUploadController::class, 'getAllProducts']);
 
-// Get single product
-Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct']);
-Route::get('/products/{id}/recommended', [ProductUploadController::class, 'getRecommended']);
+
 
 Route::middleware('auth:sanctum')->group(function () {
     // Update product (expects product_id in request body + _method=PATCH if using FormData)
@@ -81,8 +79,8 @@ Route::get('/most-viewed', [ProductUploadController::class, 'getMostViewedAll'])
 
 Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProductView']);
 
-
-
+Route::get('/products/{id}/recommended', [ProductUploadController::class, 'getRecommended']);
+Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct']);
 
 
 Route::get('/search', [ProductUploadController::class, 'search']);
