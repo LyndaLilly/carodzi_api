@@ -16,6 +16,11 @@ class PublicSellerController extends Controller
             'subcategory',
         ])->where('profile_updated', 1);
 
+        // Filter by subcategory
+        if ($request->has('subcategory_id')) {
+            $query->where('subcategory_id', $request->subcategory_id);
+        }
+
         // Professional sellers filter
         if ($request->type === 'professional') {
             $query->where('is_professional', 1);
@@ -33,8 +38,7 @@ class PublicSellerController extends Controller
 
         // Attach computed is_verified field
         $sellers->transform(function ($seller) {
-            $autoVerify = $seller->subcategory && $seller->subcategory->auto_verify == 1;
-            // if subcategory allows auto_verify, treat seller as verified if status == 1
+            $autoVerify          = $seller->subcategory && $seller->subcategory->auto_verify == 1;
             $seller->is_verified = ($seller->status == 1 && $autoVerify);
             return $seller;
         });
