@@ -366,7 +366,7 @@ class SellerController extends Controller
         $seller = $request->user()->load([
             'profile',
             'professionalProfile',
-            'subcategory', 
+            'subcategory',
         ]);
 
         // Normalize file URLs
@@ -463,26 +463,23 @@ class SellerController extends Controller
         ]);
     }
 
+    public function getSellers()
+    {
+        $sellers = Seller::where('is_professional', false)
+            ->with(['profile', 'subcategory.category'])
+            ->get();
 
-
-public function getSellers()
-{
-    $sellers = Seller::where('is_professional', false)
-        ->with(['profile', 'subcategory.category'])
-        ->get();
-
-    return response()->json(['sellers' => $sellers]);
-}
+        return response()->json(['sellers' => $sellers]);
+    }
 
 // Fetch all service providers (professionals)
-public function getServiceProviders()
-{
-    $providers = Seller::where('is_professional', true)
-        ->with(['professionalProfile', 'subcategory.category'])
-        ->get();
+    public function getServiceProviders()
+    {
+        $providers = Seller::where('is_professional', true)
+            ->with(['professionalProfile', 'subcategory.category'])
+            ->get();
 
-    return response()->json(['providers' => $providers]);
-}
-
+        return response()->json(['providers' => $providers]);
+    }
 
 }

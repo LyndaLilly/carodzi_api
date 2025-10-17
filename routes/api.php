@@ -202,3 +202,8 @@ Route::get('/admin/product-subcategories/{categoryId}', [ProductCategoryControll
 
 Route::get('/professional-categories', [AdminController::class, 'getProfessionalCategories']);
 Route::get('/seller-categories', [AdminController::class, 'getSellerCategoriesOnly']);
+
+// ✅ Public endpoints
+Route::get('/public-sellers', [SellerController::class, 'getSellers']);
+Route::get('/public-providers', [SellerController::class, 'getServiceProviders']);
+
