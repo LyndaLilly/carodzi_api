@@ -89,6 +89,7 @@ Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcateg
 Route::get('/public-sellers', [PublicSellerController::class, 'index']);     // list
 Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
 Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers']);
+Route::get('/pubilc-seller-search', [PublicSellerController::class, 'search']);
 
 Route::middleware('auth:sanctum')->get('/seller/notifications', [SellerNotificationController::class, 'index']);
 
