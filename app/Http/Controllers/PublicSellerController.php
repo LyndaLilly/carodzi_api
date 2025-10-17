@@ -6,9 +6,15 @@ use Illuminate\Http\Request;
 
 class PublicSellerController extends Controller
 {
-    // List sellers with active products
-    public function index(Request $request)
-    {
+   public function index(Request $request)
+{
+    \Log::info('📥 Incoming request to PublicSellerController@index', [
+        'subcategory_id' => $request->subcategory_id,
+        'type' => $request->type,
+        'verified' => $request->verified,
+    ]);
+
+    try {
         $query = Seller::with([
             'profile',
             'professionalProfile',
@@ -16,29 +22,25 @@ class PublicSellerController extends Controller
             'subcategory',
         ])->where('profile_updated', 1);
 
-        // Filter by subcategory
         if ($request->has('subcategory_id')) {
             $query->where('subcategory_id', $request->subcategory_id);
         }
 
-        // Professional sellers filter
         if ($request->type === 'professional') {
             $query->where('is_professional', 1);
 
             if ($request->has('verified')) {
                 $query->where('status', $request->verified == '1' ? 1 : 0);
             }
-        }
-        // Other sellers filter
-        elseif ($request->type === 'other') {
+        } elseif ($request->type === 'other') {
             $query->where('is_professional', 0);
         }
 
         $sellers = $query->get();
+        \Log::info('✅ Sellers fetched', ['count' => $sellers->count()]);
 
-        // Attach computed is_verified field
         $sellers->transform(function ($seller) {
-            $autoVerify          = $seller->subcategory && $seller->subcategory->auto_verify == 1;
+            $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
             $seller->is_verified = ($seller->status == 1 && $autoVerify);
             return $seller;
         });
@@ -47,7 +49,20 @@ class PublicSellerController extends Controller
             'success' => true,
             'sellers' => $sellers,
         ]);
+    } catch (\Throwable $e) {
+        \Log::error('❌ Error in PublicSellerController@index', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred',
+        ], 500);
     }
+}
+
 
     // Single seller with active products
     public function show($id)
