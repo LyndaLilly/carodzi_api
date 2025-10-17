@@ -64,4 +64,41 @@ class AdminController extends Controller
             'subcategories' => $subcategories,
         ]);
     }
+
+    public function getProfessionalCategories()
+    {
+        $serviceCategory = SellerCategory::where('name', 'Service')
+            ->with('subcategories')
+            ->first();
+
+        if (! $serviceCategory) {
+            return response()->json([
+                'message'    => 'Service category not found',
+                'categories' => [],
+            ], 404);
+        }
+
+        return response()->json([
+            'categories' => [$serviceCategory],
+        ]);
+    }
+
+    public function getSellerCategoriesOnly()
+    {
+        $sellerCategory = SellerCategory::where('name', 'Seller')
+            ->with('subcategories')
+            ->first();
+
+        if (! $sellerCategory) {
+            return response()->json([
+                'message'    => 'Seller category not found',
+                'categories' => [],
+            ], 404);
+        }
+
+        return response()->json([
+            'categories' => [$sellerCategory],
+        ]);
+    }
+
 }

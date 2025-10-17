@@ -463,4 +463,26 @@ class SellerController extends Controller
         ]);
     }
 
+
+
+public function getSellers()
+{
+    $sellers = Seller::where('is_professional', false)
+        ->with(['profile', 'subcategory.category'])
+        ->get();
+
+    return response()->json(['sellers' => $sellers]);
+}
+
+// Fetch all service providers (professionals)
+public function getServiceProviders()
+{
+    $providers = Seller::where('is_professional', true)
+        ->with(['professionalProfile', 'subcategory.category'])
+        ->get();
+
+    return response()->json(['providers' => $providers]);
+}
+
+
 }

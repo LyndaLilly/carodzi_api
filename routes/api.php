@@ -199,3 +199,6 @@ Route::middleware('auth:admin')->group(function () {
 Route::get('/admin/product-categories', [ProductCategoryController::class, 'index']);
 
 Route::get('/admin/product-subcategories/{categoryId}', [ProductCategoryController::class, 'subcategoriesByCategory']);
+
+Route::get('/professional-categories', [AdminController::class, 'getProfessionalCategories']);
+Route::get('/seller-categories', [AdminController::class, 'getSellerCategoriesOnly']);
