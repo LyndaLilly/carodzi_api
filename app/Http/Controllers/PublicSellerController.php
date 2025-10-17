@@ -9,7 +9,7 @@ class PublicSellerController extends Controller
    public function index(Request $request)
 {
     \Log::info('📥 Incoming request to PublicSellerController@index', [
-        'subcategory_id' => $request->subcategory_id,
+        'sub_category_id' => $request->sub_category_id,
         'type' => $request->type,
         'verified' => $request->verified,
     ]);
@@ -22,8 +22,8 @@ class PublicSellerController extends Controller
             'subcategory',
         ])->where('profile_updated', 1);
 
-        if ($request->has('subcategory_id')) {
-            $query->where('subcategory_id', $request->subcategory_id);
+        if ($request->has('sub_category_id')) {
+            $query->where('sub_category_id', $request->sub_category_id);
         }
 
         if ($request->type === 'professional') {
