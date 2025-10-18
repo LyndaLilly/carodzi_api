@@ -111,26 +111,33 @@ class PublicSellerController extends Controller
         ]);
     }
 
-    public function search(Request $request)
+public function search(Request $request)
 {
     $searchTerm = strtolower($request->query('q', ''));
     $verifiedFilter = $request->query('verified', 'all'); // all | verified | not_verified
-    $type = $request->query('type'); // 'service' or 'seller'
+    $type = strtolower($request->query('type', 'all')); // service | seller | all
 
     if (empty($searchTerm)) {
         return response()->json(['results' => []]);
     }
 
-    $query = Seller::with(['profile', 'subcategory'])
+    $query = Seller::with(['profile', 'subcategory.category'])
         ->where('profile_updated', 1)
         ->where(function ($q) use ($searchTerm) {
             $q->whereRaw('LOWER(firstname) LIKE ?', ["%{$searchTerm}%"])
+              ->orWhereRaw('LOWER(lastname) LIKE ?', ["%{$searchTerm}%"])
               ->orWhereHas('subcategory', function ($sq) use ($searchTerm) {
                   $sq->whereRaw('LOWER(name) LIKE ?', ["%{$searchTerm}%"]);
+              })
+              ->orWhereHas('subcategory.category', function ($cq) use ($searchTerm) {
+                  $cq->whereRaw('LOWER(name) LIKE ?', ["%{$searchTerm}%"]);
+              })
+              ->orWhereHas('professionalProfile', function ($pq) use ($searchTerm) {
+                  $pq->whereRaw('LOWER(title) LIKE ?', ["%{$searchTerm}%"]);
               });
         });
 
-    // ✅ Filter by type (service or seller)
+    // ✅ Filter by type
     if ($type === 'service') {
         $query->whereHas('subcategory.category', function ($cat) {
             $cat->whereRaw('LOWER(name) = ?', ['service']);
@@ -141,32 +148,33 @@ class PublicSellerController extends Controller
         });
     }
 
-    // ✅ Apply verified / not_verified filter
+    // ✅ Verified filter
     if ($verifiedFilter === 'verified') {
-        $query->whereHas('subcategory', function ($q) {
-            $q->where('auto_verify', 1);
-        })->where('status', 1);
+        $query->whereHas('subcategory', fn($q) => $q->where('auto_verify', 1))
+              ->where('status', 1);
     } elseif ($verifiedFilter === 'not_verified') {
-        $query->whereHas('subcategory', function ($q) {
-            $q->where('auto_verify', 1);
-        })->where('status', 0);
+        $query->whereHas('subcategory', fn($q) => $q->where('auto_verify', 1))
+              ->where('status', 0);
     }
 
-    $sellers = $query->limit(10)->get();
+    $sellers = $query->orderBy('firstname')->take(20)->get();
 
     $results = $sellers->map(function ($seller) {
         $autoVerify = optional($seller->subcategory)->auto_verify == 1;
         $seller->is_verified = ($seller->status == 1 && $autoVerify);
+
         return [
             'id' => $seller->id,
             'firstname' => $seller->firstname,
             'lastname' => $seller->lastname,
             'subcategory' => optional($seller->subcategory)->name,
+            'category' => optional(optional($seller->subcategory)->category)->name,
             'is_verified' => $seller->is_verified,
         ];
     });
 
     return response()->json(['results' => $results]);
 }
+
 
 }
