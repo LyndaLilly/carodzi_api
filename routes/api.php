@@ -13,8 +13,11 @@ use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\PromoteController;
+
 use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +31,20 @@ Route::post('/sellers/resend-reset-code', [SellerController::class, 'resendPassw
 Route::post('/sellers/reset-password', [SellerController::class, 'resetPassword']);
 Route::post('/sellers/login', [SellerController::class, 'SellerLogin']);
 Route::middleware('auth:sanctum')->post('/seller/logout', [SellerController::class, 'sellerLogout']);
+
+
+
+// Seller routes (requires auth)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/promote', [PromoteController::class, 'store']);
+});
+
+// Admin route to approve crypto promotion (protect with admin middleware)
+Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
+
+// Public route to get featured sellers
+Route::get('/featured-sellers', [PromoteController::class, 'featured']);
+
 
 Route::middleware('auth:sanctum')->get('/seller/me', [SellerController::class, 'me']);
 Route::middleware('auth:sanctum')->post('/seller/product-upload', [ProductUploadController::class, 'storeProduct']);
