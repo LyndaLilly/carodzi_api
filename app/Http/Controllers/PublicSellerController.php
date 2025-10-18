@@ -133,7 +133,7 @@ public function search(Request $request)
                   $cq->whereRaw('LOWER(name) LIKE ?', ["%{$searchTerm}%"]);
               })
               ->orWhereHas('professionalProfile', function ($pq) use ($searchTerm) {
-                  $pq->whereRaw('LOWER(title) LIKE ?', ["%{$searchTerm}%"]);
+                  $pq->whereRaw('LOWER(business_name) LIKE ?', ["%{$searchTerm}%"]);
               });
         });
 
@@ -175,6 +175,7 @@ public function search(Request $request)
 
     return response()->json(['results' => $results]);
 }
+
 
 
 }
