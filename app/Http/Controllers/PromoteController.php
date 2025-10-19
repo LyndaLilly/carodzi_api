@@ -80,22 +80,34 @@ class PromoteController extends Controller
 
     public function featured()
     {
-        $featuredSellers = Promote::where('is_active', true)
+        $featuredPromotions = Promote::where('is_active', true)
             ->where('is_approved', true)
-            ->where('end_date', '>=', now())
+            ->whereDate('start_date', '<=', now())
+            ->whereDate('end_date', '>=', now())
             ->with(['seller.profile'])
-            ->get()
-            ->map(function ($promo) {
-                $seller = $promo->seller;
-                return [
-                    'id'             => $seller->id,
-                    'business_name'  => $seller->profile->business_name ?? ($seller->firstname . ' ' . $seller->lastname),
-                    'logo'           => $seller->profile->profile_image ?? null,
-                    'tagline'        => $seller->profile->tagline ?? null,
-                    'is_verified'    => $seller->verified,
-                    'average_rating' => $seller->profile->average_rating ?? 0,
-                ];
-            });
+            ->get();
+
+        $featuredSellers = $featuredPromotions->map(function ($promo) {
+            $seller = $promo->seller;
+
+            // ✅ Calculate seller’s average rating from ProductReview model
+            $averageRating = \App\Models\ProductReview::whereHas('product', function ($query) use ($seller) {
+                $query->where('seller_id', $seller->id);
+            })
+                ->where('is_visible', true)
+                ->avg('rating');
+
+            $profile = $seller->profile;
+
+            return [
+                'id'             => $seller->id,
+                'business_name'  => $profile->business_name ?? ($seller->firstname . ' ' . $seller->lastname),
+                'logo'           => $profile->profile_image ? 'profile_images/' . basename($profile->profile_image) : null,
+                'tagline'        => $profile->tagline ?? null,
+                'is_verified'    => $seller->verified,
+                'average_rating' => round($averageRating ?? 0, 1),
+            ];
+        });
 
         return response()->json([
             'success' => true,

@@ -44,9 +44,13 @@ Route::post('/promotions/paystack/initialize', [PromoteController::class, 'initi
 Route::get('/paystack/callback', [PromoteController::class, 'handlePaystackCallback']);
 Route::post('/paystack/webhook', [PromoteController::class, 'handlePaystackWebhook']);
 
-
 // Admin route to approve crypto promotion (protect with admin middleware)
 Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
+
+// 🟢 Public route to get featured sellers
+Route::get('/featured-sellers', [PromoteController::class, 'featured']);
+
+
 
 // Public route to get featured sellers
 Route::get('/featured-sellers', [PromoteController::class, 'featured']);
