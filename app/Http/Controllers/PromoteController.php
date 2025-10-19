@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Promote;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class PromoteController extends Controller
 {
@@ -11,7 +12,7 @@ class PromoteController extends Controller
         $request->validate([
             'plan'                  => 'required|string|in:basic,standard,premium',
             'payment_method'        => 'required|in:paystack,crypto',
-            'transaction_reference' => 'nullable|string',                                  
+            'transaction_reference' => 'nullable|string',
             'crypto_hash'           => 'required_if:payment_method,crypto|string|max:255',
         ]);
 
@@ -39,7 +40,7 @@ class PromoteController extends Controller
             'start_date'            => $startDate,
             'end_date'              => $endDate,
             'is_active'             => $request->payment_method === 'paystack',
-            'is_approved'           => $request->payment_method === 'paystack', 
+            'is_approved'           => $request->payment_method === 'paystack',
             'payment_method'        => $request->payment_method,
             'transaction_reference' => $request->transaction_reference,
             'crypto_hash'           => $request->crypto_hash,
@@ -53,7 +54,6 @@ class PromoteController extends Controller
         ], 201);
     }
 
- 
     public function approve($id)
     {
         $promotion = Promote::findOrFail($id);
@@ -78,10 +78,6 @@ class PromoteController extends Controller
         ]);
     }
 
-    /**
-     * Fetch featured sellers
-     * GET /api/featured-sellers
-     */
     public function featured()
     {
         $featuredSellers = Promote::where('is_active', true)
@@ -107,9 +103,6 @@ class PromoteController extends Controller
         ]);
     }
 
-    /**
-     * Optional: expire promotions (can be scheduled)
-     */
     public function expirePromotions()
     {
         $expired = Promote::where('is_active', true)
@@ -120,4 +113,119 @@ class PromoteController extends Controller
             'message' => "{$expired} promotions expired successfully.",
         ]);
     }
+
+    public function initializePaystackPayment(Request $request)
+    {
+        $request->validate([
+            'plan' => 'required|string|in:basic,standard,premium',
+        ]);
+
+        $seller = $request->user();
+        $plans  = config('promote.plans');
+        $plan   = $request->plan;
+
+        if (! isset($plans[$plan])) {
+            return response()->json(['error' => 'Invalid plan selected'], 422);
+        }
+
+        $planDetails = $plans[$plan];
+        $amount      = $planDetails['price'] * 100; // Paystack expects kobo (multiply by 100)
+
+        $response = Http::withToken(config('services.paystack.secret_key'))
+            ->post(config('services.paystack.base_url') . '/transaction/initialize', [
+                'email'        => $seller->email,
+                'amount'       => $amount,
+                'callback_url' => url('/api/paystack/callback'), // we’ll create this route next
+                'metadata'     => [
+                    'seller_id' => $seller->id,
+                    'plan'      => $plan,
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            return response()->json(['error' => 'Failed to connect to Paystack'], 500);
+        }
+
+        $data = $response->json();
+
+        return response()->json([
+            'status'            => true,
+            'message'           => 'Payment initialized successfully',
+            'authorization_url' => $data['data']['authorization_url'],
+            'reference'         => $data['data']['reference'],
+        ]);
+    }
+
+    public function handlePaystackCallback(Request $request)
+    {
+        $reference = $request->query('reference');
+
+        if (! $reference) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Missing transaction reference.',
+            ], 400);
+        }
+
+        // Verify transaction with Paystack
+        $response = Http::withToken(config('services.paystack.secret_key'))
+            ->get(config('services.paystack.base_url') . '/transaction/verify/' . $reference);
+
+        $data = $response->json();
+
+        if (! $data['status']) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Verification failed.',
+                'data'    => $data,
+            ], 400);
+        }
+
+        $paymentData = $data['data'];
+
+        // Find promotion by transaction_reference
+        $promotion = Promote::where('transaction_reference', $reference)->first();
+
+        if (! $promotion) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Promotion not found for this transaction reference.',
+            ], 404);
+        }
+
+        // Mark promotion as active & approved
+        $promotion->update([
+            'is_active'   => true,
+            'is_approved' => true,
+            'approved_at' => now(),
+        ]);
+
+        return response()->json([
+            'status'    => 'success',
+            'message'   => 'Payment verified successfully, promotion activated.',
+            'promotion' => $promotion,
+        ]);
+    }
+
+    public function handlePaystackWebhook(Request $request)
+    {
+        $payload = $request->all();
+
+        if (isset($payload['event']) && $payload['event'] === 'charge.success') {
+            $reference = $payload['data']['reference'];
+
+            $promotion = Promote::where('transaction_reference', $reference)->first();
+
+            if ($promotion && ! $promotion->is_active) {
+                $promotion->update([
+                    'is_active'   => true,
+                    'is_approved' => true,
+                    'approved_at' => now(),
+                ]);
+            }
+        }
+
+        return response()->json(['received' => true]);
+    }
+
 }

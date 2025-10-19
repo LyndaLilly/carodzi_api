@@ -39,6 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/promote', [PromoteController::class, 'store']);
 });
 
+Route::post('/promotions/paystack/initialize', [PromoteController::class, 'initializePaystackPayment'])->middleware('auth:sanctum');
+
+Route::get('/paystack/callback', [PromoteController::class, 'handlePaystackCallback']);
+Route::post('/paystack/webhook', [PromoteController::class, 'handlePaystackWebhook']);
+
+
 // Admin route to approve crypto promotion (protect with admin middleware)
 Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
 
