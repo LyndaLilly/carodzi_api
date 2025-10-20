@@ -148,21 +148,37 @@ class PromoteController extends Controller
         ]);
 
         $seller = $request->user();
-        $plans  = config('promote.plans');
-        $plan   = $request->plan;
+
+        // ✅ Prevent duplicate active promotions before payment
+        $existingPromotion = Promote::where('seller_id', $seller->id)
+            ->where('is_active', true)
+            ->where('end_date', '>', now())
+            ->first();
+
+        if ($existingPromotion) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'You already have an active promotion until ' .
+                $existingPromotion->end_date->format('M d, Y') . '.',
+            ], 403);
+        }
+
+        // ✅ Fetch plan details
+        $plans = config('promote.plans');
+        $plan  = $request->plan;
 
         if (! isset($plans[$plan])) {
             return response()->json(['error' => 'Invalid plan selected'], 422);
         }
 
         $planDetails = $plans[$plan];
-        $amount      = $planDetails['price'] * 100; // Paystack expects kobo (multiply by 100)
+        $amount      = $planDetails['price'] * 100;
 
         $response = Http::withToken(config('services.paystack.secret_key'))
             ->post(config('services.paystack.base_url') . '/transaction/initialize', [
                 'email'        => $seller->email,
                 'amount'       => $amount,
-                'callback_url' => url('/api/paystack/callback'), // we’ll create this route next
+                'callback_url' => url('/api/paystack/callback'),
                 'metadata'     => [
                     'seller_id' => $seller->id,
                     'plan'      => $plan,
