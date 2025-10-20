@@ -26,13 +26,22 @@ Here are your promotion details:
 
 ---
 
-If you chose **Paystack**, your promotion is already active.  
-If you paid via **Crypto**, our team will review and activate it shortly.
+@if($promotion->is_active)
+✅ Your promotion is now **active** on Alebaz!
+@else
+⏳ Your payment is pending review. Once approved, your promotion will go live.
+@endif
 
-@component('mail::button', ['url' => config('app.url')])
-Visit alebaz
+---
+
+@component('mail::button', ['url' => 'https://alebaz.com'])
+Visit Alebaz
+@endcomponent
+
+@component('mail::button', ['url' => 'https://osita.com.ng/seller/dashboard'])
+Track Your Promotion in Your Dashboard
 @endcomponent
 
 Thanks,  
-**The alebaz Team**
+**The Alebaz Team**
 @endcomponent
