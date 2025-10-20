@@ -73,12 +73,6 @@ class PromoteController extends Controller
             'message'   => 'Promotion submitted successfully.',
             'promotion' => $promote,
         ], 201);
-
-        return response()->json([
-            'status'    => 'success',
-            'message'   => 'Promotion submitted successfully.',
-            'promotion' => $promote,
-        ], 201);
     }
 
     public function approve($id)
