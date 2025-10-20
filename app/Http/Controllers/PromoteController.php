@@ -62,6 +62,18 @@ class PromoteController extends Controller
             'amount'                => $planDetails['price'],
         ]);
 
+        try {
+            Mail::to($seller->email)->send(new PromoteSuccessMail($promote, $seller));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send promote success email: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'status'    => 'success',
+            'message'   => 'Promotion submitted successfully.',
+            'promotion' => $promote,
+        ], 201);
+
         return response()->json([
             'status'    => 'success',
             'message'   => 'Promotion submitted successfully.',
