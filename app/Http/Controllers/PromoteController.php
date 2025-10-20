@@ -296,21 +296,50 @@ class PromoteController extends Controller
     }
 
     public function checkActive(Request $request)
-{
-    $seller = $request->user();
+    {
+        try {
+            $seller = $request->user();
 
-    $existingPromotion = Promote::where('seller_id', $seller->id)
-        ->where('is_active', true)
-        ->where('end_date', '>', now())
-        ->first();
+            if (! $seller) {
+                \Log::warning('Promote check: unauthenticated request detected.');
+                return response()->json([
+                    'has_active' => false,
+                    'message'    => 'Unauthenticated or invalid token.',
+                ], 401);
+            }
 
-    return response()->json([
-        'has_active' => (bool) $existingPromotion,
-        'message' => $existingPromotion
-            ? 'Active promotion until ' . $existingPromotion->end_date->format('M d, Y')
-            : null,
-    ]);
-}
+            $existingPromotion = Promote::where('seller_id', $seller->id)
+                ->where('is_active', true)
+                ->where('end_date', '>', now())
+                ->first();
 
+            $profile = $seller->profile;
+            $logo    = $profile && $profile->profile_image
+                ? url('profile_images/' . basename($profile->profile_image))
+                : null;
+
+            \Log::info('Promotion check', [
+                'seller_id'    => $seller->id,
+                'has_active'   => (bool) $existingPromotion,
+                'active_until' => $existingPromotion ? $existingPromotion->end_date->format('Y-m-d H:i:s') : null,
+                'logo'         => $logo,
+            ]);
+
+            return response()->json([
+                'has_active' => (bool) $existingPromotion,
+                'message'    => $existingPromotion
+                    ? 'Active promotion until ' . $existingPromotion->end_date->format('M d, Y')
+                    : null,
+                'logo'       => $logo,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in checkActive: ' . $e->getMessage());
+            return response()->json([
+                'has_active' => false,
+                'message'    => 'Server error occurred while checking promotion.',
+                'error'      => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }
