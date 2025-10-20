@@ -272,27 +272,44 @@ class PromoteController extends Controller
     }
 
     public function getCryptoPrice()
-{
-    try {
-        $response = Http::get('https://api.coingecko.com/api/v3/simple/price', [
-            'ids' => 'ethereum',
-            'vs_currencies' => 'ngn',
-        ]);
+    {
+        try {
+            $response = Http::get('https://api.coingecko.com/api/v3/simple/price', [
+                'ids'           => 'ethereum',
+                'vs_currencies' => 'ngn',
+            ]);
 
-        if ($response->failed()) {
-            return response()->json(['error' => 'Unable to fetch ETH price'], 500);
+            if ($response->failed()) {
+                return response()->json(['error' => 'Unable to fetch ETH price'], 500);
+            }
+
+            $priceData     = $response->json();
+            $ethPriceInNgn = $priceData['ethereum']['ngn'] ?? null;
+
+            return response()->json([
+                'success'    => true,
+                'eth_to_ngn' => $ethPriceInNgn,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error fetching ETH price'], 500);
         }
-
-        $priceData = $response->json();
-        $ethPriceInNgn = $priceData['ethereum']['ngn'] ?? null;
-
-        return response()->json([
-            'success' => true,
-            'eth_to_ngn' => $ethPriceInNgn,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Error fetching ETH price'], 500);
     }
+
+    public function checkActive(Request $request)
+{
+    $seller = $request->user();
+
+    $existingPromotion = Promote::where('seller_id', $seller->id)
+        ->where('is_active', true)
+        ->where('end_date', '>', now())
+        ->first();
+
+    return response()->json([
+        'has_active' => (bool) $existingPromotion,
+        'message' => $existingPromotion
+            ? 'Active promotion until ' . $existingPromotion->end_date->format('M d, Y')
+            : null,
+    ]);
 }
 
 

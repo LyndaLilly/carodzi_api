@@ -49,6 +49,9 @@ Route::get('/crypto/price', [PromoteController::class, 'getCryptoPrice']);
 // Admin route to approve crypto promotion (protect with admin middleware)
 Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
 Route::get('/promotions/expire', [PromoteController::class, 'expirePromotions']);
+// routes/api.php
+Route::get('/seller/promote/check', [PromoteController::class, 'checkActive']);
+
 
 // 🟢 Public route to get featured sellers
 Route::get('/featured-sellers', [PromoteController::class, 'featured']);
