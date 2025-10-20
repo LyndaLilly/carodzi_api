@@ -7,8 +7,14 @@ use Illuminate\Support\Facades\Http;
 
 class PromoteController extends Controller
 {
-    public function store(Request $request)
-    {
+  public function store(Request $request)
+{
+    try {
+        Log::info('Promotion submission started', [
+            'seller_id' => $request->user()->id ?? null,
+            'input' => $request->all(),
+        ]);
+
         $request->validate([
             'plan'                  => 'required|string|in:basic,standard,premium',
             'payment_method'        => 'required|in:paystack,crypto',
@@ -18,25 +24,32 @@ class PromoteController extends Controller
 
         $seller = $request->user();
 
-        // ✅ 1. Prevent duplicate active promotions
+        // ✅ Prevent duplicate active promotions
         $existingPromotion = Promote::where('seller_id', $seller->id)
             ->where('is_active', true)
             ->where('end_date', '>', now())
             ->first();
 
         if ($existingPromotion) {
+            Log::warning('Duplicate promotion prevented', [
+                'seller_id' => $seller->id,
+                'active_until' => $existingPromotion->end_date,
+            ]);
+
             return response()->json([
                 'status'  => 'error',
                 'message' => 'You already have an active promotion until ' .
-                $existingPromotion->end_date->format('M d, Y') . '.',
+                    $existingPromotion->end_date->format('M d, Y') . '.',
             ], 403);
         }
 
-        // ✅ 2. Fetch plan details
+        // ✅ Fetch plan details
         $plans = config('promote.plans');
         $plan  = $request->plan;
 
         if (! isset($plans[$plan])) {
+            Log::error('Invalid plan selected', ['plan' => $plan]);
+
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Invalid plan selected.',
@@ -47,7 +60,7 @@ class PromoteController extends Controller
         $startDate   = now();
         $endDate     = $startDate->copy()->addDays($planDetails['duration']);
 
-        // ✅ 3. Create promotion record
+        // ✅ Create promotion record
         $promote = Promote::create([
             'seller_id'             => $seller->id,
             'plan'                  => $plan,
@@ -62,10 +75,20 @@ class PromoteController extends Controller
             'amount'                => $planDetails['price'],
         ]);
 
+        Log::info('Promotion created successfully', [
+            'promotion_id' => $promote->id,
+            'seller_email' => $seller->email,
+        ]);
+
+        // ✅ Try sending email
         try {
             Mail::to($seller->email)->send(new PromoteSuccessMail($promote, $seller));
-        } catch (\Exception $e) {
-            \Log::error('Failed to send promote success email: ' . $e->getMessage());
+            Log::info('Promotion success email sent', ['promotion_id' => $promote->id]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to send promote success email', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
 
         return response()->json([
@@ -73,7 +96,18 @@ class PromoteController extends Controller
             'message'   => 'Promotion submitted successfully.',
             'promotion' => $promote,
         ], 201);
+    } catch (\Throwable $e) {
+        Log::error('Error in PromoteController@store', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Server error: ' . $e->getMessage(),
+        ], 500);
     }
+}
 
     public function approve($id)
     {
