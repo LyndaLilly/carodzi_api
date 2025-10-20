@@ -18,7 +18,21 @@ class PromoteController extends Controller
 
         $seller = $request->user();
 
-        // Fetch plan details from config
+        // ✅ 1. Prevent duplicate active promotions
+        $existingPromotion = Promote::where('seller_id', $seller->id)
+            ->where('is_active', true)
+            ->where('end_date', '>', now())
+            ->first();
+
+        if ($existingPromotion) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'You already have an active promotion until ' .
+                $existingPromotion->end_date->format('M d, Y') . '.',
+            ], 403);
+        }
+
+        // ✅ 2. Fetch plan details
         $plans = config('promote.plans');
         $plan  = $request->plan;
 
@@ -33,6 +47,7 @@ class PromoteController extends Controller
         $startDate   = now();
         $endDate     = $startDate->copy()->addDays($planDetails['duration']);
 
+        // ✅ 3. Create promotion record
         $promote = Promote::create([
             'seller_id'             => $seller->id,
             'plan'                  => $plan,
