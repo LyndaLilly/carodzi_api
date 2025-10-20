@@ -44,13 +44,14 @@ Route::post('/promotions/paystack/initialize', [PromoteController::class, 'initi
 Route::get('/paystack/callback', [PromoteController::class, 'handlePaystackCallback']);
 Route::post('/paystack/webhook', [PromoteController::class, 'handlePaystackWebhook']);
 Route::get('/crypto/price', [PromoteController::class, 'getCryptoPrice']);
+Route::middleware('auth:sanctum')->get('/seller/promote/check', [PromoteController::class, 'checkActive']);
+
 
 
 // Admin route to approve crypto promotion (protect with admin middleware)
 Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
 Route::get('/promotions/expire', [PromoteController::class, 'expirePromotions']);
-// routes/api.php
-Route::get('/seller/promote/check', [PromoteController::class, 'checkActive']);
+
 
 
 // 🟢 Public route to get featured sellers
