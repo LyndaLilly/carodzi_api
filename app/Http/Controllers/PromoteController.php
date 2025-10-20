@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 use App\Models\Promote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\PromoteSuccessMail;
 
 class PromoteController extends Controller
 {
