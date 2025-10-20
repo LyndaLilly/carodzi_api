@@ -28,7 +28,7 @@ class PromoteSuccessMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Your Promotion Submission on Ensach.com')
+        return $this->subject('Your Promotion Submission on alebaz.com')
                     ->markdown('emails.promote.success');
     }
 }

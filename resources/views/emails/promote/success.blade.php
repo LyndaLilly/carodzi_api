@@ -2,7 +2,7 @@
 # 🎉 Promotion Submitted Successfully!
 
 Hello **{{ $seller->firstname }}**,  
-Thank you for promoting your store on **Ensach.com**!
+Thank you for promoting your store on **alebaz.com**!
 
 Here are your promotion details:
 
@@ -30,9 +30,9 @@ If you chose **Paystack**, your promotion is already active.
 If you paid via **Crypto**, our team will review and activate it shortly.
 
 @component('mail::button', ['url' => config('app.url')])
-Visit Ensach
+Visit alebaz
 @endcomponent
 
 Thanks,  
-**The Ensach Team**
+**The alebaz Team**
 @endcomponent
