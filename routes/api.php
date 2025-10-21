@@ -58,11 +58,6 @@ Route::get('/promotions/expire', [PromoteController::class, 'expirePromotions'])
 Route::get('/featured-sellers', [PromoteController::class, 'featured']);
 
 
-
-// Public route to get featured sellers
-Route::get('/featured-sellers', [PromoteController::class, 'featured']);
-
-
 Route::middleware('auth:sanctum')->get('/seller/me', [SellerController::class, 'me']);
 Route::middleware('auth:sanctum')->post('/seller/product-upload', [ProductUploadController::class, 'storeProduct']);
 
