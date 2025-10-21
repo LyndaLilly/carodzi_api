@@ -136,18 +136,30 @@ class PromoteController extends Controller
         ]);
     }
 
-  public function featured()
+public function featured()
 {
     try {
         $featuredPromotions = Promote::where('is_active', true)
             ->where('is_approved', true)
             ->whereDate('start_date', '<=', now())
             ->whereDate('end_date', '>=', now())
-            ->with(['seller.profile'])
+            ->with(['seller.profile', 'seller.professionalProfile'])
             ->get();
 
         $featuredSellers = $featuredPromotions->map(function ($promo) {
             $seller = $promo->seller;
+
+            if (!$seller) {
+                \Log::warning("⚠️ Promotion {$promo->id} has no seller linked.");
+                return null;
+            }
+
+            // ✅ Use whichever profile exists (professional or other)
+            $profile = $seller->professionalProfile ?? $seller->profile;
+
+            if (!$profile) {
+                \Log::warning("⚠️ Seller {$seller->id} has no profile in either table.");
+            }
 
             // ✅ Calculate seller’s average rating
             $averageRating = \App\Models\ProductReview::whereHas('product', function ($query) use ($seller) {
@@ -156,38 +168,35 @@ class PromoteController extends Controller
                 ->where('is_visible', true)
                 ->avg('rating');
 
-            $profile = $seller->profile;
-
             return [
                 'id'             => $seller->id,
-                'business_name'  => $profile->business_name ?? ($seller->firstname . ' ' . $seller->lastname),
-                'logo'           => $profile->profile_image ? 'profile_images/' . basename($profile->profile_image) : null,
-                'tagline'        => $profile->tagline ?? null,
+                'business_name'  => $profile?->business_name ?? ($seller->firstname . ' ' . $seller->lastname),
+                'logo'           => $profile?->profile_image ? 'profile_images/' . basename($profile->profile_image) : null,
+                'tagline'        => $profile?->tagline ?? null,
                 'is_verified'    => $seller->verified,
                 'average_rating' => round($averageRating ?? 0, 1),
             ];
-        });
+        })->filter();
 
         return response()->json([
             'success' => true,
             'sellers' => $featuredSellers,
         ]);
-    } catch (Exception $e) {
-        // 🔥 Log the full error for debugging
-        Log::error('Error fetching featured sellers: ' . $e->getMessage(), [
+    } catch (\Exception $e) {
+        \Log::error('Error fetching featured sellers: ' . $e->getMessage(), [
             'file' => $e->getFile(),
             'line' => $e->getLine(),
             'trace' => $e->getTraceAsString(),
         ]);
 
-        // Optional: return the error message in response (for debugging)
         return response()->json([
             'success' => false,
             'message' => 'Server error while fetching featured sellers.',
-            'error'   => $e->getMessage(), // remove this in production
+            'error'   => $e->getMessage(), // remove in production
         ], 500);
     }
 }
+
 
 
     public function expirePromotions()
