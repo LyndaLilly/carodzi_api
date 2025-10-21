@@ -136,8 +136,9 @@ class PromoteController extends Controller
         ]);
     }
 
-    public function featured()
-    {
+  public function featured()
+{
+    try {
         $featuredPromotions = Promote::where('is_active', true)
             ->where('is_approved', true)
             ->whereDate('start_date', '<=', now())
@@ -148,7 +149,7 @@ class PromoteController extends Controller
         $featuredSellers = $featuredPromotions->map(function ($promo) {
             $seller = $promo->seller;
 
-            // ✅ Calculate seller’s average rating from ProductReview model
+            // ✅ Calculate seller’s average rating
             $averageRating = \App\Models\ProductReview::whereHas('product', function ($query) use ($seller) {
                 $query->where('seller_id', $seller->id);
             })
@@ -171,7 +172,23 @@ class PromoteController extends Controller
             'success' => true,
             'sellers' => $featuredSellers,
         ]);
+    } catch (Exception $e) {
+        // 🔥 Log the full error for debugging
+        Log::error('Error fetching featured sellers: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        // Optional: return the error message in response (for debugging)
+        return response()->json([
+            'success' => false,
+            'message' => 'Server error while fetching featured sellers.',
+            'error'   => $e->getMessage(), // remove this in production
+        ], 500);
     }
+}
+
 
     public function expirePromotions()
     {
