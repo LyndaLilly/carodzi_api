@@ -146,7 +146,7 @@ class PromoteController extends Controller
                 ->with([
                     'seller.profile',
                     'seller.professionalProfile',
-                    'seller.subcategory', // ✅ Added to fetch subcategory info
+                    'seller.subcategory', // ✅ eager load
                 ])
                 ->get();
 
@@ -158,31 +158,36 @@ class PromoteController extends Controller
                     return null;
                 }
 
-                // ✅ Use whichever profile exists
+                // ✅ Choose which profile to display
                 $profile = $seller->professionalProfile ?? $seller->profile;
 
                 if (! $profile) {
                     \Log::warning("⚠️ Seller {$seller->id} has no profile in either table.");
                 }
 
-                // ✅ Calculate seller’s average rating
+                // ✅ Compute average rating
                 $averageRating = \App\Models\ProductReview::whereHas('product', function ($query) use ($seller) {
                     $query->where('seller_id', $seller->id);
                 })
                     ->where('is_visible', true)
                     ->avg('rating');
 
+                // ✅ Determine verification
+                $autoVerify = optional($seller->subcategory)->auto_verify == 1;
+                $isVerified = ($seller->status == 1 && $autoVerify);
+
                 return [
                     'id'             => $seller->id,
                     'business_name'  => $profile?->business_name ?? ($seller->firstname . ' ' . $seller->lastname),
                     'logo'           => $profile?->profile_image ? 'profile_images/' . basename($profile->profile_image) : null,
                     'tagline'        => $profile?->tagline ?? null,
-                    'status'         => $seller->status,         // ✅ Added seller status
-                    'subcategory'    => $seller->subcategory ? [ // ✅ Include subcategory details
+                    'status'         => $seller->status,
+                    'subcategory'    => $seller->subcategory ? [
                         'id'          => $seller->subcategory->id,
                         'name'        => $seller->subcategory->name,
                         'auto_verify' => $seller->subcategory->auto_verify,
                     ] : null,
+                    'is_verified'    => $isVerified, // ✅ add it directly
                     'average_rating' => round($averageRating ?? 0, 1),
                 ];
             })->filter();
