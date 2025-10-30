@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,4 +33,7 @@ class DirectInquiry extends Model
     {
         return $this->belongsTo(ProductUpload::class, 'product_id');
     }
+
+
+
 }

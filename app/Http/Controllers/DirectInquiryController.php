@@ -13,11 +13,12 @@ class DirectInquiryController extends Controller
     public function store(Request $request)
     {
         try {
-           \Log::info('[DirectInquiryController] Direct inquiry received', $request->all());
+            \Log::info('[DirectInquiryController] Direct inquiry received', $request->all());
 
             $validated = $request->validate([
                 'seller_id'      => 'required|exists:sellers,id',
-                'product_id'     => 'nullable|exists:product_uploads,id',
+                'product_id'     => 'nullable|exists:productupload,id',
+
                 'contact_method' => 'required|string|max:50',
                 'buyer_name'     => 'nullable|string|max:255',
                 'buyer_email'    => 'nullable|email|max:255',
