@@ -5,19 +5,18 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerProfileController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\DirectInquiryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
+use App\Http\Controllers\PromoteController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\PromoteController;
-
 use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,8 +31,6 @@ Route::post('/sellers/reset-password', [SellerController::class, 'resetPassword'
 Route::post('/sellers/login', [SellerController::class, 'SellerLogin']);
 Route::middleware('auth:sanctum')->post('/seller/logout', [SellerController::class, 'sellerLogout']);
 
-
-
 // Seller routes (requires auth)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/promote', [PromoteController::class, 'store']);
@@ -46,17 +43,12 @@ Route::post('/paystack/webhook', [PromoteController::class, 'handlePaystackWebho
 Route::get('/crypto/price', [PromoteController::class, 'getCryptoPrice']);
 Route::middleware('auth:sanctum')->get('/seller/promote/check', [PromoteController::class, 'checkActive']);
 
-
-
 // Admin route to approve crypto promotion (protect with admin middleware)
 Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
 Route::get('/promotions/expire', [PromoteController::class, 'expirePromotions']);
 
-
-
 // 🟢 Public route to get featured sellers
 Route::get('/featured-sellers', [PromoteController::class, 'featured']);
-
 
 Route::middleware('auth:sanctum')->get('/seller/me', [SellerController::class, 'me']);
 Route::middleware('auth:sanctum')->post('/seller/product-upload', [ProductUploadController::class, 'storeProduct']);
@@ -91,8 +83,6 @@ Route::get('/services/popular', [ProductUploadController::class, 'getPopularServ
 // Get all products for a seller
 Route::get('/products/seller/{sellerId}', [ProductUploadController::class, 'getAllProducts']);
 
-
-
 Route::middleware('auth:sanctum')->group(function () {
     // Update product (expects product_id in request body + _method=PATCH if using FormData)
     Route::patch('/products/update', [ProductUploadController::class, 'updateProduct']);
@@ -110,7 +100,6 @@ Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProduc
 
 Route::get('/products/{id}/recommended', [ProductUploadController::class, 'getRecommended']);
 Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct']);
-
 
 Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
@@ -136,7 +125,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/reviews/product/{productId}', [ProductReviewController::class, 'getProductReviews']);
 Route::get('/reviews/product/{productId}/average', [ProductReviewController::class, 'getAverageRating']);
 Route::get('/reviews/seller/{sellerId}/average', [ProductReviewController::class, 'getSellerAverageRating']);
-Route::get('/reviews/seller/{sellerId}/service-average', [ProductReviewController::class, 'getSellerServiceAverage']); 
+Route::get('/reviews/seller/{sellerId}/service-average', [ProductReviewController::class, 'getSellerServiceAverage']);
 
 //Buyers
 
@@ -184,6 +173,14 @@ Route::middleware('auth:sanctum')->get('/seller/orders/summary', [OrderControlle
 
 Route::middleware('auth:sanctum')->get('/seller/weekly-revenue', [OrderController::class, 'sellerWeeklyRevenue']);
 
+// 📨 Direct Inquiry Routes
+Route::post('/direct-inquiry', [DirectInquiryController::class, 'store']); // submit inquiry
+
+// Get all inquiries for a seller
+Route::get('/seller/{sellerId}/inquiries', [DirectInquiryController::class, 'sellerInquiries']);
+
+// Get all inquiries for a buyer
+Route::get('/buyer/{buyerId}/inquiries', [DirectInquiryController::class, 'buyerInquiries']);
 
 //Admins Routes
 
