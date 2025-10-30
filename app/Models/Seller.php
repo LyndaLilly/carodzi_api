@@ -16,6 +16,7 @@ class Seller extends Authenticatable
         'email',
         'password',
         'role',
+        'views',
         'verification_code',
         'verified',
         'profile_updated',
@@ -27,8 +28,8 @@ class Seller extends Authenticatable
         'email_verified_at',
         'password_reset_code',
         'password_reset_sent_at',
-        'category_id',     // ✅ added
-        'sub_category_id', // ✅ added
+        'category_id',    
+        'sub_category_id', 
     ];
 
     protected $hidden = [
@@ -50,6 +51,7 @@ class Seller extends Authenticatable
         'sub_category_id'         => 'integer',
         'product_id'              => 'integer',
         'sub_product_id'          => 'integer',
+        'views'                   => 'integer',
     ];
 
     public function category()

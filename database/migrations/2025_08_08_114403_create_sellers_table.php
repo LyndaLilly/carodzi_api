@@ -16,6 +16,7 @@ class CreateSellersTable extends Migration
 
             // ✅ Role: seller or buyer
             $table->string('role')->default('seller');
+            $table->integer('views')->default(0);
 
             // ✅ Email Verification via Code
             $table->boolean('verified')->default(false);

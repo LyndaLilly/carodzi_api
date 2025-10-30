@@ -119,6 +119,7 @@ Route::get('/public-sellers', [PublicSellerController::class, 'index']);     // 
 Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
 Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers']);
 Route::get('/public-seller-search', [PublicSellerController::class, 'search']);
+Route::get('/sellers/{id}/view', [SellerController::class, 'viewSeller']);
 
 Route::middleware('auth:sanctum')->get('/seller/notifications', [SellerNotificationController::class, 'index']);
 
