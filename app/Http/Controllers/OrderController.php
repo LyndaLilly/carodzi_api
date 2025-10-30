@@ -33,12 +33,12 @@ class OrderController extends Controller
             // ✅ Get product info
             $product = ProductUpload::findOrFail($request->product_id);
 
-            // ✅ Create a single order linked directly to the product
+            // ✅ Create order with status tracking
             $order = Order::create([
                 'buyer_id'                => auth()->id() ?? null, // optional if buyers can order while logged in
-                'delivery_fullname'       => $request->delivery_fullname,
-                'delivery_email'          => $request->delivery_email,
-                'delivery_phone'          => $request->delivery_phone,
+                'buyer_fullname'          => $request->delivery_fullname,
+                'buyer_email'             => $request->delivery_email,
+                'buyer_phone'             => $request->delivery_phone,
                 'buyer_delivery_location' => $request->buyer_delivery_location,
                 'product_id'              => $request->product_id,
                 'seller_id'               => $product->seller_id,
@@ -46,13 +46,14 @@ class OrderController extends Controller
                 'price'                   => $request->price,
                 'total_amount'            => $request->total_price,
                 'payment_method'          => $request->payment_method ?? 'contact_seller',
-                'payment_status'          => 'pending',
+                'payment_status'          => 'pending', // payment not yet made
+                'status'                  => 'pending', // order status also pending initially
             ]);
 
+            // ✅ Notify the seller
             $seller = $product->seller;
             \Log::info('Seller for notification:', ['seller' => $seller]);
 
-            // --- Notify the seller via Laravel Notification ---
             if ($seller) {
                 $seller->notify(new NewOrderNotification($product->name));
             }
@@ -162,56 +163,55 @@ class OrderController extends Controller
         ]);
     }
 
-   public function sellerOrdersSummary()
-{
-    try {
-        $sellerId = auth()->id();
-        \Log::info('🟢 Entered sellerOrdersSummary', ['seller_id' => $sellerId]);
+    public function sellerOrdersSummary()
+    {
+        try {
+            $sellerId = auth()->id();
+            \Log::info('🟢 Entered sellerOrdersSummary', ['seller_id' => $sellerId]);
 
-        if (! $sellerId) {
-            \Log::warning('⚠️ Unauthorized access attempt to sellerOrdersSummary');
-            return response()->json(['error' => 'Unauthorized'], 401);
+            if (! $sellerId) {
+                \Log::warning('⚠️ Unauthorized access attempt to sellerOrdersSummary');
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $totalOrders     = Order::where('seller_id', $sellerId)->count();
+            $completedOrders = Order::where('seller_id', $sellerId)
+                ->where('status', 'completed')
+                ->count();
+            $pendingOrders = Order::where('seller_id', $sellerId)
+                ->where('status', 'pending')
+                ->count();
+            $totalRevenue = Order::where('seller_id', $sellerId)
+                ->where('payment_status', 'paid')
+                ->sum('total_amount');
+
+            \Log::info('✅ Seller order summary retrieved successfully', [
+                'seller_id'        => $sellerId,
+                'total_orders'     => $totalOrders,
+                'completed_orders' => $completedOrders,
+                'pending_orders'   => $pendingOrders,
+                'total_revenue'    => $totalRevenue,
+            ]);
+
+            return response()->json([
+                'success'          => true,
+                'total_orders'     => $totalOrders,
+                'completed_orders' => $completedOrders,
+                'pending_orders'   => $pendingOrders,
+                'total_revenue'    => $totalRevenue,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('❌ Error fetching sellerOrdersSummary', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'Something went wrong while fetching order summary',
+                'details' => $e->getMessage(),
+            ], 500);
         }
-
-        $totalOrders = Order::where('seller_id', $sellerId)->count();
-        $completedOrders = Order::where('seller_id', $sellerId)
-            ->where('status', 'completed')
-            ->count();
-        $pendingOrders = Order::where('seller_id', $sellerId)
-            ->where('status', 'pending')
-            ->count();
-        $totalRevenue = Order::where('seller_id', $sellerId)
-            ->where('payment_status', 'completed')
-            ->sum('total_amount');
-
-        \Log::info('✅ Seller order summary retrieved successfully', [
-            'seller_id'        => $sellerId,
-            'total_orders'     => $totalOrders,
-            'completed_orders' => $completedOrders,
-            'pending_orders'   => $pendingOrders,
-            'total_revenue'    => $totalRevenue,
-        ]);
-
-        return response()->json([
-            'success'          => true,
-            'total_orders'     => $totalOrders,
-            'completed_orders' => $completedOrders,
-            'pending_orders'   => $pendingOrders,
-            'total_revenue'    => $totalRevenue,
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('❌ Error fetching sellerOrdersSummary', [
-            'message' => $e->getMessage(),
-            'trace'   => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'error'   => 'Something went wrong while fetching order summary',
-            'details' => $e->getMessage(),
-        ], 500);
     }
-}
-
 
 }
