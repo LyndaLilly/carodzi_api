@@ -182,6 +182,9 @@ Route::middleware('auth:buyer')->group(function () {
 
 Route::middleware('auth:sanctum')->get('/seller/orders/summary', [OrderController::class, 'sellerOrdersSummary']);
 
+Route::middleware('auth:sanctum')->get('/seller/weekly-revenue', [OrderController::class, 'sellerWeeklyRevenue']);
+
+
 //Admins Routes
 
 Route::middleware('auth:admin')->get('/admin/me', function (Request $request) {

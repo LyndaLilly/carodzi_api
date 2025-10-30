@@ -214,4 +214,48 @@ class OrderController extends Controller
         }
     }
 
+    public function sellerWeeklyRevenue()
+    {
+        try {
+            $sellerId = auth()->id();
+            if (! $sellerId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Get the last 7 days' revenue
+            $weeklyRevenue = Order::where('seller_id', $sellerId)
+                ->where('payment_status', 'paid')
+                ->where('created_at', '>=', now()->subDays(6)) // past 7 days including today
+                ->selectRaw('DATE(created_at) as date, SUM(total_amount) as revenue')
+                ->groupBy('date')
+                ->orderBy('date', 'asc')
+                ->get();
+
+            // Fill missing days (so chart always shows 7 days)
+            $days = collect();
+            for ($i = 6; $i >= 0; $i--) {
+                $date    = now()->subDays($i)->format('Y-m-d');
+                $dayName = now()->subDays($i)->format('D');
+                $revenue = $weeklyRevenue->firstWhere('date', $date)->revenue ?? 0;
+
+                $days->push([
+                    'name'    => $dayName,
+                    'date'    => $date,
+                    'revenue' => (float) $revenue,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data'    => $days,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Failed to fetch weekly revenue',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }
