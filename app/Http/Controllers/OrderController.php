@@ -162,25 +162,35 @@ class OrderController extends Controller
         ]);
     }
 
-    public function sellerOrdersSummary()
-    {
+   public function sellerOrdersSummary()
+{
+    try {
         $sellerId = auth()->id();
+        \Log::info('🟢 Entered sellerOrdersSummary', ['seller_id' => $sellerId]);
 
         if (! $sellerId) {
+            \Log::warning('⚠️ Unauthorized access attempt to sellerOrdersSummary');
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $totalOrders     = Order::where('seller_id', $sellerId)->count();
+        $totalOrders = Order::where('seller_id', $sellerId)->count();
         $completedOrders = Order::where('seller_id', $sellerId)
             ->where('status', 'completed')
             ->count();
         $pendingOrders = Order::where('seller_id', $sellerId)
             ->where('status', 'pending')
             ->count();
-
         $totalRevenue = Order::where('seller_id', $sellerId)
             ->where('payment_status', 'completed')
             ->sum('total_amount');
+
+        \Log::info('✅ Seller order summary retrieved successfully', [
+            'seller_id'        => $sellerId,
+            'total_orders'     => $totalOrders,
+            'completed_orders' => $completedOrders,
+            'pending_orders'   => $pendingOrders,
+            'total_revenue'    => $totalRevenue,
+        ]);
 
         return response()->json([
             'success'          => true,
@@ -189,6 +199,19 @@ class OrderController extends Controller
             'pending_orders'   => $pendingOrders,
             'total_revenue'    => $totalRevenue,
         ]);
+    } catch (\Throwable $e) {
+        \Log::error('❌ Error fetching sellerOrdersSummary', [
+            'message' => $e->getMessage(),
+            'trace'   => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'error'   => 'Something went wrong while fetching order summary',
+            'details' => $e->getMessage(),
+        ], 500);
     }
+}
+
 
 }
