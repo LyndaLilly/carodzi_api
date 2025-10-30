@@ -28,8 +28,8 @@ class Seller extends Authenticatable
         'email_verified_at',
         'password_reset_code',
         'password_reset_sent_at',
-        'category_id',    
-        'sub_category_id', 
+        'category_id',
+        'sub_category_id',
     ];
 
     protected $hidden = [
@@ -89,8 +89,14 @@ class Seller extends Authenticatable
         return $this->hasMany(\App\Models\ProductUpload::class, 'seller_id', 'id');
     }
 
-       public function orders()
+    public function orders()
     {
         return $this->hasMany(Order::class, 'seller_id');
     }
+
+    public function profileViews()
+    {
+        return $this->hasMany(\App\Models\SellerProfileView::class, 'seller_id');
+    }
+
 }

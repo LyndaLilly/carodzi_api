@@ -3,8 +3,10 @@ namespace App\Http\Controllers;
 
 use App\Mail\EmailVerificationCodeMail;
 use App\Models\Seller;
+use App\Models\SellerProfileView;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -366,7 +368,7 @@ class SellerController extends Controller
         $seller = $request->user()->load([
             'profile',
             'professionalProfile',
-            'subcategory', 
+            'subcategory',
         ]);
 
         // Normalize file URLs
@@ -463,40 +465,99 @@ class SellerController extends Controller
         ]);
     }
 
+    // public function viewSeller($id)
+    // {
+    //     try {
+    //         // Find the seller
+    //         $seller = Seller::findOrFail($id);
+
+    //         // Increment view count
+    //         $seller->increment('views');
+
+    //         // Optionally, load relationships (profile, products, etc.)
+    //         $seller->load(['profile', 'professionalProfile', 'subcategory', 'category']);
+
+    //         // Normalize image URLs if they exist
+    //         if ($seller->profile && $seller->profile->profile_image) {
+    //             $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+    //         }
+
+    //         if ($seller->professionalProfile && $seller->professionalProfile->profile_image) {
+    //             $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
+    //         }
+
+    //         // Return success response
+    //         return response()->json([
+    //             'status'  => 'success',
+    //             'message' => 'Seller viewed successfully.',
+    //             'seller'  => $seller,
+    //         ], 200);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status'  => 'error',
+    //             'message' => 'Seller not found.',
+    //         ], 404);
+    //     }
+    // }
+
     public function viewSeller($id)
-{
-    try {
-        // Find the seller
-        $seller = Seller::findOrFail($id);
+    {
+        try {
+            $seller = Seller::findOrFail($id);
+            $ip     = request()->ip();
 
-        // Increment view count
-        $seller->increment('views');
+            // Prevent multiple rapid views from same IP or viewer within 1 hour
+            $alreadyViewed = SellerProfileView::where('seller_id', $seller->id)
+                ->where(function ($q) use ($ip) {
+                    $q->where('ip_address', $ip);
+                    if (Auth::check()) {
+                        $q->orWhere('viewer_id', Auth::id());
+                    }
+                })
+                ->where('created_at', '>', now()->subHours(1))
+                ->exists();
 
-        // Optionally, load relationships (profile, products, etc.)
-        $seller->load(['profile', 'professionalProfile', 'subcategory', 'category']);
+            if (! $alreadyViewed) {
+                SellerProfileView::create([
+                    'seller_id'  => $seller->id,
+                    'viewer_id'  => Auth::id(),
+                    'ip_address' => $ip,
+                ]);
 
-        // Normalize image URLs if they exist
-        if ($seller->profile && $seller->profile->profile_image) {
-            $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+                // Increment total views in sellers table
+                $seller->increment('views');
+            }
+
+            // Load relationships (profile, etc.)
+            $seller->load(['profile', 'professionalProfile', 'subcategory', 'category']);
+
+            // Normalize images
+            if ($seller->profile && $seller->profile->profile_image) {
+                $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+            }
+
+            if ($seller->professionalProfile && $seller->professionalProfile->profile_image) {
+                $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
+            }
+
+            // ✅ Include recent profile views (last 3)
+            $recentViews = SellerProfileView::where('seller_id', $seller->id)
+                ->latest()
+                ->take(3)
+                ->get(['id', 'ip_address', 'created_at', 'viewer_id']);
+
+            return response()->json([
+                'status'       => 'success',
+                'message'      => 'Seller viewed successfully.',
+                'seller'       => $seller,
+                'recent_views' => $recentViews,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Seller not found.',
+            ], 404);
         }
-
-        if ($seller->professionalProfile && $seller->professionalProfile->profile_image) {
-            $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
-        }
-
-        // Return success response
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Seller viewed successfully.',
-            'seller'  => $seller,
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status'  => 'error',
-            'message' => 'Seller not found.',
-        ], 404);
     }
-}
-
 
 }
