@@ -33,12 +33,12 @@ class OrderController extends Controller
             // ✅ Get product info
             $product = ProductUpload::findOrFail($request->product_id);
 
-            // ✅ Create order with status tracking
+            // ✅ Create a single order linked directly to the product
             $order = Order::create([
                 'buyer_id'                => auth()->id() ?? null, // optional if buyers can order while logged in
-                'buyer_fullname'          => $request->delivery_fullname,
-                'buyer_email'             => $request->delivery_email,
-                'buyer_phone'             => $request->delivery_phone,
+                'delivery_fullname'       => $request->delivery_fullname,
+                'delivery_email'          => $request->delivery_email,
+                'delivery_phone'          => $request->delivery_phone,
                 'buyer_delivery_location' => $request->buyer_delivery_location,
                 'product_id'              => $request->product_id,
                 'seller_id'               => $product->seller_id,
@@ -46,14 +46,14 @@ class OrderController extends Controller
                 'price'                   => $request->price,
                 'total_amount'            => $request->total_price,
                 'payment_method'          => $request->payment_method ?? 'contact_seller',
-                'payment_status'          => 'pending', // payment not yet made
-                'status'                  => 'pending', // order status also pending initially
+                'payment_status'          => 'pending',
+                'status'                  => 'pending',
             ]);
 
-            // ✅ Notify the seller
             $seller = $product->seller;
             \Log::info('Seller for notification:', ['seller' => $seller]);
 
+            // --- Notify the seller via Laravel Notification ---
             if ($seller) {
                 $seller->notify(new NewOrderNotification($product->name));
             }
@@ -257,5 +257,4 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
 }
