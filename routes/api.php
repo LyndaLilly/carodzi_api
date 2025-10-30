@@ -180,6 +180,8 @@ Route::middleware('auth:buyer')->group(function () {
     Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
 });
 
+Route::middleware('auth:sanctum')->get('/seller/orders/summary', [OrderController::class, 'sellerOrdersSummary']);
+
 //Admins Routes
 
 Route::middleware('auth:admin')->get('/admin/me', function (Request $request) {

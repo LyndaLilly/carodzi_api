@@ -465,41 +465,6 @@ class SellerController extends Controller
         ]);
     }
 
-    // public function viewSeller($id)
-    // {
-    //     try {
-    //         // Find the seller
-    //         $seller = Seller::findOrFail($id);
-
-    //         // Increment view count
-    //         $seller->increment('views');
-
-    //         // Optionally, load relationships (profile, products, etc.)
-    //         $seller->load(['profile', 'professionalProfile', 'subcategory', 'category']);
-
-    //         // Normalize image URLs if they exist
-    //         if ($seller->profile && $seller->profile->profile_image) {
-    //             $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
-    //         }
-
-    //         if ($seller->professionalProfile && $seller->professionalProfile->profile_image) {
-    //             $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
-    //         }
-
-    //         // Return success response
-    //         return response()->json([
-    //             'status'  => 'success',
-    //             'message' => 'Seller viewed successfully.',
-    //             'seller'  => $seller,
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status'  => 'error',
-    //             'message' => 'Seller not found.',
-    //         ], 404);
-    //     }
-    // }
-
     public function viewSeller($id)
     {
         try {

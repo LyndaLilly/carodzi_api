@@ -2,13 +2,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\ProductUpload;
 use App\Models\ProductReview;
-
+use App\Models\ProductUpload;
 use App\Notifications\NewOrderNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
 
 class OrderController extends Controller
 {
@@ -114,52 +112,83 @@ class OrderController extends Controller
         return asset('public/uploads/' . $path);
     }
 
-private function transformOrder($order)
-{
-    $product = $order->product;
-    $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
-    $image = $this->getImageUrl($firstImage);
+    private function transformOrder($order)
+    {
+        $product    = $order->product;
+        $firstImage = $product?->images?->first()?->image_path ?? $product?->images?->first()?->image_url;
+        $image      = $this->getImageUrl($firstImage);
 
-    // ✅ Get review if it exists for this buyer and order
-    $review = ProductReview::where('buyer_id', $order->buyer_id)
-        ->where('order_id', $order->id)
-        ->where('productupload_id', $product->id)
-        ->first();
+        // ✅ Get review if it exists for this buyer and order
+        $review = ProductReview::where('buyer_id', $order->buyer_id)
+            ->where('order_id', $order->id)
+            ->where('productupload_id', $product->id)
+            ->first();
 
-    return [
-        'order_id'       => $order->id,
-        'product_id'     => $product->id,
-        'name'           => $product->name,
-        'price'          => $product->price,
-        'total_amount'   => $order->total_amount,
-        'payment_status' => $order->payment_status,
-        'status'         => $order->status,
-        'created_at'     => $order->created_at,
-        'image'          => $image,
-        'seller'         => $order->seller?->business_name,
-        'review'         => $review ? [
-            'rating' => $review->rating,
-            'comment'=> $review->review
-        ] : null,
-    ];
-}
+        return [
+            'order_id'       => $order->id,
+            'product_id'     => $product->id,
+            'name'           => $product->name,
+            'price'          => $product->price,
+            'total_amount'   => $order->total_amount,
+            'payment_status' => $order->payment_status,
+            'status'         => $order->status,
+            'created_at'     => $order->created_at,
+            'image'          => $image,
+            'seller'         => $order->seller?->business_name,
+            'review'         => $review ? [
+                'rating'  => $review->rating,
+                'comment' => $review->review,
+            ] : null,
+        ];
+    }
 
-public function buyerOrders()
-{
-    $buyerId = auth()->id();
-    if (!$buyerId) return response()->json(['error'=>'Unauthorized'], 401);
+    public function buyerOrders()
+    {
+        $buyerId = auth()->id();
+        if (! $buyerId) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
 
-    $orders = Order::with(['product.images', 'seller'])
-        ->where('buyer_id', $buyerId)
-        ->latest()
-        ->get();
+        $orders = Order::with(['product.images', 'seller'])
+            ->where('buyer_id', $buyerId)
+            ->latest()
+            ->get();
 
-    $data = $orders->map(fn($order) => $this->transformOrder($order));
+        $data = $orders->map(fn($order) => $this->transformOrder($order));
 
-    return response()->json([
-        'success' => true,
-        'data' => $data,
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
+
+    public function sellerOrdersSummary()
+    {
+        $sellerId = auth()->id();
+
+        if (! $sellerId) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $totalOrders     = Order::where('seller_id', $sellerId)->count();
+        $completedOrders = Order::where('seller_id', $sellerId)
+            ->where('status', 'completed')
+            ->count();
+        $pendingOrders = Order::where('seller_id', $sellerId)
+            ->where('status', 'pending')
+            ->count();
+
+        $totalRevenue = Order::where('seller_id', $sellerId)
+            ->where('payment_status', 'completed')
+            ->sum('total_amount');
+
+        return response()->json([
+            'success'          => true,
+            'total_orders'     => $totalOrders,
+            'completed_orders' => $completedOrders,
+            'pending_orders'   => $pendingOrders,
+            'total_revenue'    => $totalRevenue,
+        ]);
+    }
 
 }
