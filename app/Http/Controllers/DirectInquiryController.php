@@ -90,39 +90,61 @@ class DirectInquiryController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
+        \Log::info("updateStatus called", ['id' => $id, 'request' => $request->all()]);
+
         try {
             $request->validate([
                 'status' => 'required|in:pending,in_progress,completed,not_completed',
             ]);
 
-            $inquiry = DirectInquiry::findOrFail($id);
+            $inquiry = DirectInquiry::find($id);
 
-            // Ensure only the seller who owns this inquiry can update it
+            if (! $inquiry) {
+                \Log::warning("Inquiry not found", ['id' => $id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Inquiry not found.',
+                ], 404);
+            }
+
+            // Seller
             $seller = Auth::guard('seller')->user();
+            if (! $seller) {
+                \Log::warning("No seller authenticated");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No seller authenticated.',
+                ], 403);
+            }
 
-            if (! $seller || $seller->id !== $inquiry->seller_id) {
+            if ($seller->id !== $inquiry->seller_id) {
+                \Log::warning("Seller mismatch", ['seller_id' => $seller->id, 'inquiry_seller_id' => $inquiry->seller_id]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized: You cannot update this inquiry.',
                 ], 403);
             }
 
-            // ✅ Check if seller is a professional (is_professional = 1)
             if ((int) $seller->is_professional !== 1) {
+                \Log::info("Seller is not professional", ['seller_id' => $seller->id]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Only professional sellers can update inquiry status.',
                 ], 403);
             }
 
-            // Update status and completed_at timestamp
+            // Update status
             $inquiry->status       = $request->status;
             $inquiry->completed_at = $request->status === 'completed' ? now() : null;
             $inquiry->save();
 
+            \Log::info("Inquiry updated successfully", ['inquiry_id' => $inquiry->id, 'status' => $inquiry->status]);
+
+            // Notify buyer
             if ($request->status === 'completed' && $inquiry->buyer) {
                 try {
                     $inquiry->buyer->notify(new DirectInquiryCompleted($inquiry));
+                    \Log::info("Buyer notified", ['buyer_id' => $inquiry->buyer->id]);
                 } catch (\Exception $e) {
                     \Log::error('Failed to send inquiry completion notification', [
                         'error'      => $e->getMessage(),
@@ -136,6 +158,7 @@ class DirectInquiryController extends Controller
                 'message' => 'Service status updated successfully.',
                 'data'    => $inquiry,
             ]);
+
         } catch (\Exception $e) {
             \Log::error('Direct inquiry status update failed', [
                 'message' => $e->getMessage(),
