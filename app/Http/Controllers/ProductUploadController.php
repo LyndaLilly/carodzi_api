@@ -467,7 +467,7 @@ class ProductUploadController extends Controller
             ], 500);
         }
     }
-    
+
     public function getMostViewedProducts()
     {
         try {
@@ -495,7 +495,6 @@ class ProductUploadController extends Controller
             ], 500);
         }
     }
-
 
     public function getMostViewedServices()
     {
@@ -534,51 +533,50 @@ class ProductUploadController extends Controller
     }
 
     public function getMostViewedAll()
-{
-    try {
-        // Fetch most viewed products (non-professionals)
-        $products = ProductUpload::with(['images', 'seller'])
-            ->whereHas('seller', function ($q) {
-                $q->where('is_professional', 0);
-            })
-            ->orderByDesc('views')
-            ->take(10)
-            ->get();
+    {
+        try {
+            // Fetch most viewed products (non-professionals)
+            $products = ProductUpload::with(['images', 'seller'])
+                ->whereHas('seller', function ($q) {
+                    $q->where('is_professional', 0);
+                })
+                ->orderByDesc('views')
+                ->take(10)
+                ->get();
 
-        // Fetch most viewed services (professionals)
-        $services = ProductUpload::with(['images', 'seller.subcategory'])
-            ->whereHas('seller', function ($q) {
-                $q->where('is_professional', 1);
-            })
-            ->orderByDesc('views')
-            ->take(10)
-            ->get();
+            // Fetch most viewed services (professionals)
+            $services = ProductUpload::with(['images', 'seller.subcategory'])
+                ->whereHas('seller', function ($q) {
+                    $q->where('is_professional', 1);
+                })
+                ->orderByDesc('views')
+                ->take(10)
+                ->get();
 
-        // Compute verification flag for services
-        $services->transform(function ($service) {
-            $seller = $service->seller;
-            $requiresVerification = $seller && $seller->subcategory && $seller->subcategory->auto_verify == 1;
-            $service->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
-            return $service;
-        });
+            // Compute verification flag for services
+            $services->transform(function ($service) {
+                $seller               = $service->seller;
+                $requiresVerification = $seller && $seller->subcategory && $seller->subcategory->auto_verify == 1;
+                $service->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
+                return $service;
+            });
 
-        return response()->json([
-            'success'  => true,
-            'products' => $products,
-            'services' => $services,
-        ]);
-    } catch (\Exception $e) {
-        \Log::error('Error fetching most viewed items', [
-            'message' => $e->getMessage(),
-        ]);
+            return response()->json([
+                'success'  => true,
+                'products' => $products,
+                'services' => $services,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching most viewed items', [
+                'message' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to fetch most viewed items',
-            'error'   => $e->getMessage(),
-        ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch most viewed items',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
-}
-
 
 }

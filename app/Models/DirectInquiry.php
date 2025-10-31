@@ -18,7 +18,6 @@ class DirectInquiry extends Model
         'message',
     ];
 
-    // Relationships
     public function seller()
     {
         return $this->belongsTo(Seller::class);
@@ -33,7 +32,5 @@ class DirectInquiry extends Model
     {
         return $this->belongsTo(ProductUpload::class, 'product_id');
     }
-
-
 
 }

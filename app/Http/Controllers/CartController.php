@@ -20,20 +20,16 @@ class CartController extends Controller
             return $path;
         }
 
-        return asset('public/uploads/' . $path); // ✅ include public in URL
+        return asset('public/uploads/' . $path);
     }
 
-    /**
-     * Transform a cart item to include product details and first image
-     */
     private function transformCartItem($cart)
     {
         $product = $cart->product;
+        $seller  = $product->seller;
 
         $image = $product->images->first()?->image_path;
         $image = $this->getImageUrl($image);
-
-        $isProfessional = $product->seller ? $product->seller->is_professional : 0;
 
         return [
             'cart_id'         => $cart->id,
@@ -43,7 +39,11 @@ class CartController extends Controller
             'quantity'        => $cart->quantity,
             'total'           => $product->price * $cart->quantity,
             'image'           => $image,
-            'is_professional' => $isProfessional,
+            'seller_id'       => $seller?->id,
+            'seller_name'     => $seller?->business_name,
+            'seller_email'    => $seller?->email,
+            'seller_phone'    => $seller?->mobile_number,
+            'seller_whatsapp' => $seller?->whatsapp_phone_link,
         ];
     }
 
