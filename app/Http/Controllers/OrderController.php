@@ -252,20 +252,30 @@ class OrderController extends Controller
 
     public function sellerOrders(Request $request)
     {
-        $seller = $request->user(); // Authenticated seller
+        \Log::info('🛒 SellerOrders API hit', [
+            'auth_user' => $request->user(),
+            'token'     => $request->bearerToken(),
+        ]);
+
+        $seller = $request->user();
 
         if (! $seller) {
+            \Log::warning('🚫 Unauthorized access to SellerOrders');
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        // Fetch orders where the logged-in seller is the one assigned
         $orders = Order::where('seller_id', $seller->id)
             ->with([
-                'buyer:id,firstname,lastname,email,phone', // eager load buyer info
+                'buyer:id,firstname,lastname,email,phone',
                 'product:id,name,price',
             ])
             ->latest()
             ->get();
+
+        \Log::info('✅ SellerOrders fetched successfully', [
+            'seller_id'    => $seller->id,
+            'orders_count' => $orders->count(),
+        ]);
 
         return response()->json([
             'success' => true,
