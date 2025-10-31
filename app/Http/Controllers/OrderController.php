@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\DirectInquiry;
 use App\Models\Order;
 use App\Models\ProductReview;
 use App\Models\ProductUpload;
@@ -155,56 +156,71 @@ class OrderController extends Controller
         ]);
     }
 
-    public function sellerOrdersSummary()
-    {
-        try {
-            $sellerId = auth()->id();
-            \Log::info('🟢 Entered sellerOrdersSummary', ['seller_id' => $sellerId]);
+public function sellerOrdersSummary()
+{
+    try {
+        $sellerId = auth()->id();
 
-            if (! $sellerId) {
-                \Log::warning('⚠️ Unauthorized access attempt to sellerOrdersSummary');
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-
-            $totalOrders     = Order::where('seller_id', $sellerId)->count();
-            $completedOrders = Order::where('seller_id', $sellerId)
-                ->where('status', 'completed')
-                ->count();
-            $pendingOrders = Order::where('seller_id', $sellerId)
-                ->where('status', 'pending')
-                ->count();
-            $totalRevenue = Order::where('seller_id', $sellerId)
-                ->where('payment_status', 'paid')
-                ->sum('total_amount');
-
-            \Log::info('✅ Seller order summary retrieved successfully', [
-                'seller_id'        => $sellerId,
-                'total_orders'     => $totalOrders,
-                'completed_orders' => $completedOrders,
-                'pending_orders'   => $pendingOrders,
-                'total_revenue'    => $totalRevenue,
-            ]);
-
-            return response()->json([
-                'success'          => true,
-                'total_orders'     => $totalOrders,
-                'completed_orders' => $completedOrders,
-                'pending_orders'   => $pendingOrders,
-                'total_revenue'    => $totalRevenue,
-            ]);
-        } catch (\Throwable $e) {
-            \Log::error('❌ Error fetching sellerOrdersSummary', [
-                'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error'   => 'Something went wrong while fetching order summary',
-                'details' => $e->getMessage(),
-            ], 500);
+        if (! $sellerId) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
+
+        // --- Online Orders Counts ---
+        $onlineOrdersCounts = Order::where('seller_id', $sellerId)
+            ->selectRaw("
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                COUNT(*) as total
+            ")
+            ->first();
+
+        // --- Direct Inquiries Counts ---
+        $directInquiryCounts = DirectInquiry::where('seller_id', $sellerId)
+            ->selectRaw("
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                COUNT(*) as total
+            ")
+            ->first();
+
+        // --- Totals ---
+        $totalOrders = $onlineOrdersCounts->total + $directInquiryCounts->total;
+        $totalCompleted = $onlineOrdersCounts->completed + $directInquiryCounts->completed;
+        $totalPending = $onlineOrdersCounts->pending + $directInquiryCounts->pending;
+
+        // --- Total Revenue from online orders only ---
+        $totalRevenue = Order::where('seller_id', $sellerId)
+            ->where('payment_status', 'paid')
+            ->sum('total_amount');
+
+        return response()->json([
+            'success' => true,
+            'online_orders' => [
+                'pending'   => (int) $onlineOrdersCounts->pending,
+                'completed' => (int) $onlineOrdersCounts->completed,
+                'total'     => (int) $onlineOrdersCounts->total,
+            ],
+            'direct_inquiries' => [
+                'pending'   => (int) $directInquiryCounts->pending,
+                'completed' => (int) $directInquiryCounts->completed,
+                'total'     => (int) $directInquiryCounts->total,
+            ],
+            'totals' => [
+                'total_orders'    => (int) $totalOrders,
+                'total_completed' => (int) $totalCompleted,
+                'total_pending'   => (int) $totalPending,
+                'total_revenue'   => (float) $totalRevenue,
+            ],
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'error'   => 'Something went wrong',
+            'details' => $e->getMessage(),
+        ], 500);
     }
+}
 
     public function sellerWeeklyRevenue()
     {
