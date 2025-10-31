@@ -96,7 +96,9 @@ class DirectInquiryController extends Controller
             ]);
 
             $inquiry = DirectInquiry::findOrFail($id);
-            $seller  = Auth::guard('seller')->user();
+
+            // Ensure only the seller who owns this inquiry can update it
+            $seller = Auth::guard('seller')->user();
 
             if (! $seller || $seller->id !== $inquiry->seller_id) {
                 return response()->json([
@@ -105,6 +107,7 @@ class DirectInquiryController extends Controller
                 ], 403);
             }
 
+            // ✅ Check if seller is a professional (is_professional = 1)
             if ((int) $seller->is_professional !== 1) {
                 return response()->json([
                     'success' => false,
@@ -112,15 +115,10 @@ class DirectInquiryController extends Controller
                 ], 403);
             }
 
-            // ✅ Update status
+            // Update status and completed_at timestamp
             $inquiry->status       = $request->status;
             $inquiry->completed_at = $request->status === 'completed' ? now() : null;
             $inquiry->save();
-
-            // ✅ Auto-add price to seller revenue if completed
-            if ($request->status === 'completed' && $inquiry->price > 0) {
-                $seller->increment('total_revenue', $inquiry->price);
-            }
 
             return response()->json([
                 'success' => true,
