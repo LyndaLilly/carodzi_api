@@ -181,6 +181,11 @@ Route::get('/seller/{sellerId}/inquiries', [DirectInquiryController::class, 'sel
 
 // Get all inquiries for a buyer
 Route::get('/buyer/{buyerId}/inquiries', [DirectInquiryController::class, 'buyerInquiries']);
+// 📨 Direct Inquiry Status Update (Professional Sellers Only)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::put('/seller/inquiries/update-status/{id}', [DirectInquiryController::class, 'updateStatus']);
+});
+
 
 //Admins Routes
 

@@ -23,11 +23,23 @@ return new class extends Migration {
             $table->string('buyer_email')->nullable();
             $table->text('message')->nullable();
 
+            // ✅ New fields for tracking professional work progress
+            $table->enum('status', ['pending', 'in_progress', 'completed', 'not_completed'])
+                  ->default('pending');
+            $table->timestamp('completed_at')->nullable();
+
             $table->timestamps();
 
             // Foreign key relationships
-            $table->foreign('seller_id')->references('id')->on('sellers')->onDelete('cascade');
-            $table->foreign('buyer_id')->references('id')->on('buyers')->onDelete('set null');
+            $table->foreign('seller_id')
+                ->references('id')
+                ->on('sellers')
+                ->onDelete('cascade');
+
+            $table->foreign('buyer_id')
+                ->references('id')
+                ->on('buyers')
+                ->onDelete('set null');
         });
     }
 

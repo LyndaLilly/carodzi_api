@@ -83,4 +83,58 @@ class DirectInquiryController extends Controller
 
         return response()->json($inquiries);
     }
+
+    /**
+     * Update the status of a direct inquiry (for professionals only)
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'status' => 'required|in:pending,in_progress,completed,not_completed',
+            ]);
+
+            $inquiry = DirectInquiry::findOrFail($id);
+
+            // Ensure only the seller who owns this inquiry can update it
+            $seller = Auth::guard('seller')->user();
+
+            if (! $seller || $seller->id !== $inquiry->seller_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: You cannot update this inquiry.',
+                ], 403);
+            }
+
+            // ✅ Check if seller is a professional (is_professional = 1)
+            if ((int) $seller->is_professional !== 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only professional sellers can update inquiry status.',
+                ], 403);
+            }
+
+            // Update status and completed_at timestamp
+            $inquiry->status       = $request->status;
+            $inquiry->completed_at = $request->status === 'completed' ? now() : null;
+            $inquiry->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Service status updated successfully.',
+                'data'    => $inquiry,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Direct inquiry status update failed', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }
