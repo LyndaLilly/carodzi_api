@@ -264,10 +264,11 @@ class OrderController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        // ✅ Load buyer (with their profile) and product info
         $orders = Order::where('seller_id', $seller->id)
             ->with([
-                'buyer:id,firstname,lastname,email,phone',
-                'product:id,name,price',
+                'buyer.profile', // Load buyers and their profiles
+                'product',       // Load product info
             ])
             ->latest()
             ->get();
