@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,4 +37,10 @@ class Order extends Model
     {
         return $this->belongsTo(User::class, 'seller_id');
     }
+
+    public function buyer()
+    {
+        return $this->belongsTo(Buyer::class, 'buyer_id');
+    }
+
 }
