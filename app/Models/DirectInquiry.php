@@ -16,6 +16,9 @@ class DirectInquiry extends Model
         'buyer_name',
         'buyer_email',
         'message',
+        'price',
+        'status',
+        'completed_at',
     ];
 
     public function seller()

@@ -18,11 +18,11 @@ class DirectInquiryController extends Controller
             $validated = $request->validate([
                 'seller_id'      => 'required|exists:sellers,id',
                 'product_id'     => 'nullable|exists:productupload,id',
-
                 'contact_method' => 'required|string|max:50',
                 'buyer_name'     => 'nullable|string|max:255',
                 'buyer_email'    => 'nullable|email|max:255',
                 'message'        => 'nullable|string',
+                'price'          => 'nullable|numeric|min:0',
             ]);
 
             $buyerId = Auth::guard('buyer')->check() ? Auth::guard('buyer')->id() : null;
@@ -36,6 +36,7 @@ class DirectInquiryController extends Controller
                 'buyer_name'     => $validated['buyer_name'] ?? null,
                 'buyer_email'    => $validated['buyer_email'] ?? null,
                 'message'        => $validated['message'] ?? null,
+                'price'          => $validated['price'] ?? null,
             ]);
 
             \Log::info('Inquiry saved successfully', ['id' => $inquiry->id]);
@@ -95,9 +96,7 @@ class DirectInquiryController extends Controller
             ]);
 
             $inquiry = DirectInquiry::findOrFail($id);
-
-            // Ensure only the seller who owns this inquiry can update it
-            $seller = Auth::guard('seller')->user();
+            $seller  = Auth::guard('seller')->user();
 
             if (! $seller || $seller->id !== $inquiry->seller_id) {
                 return response()->json([
@@ -106,7 +105,6 @@ class DirectInquiryController extends Controller
                 ], 403);
             }
 
-            // ✅ Check if seller is a professional (is_professional = 1)
             if ((int) $seller->is_professional !== 1) {
                 return response()->json([
                     'success' => false,
@@ -114,10 +112,15 @@ class DirectInquiryController extends Controller
                 ], 403);
             }
 
-            // Update status and completed_at timestamp
+            // ✅ Update status
             $inquiry->status       = $request->status;
             $inquiry->completed_at = $request->status === 'completed' ? now() : null;
             $inquiry->save();
+
+            // ✅ Auto-add price to seller revenue if completed
+            if ($request->status === 'completed' && $inquiry->price > 0) {
+                $seller->increment('total_revenue', $inquiry->price);
+            }
 
             return response()->json([
                 'success' => true,
