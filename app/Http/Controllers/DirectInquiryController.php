@@ -2,10 +2,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\DirectInquiry;
-use App\Notifications\DirectInquiryCompleted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Mail;
 
 class DirectInquiryController extends Controller
 {
@@ -143,12 +142,16 @@ class DirectInquiryController extends Controller
             \Log::info("Inquiry updated successfully", ['inquiry_id' => $inquiry->id, 'status' => $inquiry->status]);
 
             // Notify buyer
-            if ($request->status === 'completed' && $inquiry->buyer) {
+            if ($request->status === 'completed' && $inquiry->buyer_email) {
                 try {
-                    $inquiry->buyer->notify(new DirectInquiryCompleted($inquiry));
-                    \Log::info("Buyer notified", ['buyer_id' => $inquiry->buyer->id]);
+                    Mail::send('emails.direct_inquiry_completed', ['inquiry' => $inquiry], function ($message) use ($inquiry) {
+                        $message->to($inquiry->buyer_email)
+                            ->subject("Your Inquiry has been Completed by {$inquiry->seller->business_name}");
+                    });
+
+                    \Log::info("Inquiry email sent to buyer", ['buyer_email' => $inquiry->buyer_email]);
                 } catch (\Exception $e) {
-                    \Log::error('Failed to send inquiry completion notification', [
+                    \Log::error('Failed to send inquiry completion email', [
                         'error'      => $e->getMessage(),
                         'inquiry_id' => $inquiry->id,
                     ]);
