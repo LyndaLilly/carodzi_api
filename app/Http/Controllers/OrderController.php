@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    /**
-     * Store a single order (one product per order)
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -77,9 +75,6 @@ class OrderController extends Controller
         }
     }
 
-    /**
-     * Admin: View all orders
-     */
     public function index()
     {
         $orders = Order::with(['product', 'seller'])
@@ -89,9 +84,6 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
-    /**
-     * Show a single order with its product and seller
-     */
     public function show($id)
     {
         $order = Order::with(['product', 'seller'])
@@ -257,4 +249,24 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    public function sellerOrders()
+    {
+        $sellerId = auth()->id();
+
+        if (! $sellerId) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $orders = Order::with(['product', 'buyer'])
+            ->where('seller_id', $sellerId)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'orders'  => $orders,
+        ]);
+    }
+
 }

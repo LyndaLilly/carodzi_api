@@ -174,7 +174,7 @@ Route::middleware('auth:sanctum')->get('/seller/orders/summary', [OrderControlle
 Route::middleware('auth:sanctum')->get('/seller/weekly-revenue', [OrderController::class, 'sellerWeeklyRevenue']);
 
 // 📨 Direct Inquiry Routes
-Route::post('/direct-inquiry', [DirectInquiryController::class, 'store']); // submit inquiry
+Route::post('/direct-inquiry', [DirectInquiryController::class, 'store']);
 
 // Get all inquiries for a seller
 Route::get('/seller/{sellerId}/inquiries', [DirectInquiryController::class, 'sellerInquiries']);
@@ -214,6 +214,10 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
     Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
     Route::get('/orders', [OrderController::class, 'index']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/seller/orders', [OrderController::class, 'sellerOrders']);
 });
 
 Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCategories']);
