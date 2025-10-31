@@ -250,16 +250,20 @@ class OrderController extends Controller
         }
     }
 
-    public function sellerOrders()
+    public function sellerOrders(Request $request)
     {
-        $sellerId = auth()->id();
+        $seller = $request->user(); // Authenticated seller
 
-        if (! $sellerId) {
+        if (! $seller) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $orders = Order::with(['product', 'buyer'])
-            ->where('seller_id', $sellerId)
+        // Fetch orders where the logged-in seller is the one assigned
+        $orders = Order::where('seller_id', $seller->id)
+            ->with([
+                'buyer:id,firstname,lastname,email,phone', // eager load buyer info
+                'product:id,name,price',
+            ])
             ->latest()
             ->get();
 
