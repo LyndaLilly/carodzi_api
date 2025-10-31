@@ -146,7 +146,8 @@ class DirectInquiryController extends Controller
                 try {
                     Mail::send('emails.direct_inquiry_completed', ['inquiry' => $inquiry], function ($message) use ($inquiry) {
                         $message->to($inquiry->buyer_email)
-                            ->subject("Your Inquiry has been Completed by {$inquiry->seller->business_name}");
+                            ->subject("Your Inquiry has been Completed by {$inquiry->seller->business_name}")
+                            ->from(config('mail.from.address'), config('mail.from.name'));
                     });
 
                     \Log::info("Inquiry email sent to buyer", ['buyer_email' => $inquiry->buyer_email]);
@@ -157,7 +158,6 @@ class DirectInquiryController extends Controller
                     ]);
                 }
             }
-
             return response()->json([
                 'success' => true,
                 'message' => 'Service status updated successfully.',
