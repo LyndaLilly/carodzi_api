@@ -120,6 +120,17 @@ class DirectInquiryController extends Controller
             $inquiry->completed_at = $request->status === 'completed' ? now() : null;
             $inquiry->save();
 
+            if ($request->status === 'completed' && $inquiry->buyer) {
+                try {
+                    $inquiry->buyer->notify(new DirectInquiryCompleted($inquiry));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send inquiry completion notification', [
+                        'error'      => $e->getMessage(),
+                        'inquiry_id' => $inquiry->id,
+                    ]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Service status updated successfully.',
