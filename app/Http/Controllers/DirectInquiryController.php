@@ -2,8 +2,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\DirectInquiry;
+use App\Notifications\DirectInquiryCompleted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+
 
 class DirectInquiryController extends Controller
 {
