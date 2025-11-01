@@ -105,7 +105,7 @@
             </ul>
 
             <p>You can access your orders and track your inquiries in your dashboard:</p>
-            <a href="https://www.alebaz.com" class="btn">Go to Dashboard</a>
+            <a href="https://www.alebaz.com/buyer/dashboard" class="btn">Go to Dashboard</a>
 
             <p style="margin-top:30px;">Thank you for using our platform!</p>
         </div>
