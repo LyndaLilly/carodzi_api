@@ -89,92 +89,88 @@ class DirectInquiryController extends Controller
     /**
      * Update the status of a direct inquiry (for professionals only)
      */
-    public function updateStatus(Request $request, $id)
-    {
-        \Log::info("updateStatus called", ['id' => $id, 'request' => $request->all()]);
+ public function updateStatus(Request $request, $id)
+{
+    \Log::info("updateStatus called", ['id' => $id, 'request' => $request->all()]);
 
-        try {
-            $request->validate([
-                'status' => 'required|in:pending,in_progress,completed,not_completed',
-            ]);
+    try {
+        // Validate status input
+        $request->validate([
+            'status' => 'required|in:pending,in_progress,completed,not_completed',
+        ]);
 
-            $inquiry = DirectInquiry::find($id);
-
-            if (! $inquiry) {
-                \Log::warning("Inquiry not found", ['id' => $id]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Inquiry not found.',
-                ], 404);
-            }
-
-            // Seller
-            $seller = Auth::guard('seller')->user();
-            if (! $seller) {
-                \Log::warning("No seller authenticated");
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No seller authenticated.',
-                ], 403);
-            }
-
-            if ($seller->id !== $inquiry->seller_id) {
-                \Log::warning("Seller mismatch", ['seller_id' => $seller->id, 'inquiry_seller_id' => $inquiry->seller_id]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized: You cannot update this inquiry.',
-                ], 403);
-            }
-
-            if ((int) $seller->is_professional !== 1) {
-                \Log::info("Seller is not professional", ['seller_id' => $seller->id]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only professional sellers can update inquiry status.',
-                ], 403);
-            }
-
-            // Update status
-            $inquiry->status       = $request->status;
-            $inquiry->completed_at = $request->status === 'completed' ? now() : null;
-            $inquiry->save();
-
-            \Log::info("Inquiry updated successfully", ['inquiry_id' => $inquiry->id, 'status' => $inquiry->status]);
-
-            // Notify buyer
-            if ($request->status === 'completed' && $inquiry->buyer_email) {
-                try {
-                    Mail::send('emails.direct_inquiry_completed', ['inquiry' => $inquiry], function ($message) use ($inquiry) {
-                        $message->to($inquiry->buyer_email)
-                            ->subject("Your Inquiry has been Completed by {$inquiry->seller->business_name}")
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-                    });
-
-                    \Log::info("Inquiry email sent to buyer", ['buyer_email' => $inquiry->buyer_email]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send inquiry completion email', [
-                        'error'      => $e->getMessage(),
-                        'inquiry_id' => $inquiry->id,
-                    ]);
-                }
-            }
-            return response()->json([
-                'success' => true,
-                'message' => 'Service status updated successfully.',
-                'data'    => $inquiry,
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Direct inquiry status update failed', [
-                'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-            ]);
-
+        // Find the inquiry
+        $inquiry = DirectInquiry::find($id);
+        if (!$inquiry) {
+            \Log::warning("Inquiry not found", ['id' => $id]);
             return response()->json([
                 'success' => false,
-                'message' => 'Server Error: ' . $e->getMessage(),
-            ], 500);
+                'message' => 'Inquiry not found.',
+            ], 404);
         }
+
+        // Authenticate seller
+        $seller = Auth::guard('seller')->user();
+        if (!$seller) {
+            \Log::warning("No seller authenticated");
+            return response()->json([
+                'success' => false,
+                'message' => 'No seller authenticated.',
+            ], 403);
+        }
+
+        // Ensure the seller owns this inquiry
+        if ($seller->id !== $inquiry->seller_id) {
+            \Log::warning("Seller mismatch", ['seller_id' => $seller->id, 'inquiry_seller_id' => $inquiry->seller_id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: You cannot update this inquiry.',
+            ], 403);
+        }
+
+        // Update status
+        $inquiry->status = $request->status;
+        $inquiry->completed_at = $request->status === 'completed' ? now() : null;
+        $inquiry->save();
+
+        \Log::info("Inquiry updated successfully", ['inquiry_id' => $inquiry->id, 'status' => $inquiry->status]);
+
+        // Send email to buyer if completed
+        if ($request->status === 'completed' && $inquiry->buyer_email) {
+            try {
+                Mail::send('emails.direct_inquiry_completed', ['inquiry' => $inquiry], function ($message) use ($inquiry) {
+                    $message->to($inquiry->buyer_email)
+                            ->subject("Your Inquiry has been Completed by {$inquiry->seller->business_name}")
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                });
+
+                \Log::info("Inquiry email sent to buyer", ['buyer_email' => $inquiry->buyer_email]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send inquiry completion email', [
+                    'error' => $e->getMessage(),
+                    'inquiry_id' => $inquiry->id,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Service status updated successfully.',
+            'data' => $inquiry,
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Direct inquiry status update failed', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Server Error: ' . $e->getMessage(),
+        ], 500);
     }
+}
+
 
 }
