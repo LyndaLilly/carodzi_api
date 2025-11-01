@@ -11,7 +11,7 @@
     <h3>Details of the service/product:</h3>
     <ul>
         <li><strong>Message:</strong> {{ $inquiry->message ?? 'No additional details provided' }}</li>
-        <li><strong>Price:</strong> {{ $inquiry->price ? number_format($inquiry->price) : 'N/A' }}</li>
+      
         <li><strong>Completed on:</strong> {{ $inquiry->completed_at ? $inquiry->completed_at->format('l, d M Y h:i A') : 'N/A' }}</li>
     </ul>
 
