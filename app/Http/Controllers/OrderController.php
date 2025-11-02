@@ -35,7 +35,7 @@ class OrderController extends Controller
 
             // ✅ Create a single order linked directly to the product
             $order = Order::create([
-                'buyer_id'                => auth()->id() ?? null, // optional if buyers can order while logged in
+                'buyer_id'                => auth()->id() ?? null, 
                 'delivery_fullname'       => $request->delivery_fullname,
                 'delivery_email'          => $request->delivery_email,
                 'delivery_phone'          => $request->delivery_phone,
@@ -405,5 +405,42 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    public function uploadBitcoinProof(Request $request, $orderId)
+{
+    $order = Order::findOrFail($orderId);
+
+    // ensure only the buyer can upload
+    if (auth()->id() !== $order->buyer_id) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $request->validate([
+        'bitcoin_proof' => 'required|string|max:255', // this will be the hash
+    ]);
+
+    try {
+        $order->update([
+            'bitcoin_proof'  => $request->bitcoin_proof, // hash string
+            'payment_method' => 'bitcoin',
+            'payment_status' => 'pending',
+            'status'         => 'pending',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bitcoin payment proof uploaded successfully. Awaiting manual approval.',
+            'order'   => $order,
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to upload Bitcoin proof',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
+
 
 }

@@ -170,6 +170,10 @@ Route::middleware('auth:buyer')->group(function () {
       Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
 });
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/orders/{order}/bitcoin-proof', [OrderController::class, 'uploadBitcoinProof']);
+});
+
 Route::middleware('auth:sanctum')->get('/seller/orders/summary', [OrderController::class, 'sellerOrdersSummary']);
 
 Route::middleware('auth:sanctum')->get('/seller/weekly-revenue', [OrderController::class, 'sellerWeeklyRevenue']);
