@@ -167,6 +167,7 @@ Route::middleware('auth:buyer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
+      Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
 });
 
 Route::middleware('auth:sanctum')->get('/seller/orders/summary', [OrderController::class, 'sellerOrdersSummary']);

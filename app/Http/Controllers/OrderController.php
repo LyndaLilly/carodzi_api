@@ -8,6 +8,7 @@ use App\Models\ProductUpload;
 use App\Notifications\NewOrderNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class OrderController extends Controller
 {
@@ -156,71 +157,71 @@ class OrderController extends Controller
         ]);
     }
 
-public function sellerOrdersSummary()
-{
-    try {
-        $sellerId = auth()->id();
+    public function sellerOrdersSummary()
+    {
+        try {
+            $sellerId = auth()->id();
 
-        if (! $sellerId) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            if (! $sellerId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // --- Online Orders Counts ---
+            $onlineOrdersCounts = Order::where('seller_id', $sellerId)
+                ->selectRaw("
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                COUNT(*) as total
+            ")
+                ->first();
+
+            // --- Direct Inquiries Counts ---
+            $directInquiryCounts = DirectInquiry::where('seller_id', $sellerId)
+                ->selectRaw("
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                COUNT(*) as total
+            ")
+                ->first();
+
+            // --- Totals ---
+            $totalOrders    = $onlineOrdersCounts->total + $directInquiryCounts->total;
+            $totalCompleted = $onlineOrdersCounts->completed + $directInquiryCounts->completed;
+            $totalPending   = $onlineOrdersCounts->pending + $directInquiryCounts->pending;
+
+            // --- Total Revenue from online orders only ---
+            $totalRevenue = Order::where('seller_id', $sellerId)
+                ->where('payment_status', 'paid')
+                ->sum('total_amount');
+
+            return response()->json([
+                'success'          => true,
+                'online_orders'    => [
+                    'pending'   => (int) $onlineOrdersCounts->pending,
+                    'completed' => (int) $onlineOrdersCounts->completed,
+                    'total'     => (int) $onlineOrdersCounts->total,
+                ],
+                'direct_inquiries' => [
+                    'pending'   => (int) $directInquiryCounts->pending,
+                    'completed' => (int) $directInquiryCounts->completed,
+                    'total'     => (int) $directInquiryCounts->total,
+                ],
+                'totals'           => [
+                    'total_orders'    => (int) $totalOrders,
+                    'total_completed' => (int) $totalCompleted,
+                    'total_pending'   => (int) $totalPending,
+                    'total_revenue'   => (float) $totalRevenue,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Something went wrong',
+                'details' => $e->getMessage(),
+            ], 500);
         }
-
-        // --- Online Orders Counts ---
-        $onlineOrdersCounts = Order::where('seller_id', $sellerId)
-            ->selectRaw("
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                COUNT(*) as total
-            ")
-            ->first();
-
-        // --- Direct Inquiries Counts ---
-        $directInquiryCounts = DirectInquiry::where('seller_id', $sellerId)
-            ->selectRaw("
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                COUNT(*) as total
-            ")
-            ->first();
-
-        // --- Totals ---
-        $totalOrders = $onlineOrdersCounts->total + $directInquiryCounts->total;
-        $totalCompleted = $onlineOrdersCounts->completed + $directInquiryCounts->completed;
-        $totalPending = $onlineOrdersCounts->pending + $directInquiryCounts->pending;
-
-        // --- Total Revenue from online orders only ---
-        $totalRevenue = Order::where('seller_id', $sellerId)
-            ->where('payment_status', 'paid')
-            ->sum('total_amount');
-
-        return response()->json([
-            'success' => true,
-            'online_orders' => [
-                'pending'   => (int) $onlineOrdersCounts->pending,
-                'completed' => (int) $onlineOrdersCounts->completed,
-                'total'     => (int) $onlineOrdersCounts->total,
-            ],
-            'direct_inquiries' => [
-                'pending'   => (int) $directInquiryCounts->pending,
-                'completed' => (int) $directInquiryCounts->completed,
-                'total'     => (int) $directInquiryCounts->total,
-            ],
-            'totals' => [
-                'total_orders'    => (int) $totalOrders,
-                'total_completed' => (int) $totalCompleted,
-                'total_pending'   => (int) $totalPending,
-                'total_revenue'   => (float) $totalRevenue,
-            ],
-        ]);
-
-    } catch (\Throwable $e) {
-        return response()->json([
-            'success' => false,
-            'error'   => 'Something went wrong',
-            'details' => $e->getMessage(),
-        ], 500);
     }
-}
 
     public function sellerWeeklyRevenue()
     {
@@ -298,6 +299,111 @@ public function sellerOrdersSummary()
             'success' => true,
             'orders'  => $orders,
         ]);
+    }
+
+    public function verifyPayment(Request $request, Order $order)
+    {
+        // Validate input
+        $request->validate([
+            'reference' => 'required|string',
+        ]);
+
+        // Ensure authenticated buyer is the owner of this order
+        $buyerId = auth()->id();
+        if (! $buyerId || $order->buyer_id !== $buyerId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        try {
+            // Read keys and base url from config/services.php
+            $secretKey = config('services.paystack.secret_key');
+            $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
+
+            // Call Paystack verify endpoint
+            $reference = $request->input('reference');
+
+            $response = Http::withToken($secretKey)
+                ->get($baseUrl . "/transaction/verify/{$reference}");
+
+            if (! $response->successful()) {
+                // Log for debugging
+                \Log::error('Paystack verify HTTP error', [
+                    'order_id' => $order->id,
+                    'status'   => $response->status(),
+                    'body'     => $response->body(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to communicate with Paystack',
+                    'status'  => $response->status(),
+                ], 502);
+            }
+
+            $data = $response->json();
+
+            // Paystack returns a "status" top-level boolean and nested data
+            if (! isset($data['status']) || $data['status'] !== true) {
+                // verification failed (invalid reference, etc.)
+                \Log::warning('Paystack verification failed', ['order_id' => $order->id, 'response' => $data]);
+
+                return response()->json([
+                    'success'  => false,
+                    'message'  => 'Payment not verified',
+                    'paystack' => $data,
+                ], 400);
+            }
+
+            $tx = $data['data'] ?? null;
+
+            // Confirm the transaction success and amount/order match if you store amounts
+            if ($tx && isset($tx['status']) && $tx['status'] === 'success') {
+                                                                                     // optional: validate amount matches order->total_amount (remember amount returned by Paystack is in kobo)
+                $paystackAmount = isset($tx['amount']) ? $tx['amount'] / 100 : null; // to Naira
+                if ($paystackAmount !== null && (float) $paystackAmount != (float) $order->total_amount) {
+                    \Log::warning('Paystack amount mismatch', [
+                        'order_id'        => $order->id,
+                        'order_amount'    => $order->total_amount,
+                        'paystack_amount' => $paystackAmount,
+                    ]);
+                    // You may still accept but flag it. For now we continue to mark paid.
+                }
+
+                // Mark order as paid
+                $order->update([
+                    'payment_status' => 'paid',
+                    'status'         => 'completed',
+                    'payment_method' => 'paystack',
+                    // optionally: store paystack reference somewhere if you have a field for it
+                    //'payment_reference' => $reference,
+                ]);
+
+                return response()->json([
+                    'success'  => true,
+                    'message'  => 'Payment verified and order updated',
+                    'order_id' => $order->id,
+                ]);
+            }
+
+            // Transaction not successful
+            return response()->json([
+                'success'  => false,
+                'message'  => 'Transaction not successful',
+                'paystack' => $tx,
+            ], 400);
+
+        } catch (\Throwable $e) {
+            \Log::error('Paystack verification error', [
+                'order_id' => $order->id,
+                'error'    => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error during verification',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
 }
