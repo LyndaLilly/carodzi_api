@@ -21,7 +21,6 @@ class ProfessionalProfileController extends Controller
         return "{$subfolder}/{$filename}";
     }
 
-   
     protected function formatDate($date)
     {
         try {
@@ -130,7 +129,7 @@ class ProfessionalProfileController extends Controller
         $validated = $validator->validated();
 
         if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth']; 
+            $data['date_of_birth'] = $data['date_of_birth'];
         }
 
         // Generate WhatsApp link

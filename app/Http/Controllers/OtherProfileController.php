@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Validator;
 
 class OtherProfileController extends Controller
 {
-   
+
     protected function uploadFile($file, $subfolder)
     {
         $uploadDir = public_path("uploads/{$subfolder}");
 
-        if (!file_exists($uploadDir)) {
+        if (! file_exists($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
 
@@ -129,7 +129,7 @@ class OtherProfileController extends Controller
 
         $profile = OtherProfile::where('seller_id', $sellerId)->first();
 
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Profile not found',

@@ -25,8 +25,6 @@ class ProfessionalProfile extends Model
         'city',
         'business_name',
         'verification_number',
-        'school_name',
-        'graduation_year',
         'experience_years',
         'certificate_file',
         'bank_name',

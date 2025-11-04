@@ -20,24 +20,48 @@ class BuyerProfileController extends Controller
         return "{$subfolder}/{$filename}";
     }
 
+    protected function formatDate($date)
+    {
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     public function profileFill(Request $request)
     {
         $buyerId = $request->user()->id;
 
         $validated = $request->validate([
-            'gender'              => 'required|in:male,female',
-            'date_of_birth'       => 'required|date',
-            'profile_image'       => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'about'               => 'nullable|string',
-            'email'               => 'required|email|unique:buyer_profiles,email',
-            'mobile_number'       => 'required|string|min:10|max:20',
-            'whatsapp_phone_link' => 'nullable|url',
-            'country'             => 'required|string',
-            'state'               => 'required|string',
-            'city'                => 'required|string',
+            'buyer_id'      => 'required|exists:buyers,id',
+            'gender'        => 'required|in:male,female',
+            'date_of_birth' => 'nullable|string',
+            'profile_image' => 'nullable|image|max:2048',
+            'about'         => 'nullable|string',
+            'email'         => 'nullable|email',
+            'mobile_number' => 'required|string',
+            'country'       => 'required|string',
+            'state'         => 'required|string',
+            'city'          => 'required|string',
         ]);
 
-        $validated['buyer_id'] = $buyerId;
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+
+        if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth'];
+        }
+
+        // Generate WhatsApp link
+        if (! empty($data['mobile_number'])) {
+            $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
+            $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        }
 
         if ($request->hasFile('profile_image')) {
             $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'buyer_image');
@@ -45,7 +69,7 @@ class BuyerProfileController extends Controller
 
         $profile = BuyerProfile::create($validated);
 
-        $request->user()->update(['profile_updated' => 1]);
+        Buyer::where('id', $request->buyer_id)->update(['profile_updated' => 1]);
 
         return response()->json([
             'success' => true,
@@ -59,18 +83,37 @@ class BuyerProfileController extends Controller
         $buyerId = $request->user()->id;
         $profile = BuyerProfile::where('buyer_id', $buyerId)->firstOrFail();
 
-        $validated = $request->validate([
-            'gender'              => 'sometimes|nullable|in:male,female',
-            'date_of_birth'       => 'sometimes|nullable|date',
-            'profile_image'       => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'about'               => 'sometimes|nullable|string',
-            'email'               => 'sometimes|nullable|email|unique:buyer_profiles,email,' . $profile->id,
-            'mobile_number'       => 'sometimes|nullable|string|min:10|max:20',
-            'whatsapp_phone_link' => 'sometimes|nullable|url',
-            'country'             => 'sometimes|nullable|string',
-            'state'               => 'sometimes|nullable|string',
-            'city'                => 'sometimes|nullable|string',
-        ]);
+        $rules = [
+            'gender'        => 'sometimes|nullable|in:male,female',
+            'date_of_birth' => 'nullable|string',
+            'profile_image' => 'nullable|image|max:2048',
+            'about'         => 'sometimes|nullable|string',
+            'email'         => 'nullable|email|unique:buyer_profiles,email,' . $profile->id,
+            'mobile_number' => 'sometimesrequired|string',
+            'country'       => 'sometimes|required|string',
+            'state'         => 'sometimes|required|string',
+            'city'          => 'sometimes|required|string',
+        ];
+
+        
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $validated = $validator->validated();
+
+         if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth'];
+        }
+
+          // Generate WhatsApp link
+        if (! empty($validated['mobile_number'])) {
+            $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
+            $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        }
+
+     
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
@@ -79,17 +122,17 @@ class BuyerProfileController extends Controller
             }
             $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'buyer_image');
         } else {
-            unset($validated['profile_image']); // don’t overwrite if not present
+            unset($validated['profile_image']); 
         }
 
         // Update DB
         $profile->update($validated);
-        $request->user()->update(['profile_updated' => 1]);
+        Buyer::where('id', $sellerId)->update(['profile_updated' => 1]);
 
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
-            'profile' => $profile,
+            'profile' => $profile->fresh(),
         ]);
     }
 

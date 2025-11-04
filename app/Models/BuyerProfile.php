@@ -27,4 +27,18 @@ class BuyerProfile extends Model
     {
         return $this->belongsTo(Buyer::class, 'buyer_id');
     }
+
+       // ✅ Virtual attribute for WhatsApp link (universal)
+    protected $appends = ['whatsapp_link'];
+
+    public function getWhatsappLinkAttribute()
+    {
+        if (!$this->mobile_number) return null;
+
+        // Remove any non-digit characters (like +, -, spaces)
+        $raw = preg_replace('/\D/', '', $this->mobile_number);
+
+        // Return WhatsApp chat link (use exactly as entered with country code)
+        return "https://wa.me/{$raw}";
+    }
 }
