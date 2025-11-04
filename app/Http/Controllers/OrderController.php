@@ -442,48 +442,57 @@ class OrderController extends Controller
         }
     }
 
-    public function buyerSingleOrder($id)
-    {
-        $buyerId = auth()->id();
-        if (! $buyerId) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        $order = Order::with([
-            'product.images', // get all product images
-            'seller',         // get seller details
-        ])
-            ->where('buyer_id', $buyerId)
-            ->findOrFail($id);
-
-        return response()->json([
-            'success' => true,
-            'order'   => [
-                'id'                      => $order->id,
-                'product'                 => [
-                    'id'          => $order->product->id,
-                    'name'        => $order->product->name,
-                    'description' => $order->product->description,
-                    'price'       => $order->product->price,
-                    'images'      => $order->product->images->map(fn($img) => asset('public/uploads/' . $img->image_path)),
-                ],
-                'quantity'                => $order->quantity,
-                'total_amount'            => $order->total_amount,
-                'payment_status'          => $order->payment_status,
-                'payment_method'          => $order->payment_method,
-                'status'                  => $order->status,
-                'buyer_delivery_location' => $order->buyer_delivery_location,
-                'delivery_fullname'       => $order->delivery_fullname,
-                'delivery_email'          => $order->delivery_email,
-                'delivery_phone'          => $order->delivery_phone,
-                'created_at'              => $order->created_at->format('Y-m-d H:i'),
-                'seller'                  => [
-                    'id'            => $order->seller->id,
-                    'business_name' => $order->seller->business_name,
-                    'email'         => $order->seller->email,
-                ],
-            ],
-        ]);
+  public function buyerSingleOrder($id)
+{
+    $buyerId = auth()->id();
+    if (! $buyerId) {
+        return response()->json(['error' => 'Unauthorized'], 401);
     }
+
+    $order = Order::with([
+        'product.images',
+        'seller.profile',
+        'seller.professionalProfile',
+    ])
+    ->where('buyer_id', $buyerId)
+    ->findOrFail($id);
+
+    // Pick correct profile (professional or other)
+    $seller = $order->seller;
+    $profile = $seller->is_professional ? $seller->professionalProfile : $seller->profile;
+
+    return response()->json([
+        'success' => true,
+        'order'   => [
+            'id'                      => $order->id,
+            'product'                 => [
+                'id'          => $order->product->id,
+                'name'        => $order->product->name,
+                'description' => $order->product->description,
+                'price'       => $order->product->price,
+                'images'      => $order->product->images->map(fn($img) => asset('public/uploads/' . $img->image_path)),
+            ],
+            'quantity'                => $order->quantity,
+            'total_amount'            => $order->total_amount,
+            'payment_status'          => $order->payment_status,
+            'payment_method'          => $order->payment_method,
+            'status'                  => $order->status,
+            'buyer_delivery_location' => $order->buyer_delivery_location,
+            'delivery_fullname'       => $order->delivery_fullname,
+            'delivery_email'          => $order->delivery_email,
+            'delivery_phone'          => $order->delivery_phone,
+            'created_at'              => $order->created_at->format('Y-m-d H:i'),
+            'seller'                  => [
+                'id'             => $seller->id,
+                'business_name'  => $profile->business_name ?? null,
+                'email'          => $seller->email,
+                'business_email' => $profile->business_email ?? null,
+                'phone'          => $profile->phone ?? null,
+                'address'        => $profile->address ?? null,
+            ],
+        ],
+    ]);
+}
+
 
 }
