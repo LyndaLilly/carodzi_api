@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
-    /**
-     * Helper to get full image URL, same as ProductUploadController
-     */
+ 
     private function getImageUrl($path)
     {
         if (! $path) {

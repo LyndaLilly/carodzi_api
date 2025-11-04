@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 class WishController extends Controller
 {
-    /**
-     * Helper to get full image URL, same as ProductUploadController
-     */
+  
     private function getImageUrl($path)
     {
         if (! $path) {
@@ -20,20 +18,17 @@ class WishController extends Controller
             return $path;
         }
 
-        return asset('public/uploads/' . $path); // ✅ include public in URL
+        return asset('public/uploads/' . $path); 
     }
 
-    /**
-     * Transform a Wish item to include product details and first image
-     */
+  
     private function transformWishItem($wish)
     {
         $product = $wish->product;
+         $seller  = $product->seller;
 
         $image = $product->images->first()?->image_path;
         $image = $this->getImageUrl($image);
-
-        $isProfessional = $product->seller ? $product->seller->is_professional : 0;
 
         return [
             'wish_id'         => $wish->id,
@@ -43,7 +38,11 @@ class WishController extends Controller
             'quantity'        => $wish->quantity,
             'total'           => $product->price * $wish->quantity,
             'image'           => $image,
-            'is_professional' => $isProfessional,
+            'seller_id'       => $seller?->id,
+            'seller_name'     => $seller?->business_name,
+            'seller_email'    => $seller?->email,
+            'seller_phone'    => $seller?->mobile_number,
+            'seller_whatsapp' => $seller?->whatsapp_phone_link,
         ];
     }
 
