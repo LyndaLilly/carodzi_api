@@ -34,9 +34,8 @@ class BuyerProfileController extends Controller
 
     public function profileFill(Request $request)
     {
-        $buyerId = $request->user()->id;
 
-        $validated = $request->validate([
+        $rules = [
             'buyer_id'      => 'required|exists:buyers,id',
             'gender'        => 'required|in:male,female',
             'date_of_birth' => 'nullable|string',
@@ -47,7 +46,10 @@ class BuyerProfileController extends Controller
             'country'       => 'required|string',
             'state'         => 'required|string',
             'city'          => 'required|string',
-        ]);
+        ];
+
+     
+      
 
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
