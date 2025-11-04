@@ -169,6 +169,8 @@ Route::middleware('auth:buyer')->group(function () {
     Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
       Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
 });
+Route::middleware('auth:sanctum')->get('/buyer/orders/{id}', [OrderController::class, 'buyerSingleOrder']);
+
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{order}/bitcoin-proof', [OrderController::class, 'uploadBitcoinProof']);
