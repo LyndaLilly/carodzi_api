@@ -1,8 +1,11 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Buyer;
 use App\Models\BuyerProfile;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class BuyerProfileController extends Controller
 {
@@ -95,7 +98,6 @@ class BuyerProfileController extends Controller
             'city'          => 'sometimes|required|string',
         ];
 
-        
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -103,17 +105,15 @@ class BuyerProfileController extends Controller
 
         $validated = $validator->validated();
 
-         if (! empty($data['date_of_birth'])) {
+        if (! empty($data['date_of_birth'])) {
             $data['date_of_birth'] = $data['date_of_birth'];
         }
 
-          // Generate WhatsApp link
+        // Generate WhatsApp link
         if (! empty($validated['mobile_number'])) {
             $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
             $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
-
-     
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
@@ -122,7 +122,7 @@ class BuyerProfileController extends Controller
             }
             $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'buyer_image');
         } else {
-            unset($validated['profile_image']); 
+            unset($validated['profile_image']);
         }
 
         // Update DB
