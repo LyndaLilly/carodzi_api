@@ -34,7 +34,6 @@ class BuyerProfileController extends Controller
 
     public function profileFill(Request $request)
     {
-
         $rules = [
             'buyer_id'      => 'required|exists:buyers,id',
             'gender'        => 'required|in:male,female',
@@ -48,32 +47,33 @@ class BuyerProfileController extends Controller
             'city'          => 'required|string',
         ];
 
-     
-      
-
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $validator->validated();
+        $validated = $validator->validated(); // ✅ Use this consistently
 
-        if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth'];
+        // Format date if present
+        if (! empty($validated['date_of_birth'])) {
+            $validated['date_of_birth'] = $validated['date_of_birth'];
         }
 
         // Generate WhatsApp link
-        if (! empty($data['mobile_number'])) {
-            $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
-            $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        if (! empty($validated['mobile_number'])) {
+            $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
+            $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
 
+        // ✅ Handle image upload correctly
         if ($request->hasFile('profile_image')) {
             $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'buyer_image');
         }
 
+        // ✅ Create the record including buyer_id
         $profile = BuyerProfile::create($validated);
 
+        // ✅ Mark buyer as profile updated
         Buyer::where('id', $request->buyer_id)->update(['profile_updated' => 1]);
 
         return response()->json([
@@ -94,7 +94,7 @@ class BuyerProfileController extends Controller
             'profile_image' => 'nullable|image|max:2048',
             'about'         => 'sometimes|nullable|string',
             'email'         => 'nullable|email|unique:buyer_profiles,email,' . $profile->id,
-            'mobile_number' => 'sometimesrequired|string',
+            'mobile_number' => 'sometimes|required|string',
             'country'       => 'sometimes|required|string',
             'state'         => 'sometimes|required|string',
             'city'          => 'sometimes|required|string',
@@ -129,7 +129,7 @@ class BuyerProfileController extends Controller
 
         // Update DB
         $profile->update($validated);
-        Buyer::where('id', $sellerId)->update(['profile_updated' => 1]);
+        Buyer::where('id', $buyerId)->update(['profile_updated' => 1]);
 
         return response()->json([
             'success' => true,
