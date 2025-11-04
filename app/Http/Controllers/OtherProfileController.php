@@ -24,39 +24,55 @@ class OtherProfileController extends Controller
         return "{$subfolder}/{$filename}";
     }
 
+    protected function formatDate($date)
+    {
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     public function storeOther(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'seller_id'             => 'required|exists:sellers,id',
             'gender'                => 'required|in:male,female',
-            'date_of_birth'         => 'required|date',
-            'profile_image'         => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
-            'about'                 => 'required|string|min:10|max:1000',
-            'business_email'        => 'required|email|unique:other_profiles',
-            'mobile_number'         => 'required|string|min:10|max:20',
-            'whatsapp_phone_link'   => 'nullable|url',
+            'date_of_birth'         => 'nullable|string',
+            'about'                 => 'required|string|max:1000',
+            'business_email'        => 'nullable|email',
+            'mobile_number'         => 'required|string',
             'country'               => 'required|string',
             'state'                 => 'required|string',
             'city'                  => 'required|string',
             'business_name'         => 'required|string|max:255',
-            'bank_name'             => 'nullable|string|max:255',
-            'business_bank_name'    => 'nullable|string|max:255',
-            'business_bank_account' => 'nullable|string|max:50',
-        ]);
+            'date_of_establishment' => 'required|date',
+            'bank_name'             => 'required|string|max:255',
+            'business_bank_name'    => 'required|string|max:255',
+            'business_bank_account' => 'required|string|max:20',
+            'profile_image'         => 'nullable|image|max:2048',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $request->except(['profile_image', 'certificate_file']);
+        $data = $validator->validated();
+
+        if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth'];
+        }
+
+        // Generate WhatsApp link
+        if (! empty($data['mobile_number'])) {
+            $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
+            $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        }
 
         if ($request->hasFile('profile_image')) {
             $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
-        }
-
-        if ($request->hasFile('certificate_file')) {
-            $data['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
         }
 
         $profile = OtherProfile::create($data);
@@ -74,23 +90,39 @@ class OtherProfileController extends Controller
         $sellerId = $request->user()->id;
         $profile  = OtherProfile::where('seller_id', $sellerId)->firstOrFail();
 
-        $validated = $request->validate([
-            'gender'                => 'sometimes|in:male,female',
-            'date_of_birth'         => 'sometimes|date',
-            'profile_image'         => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'certificate_file'      => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
-            'about'                 => 'sometimes|string|min:10|max:1000',
-            'business_email'        => 'sometimes|email|unique:other_profiles,business_email,' . $profile->id,
-            'mobile_number'         => 'sometimes|string|min:10|max:20',
-            'whatsapp_phone_link'   => 'sometimes|nullable|url',
-            'country'               => 'sometimes|string',
-            'state'                 => 'sometimes|string',
-            'city'                  => 'sometimes|string',
-            'business_name'         => 'sometimes|string|max:255',
-            'bank_name'             => 'sometimes|nullable|string|max:255',
-            'business_bank_name'    => 'sometimes|nullable|string|max:255',
-            'business_bank_account' => 'sometimes|nullable|string|max:50',
-        ]);
+        $rules = [
+            'gender'                => 'sometimes|required|in:male,female',
+            'date_of_birth'         => 'nullable|string',
+            'about'                 => 'sometimes|required|string|max:1000',
+            'business_email'        => 'nullable|email|unique:other_profiles,business_email,' . $profile->id,
+            'mobile_number'         => 'sometimes|required|string',
+            'country'               => 'sometimes|required|string',
+            'state'                 => 'sometimes|required|string',
+            'city'                  => 'sometimes|required|string',
+            'business_name'         => 'sometimes|required|string|max:255',
+            'date_of_establishment' => 'required|date',
+            'bank_name'             => 'sometimes|required|string|max:255',
+            'business_bank_name'    => 'sometimes|required|string|max:255',
+            'business_bank_account' => 'sometimes|required|string|max:20',
+            'profile_image'         => 'nullable|image|max:2048',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+         $validated = $validator->validated();
+
+        if (! empty($data['date_of_birth'])) {
+            $data['date_of_birth'] = $data['date_of_birth'];
+        }
+
+        // Generate WhatsApp link
+        if (! empty($validated['mobile_number'])) {
+            $raw                              = preg_replace('/\D/', '', $validated['mobile_number']);
+            $validated['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+        }
 
         if ($request->hasFile('profile_image')) {
             // Delete old file if exists
@@ -100,15 +132,6 @@ class OtherProfileController extends Controller
             $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
         } else {
             unset($validated['profile_image']);
-        }
-
-        if ($request->hasFile('certificate_file')) {
-            if ($profile->certificate_file && file_exists(public_path("uploads/{$profile->certificate_file}"))) {
-                unlink(public_path("uploads/{$profile->certificate_file}"));
-            }
-            $validated['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
-        } else {
-            unset($validated['certificate_file']);
         }
 
         $profile->update($validated);

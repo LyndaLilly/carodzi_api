@@ -24,6 +24,7 @@ class OtherProfile extends Model
         'state',
         'city',
         'business_name',
+        'date_of_establishment',
         'bank_name',
         'business_bank_name',
         'business_bank_account',
@@ -32,5 +33,19 @@ class OtherProfile extends Model
     public function seller()
     {
         return $this->belongsTo(Seller::class, 'seller_id');
+    }
+
+        // ✅ Virtual attribute for WhatsApp link (universal)
+    protected $appends = ['whatsapp_link'];
+
+    public function getWhatsappLinkAttribute()
+    {
+        if (!$this->mobile_number) return null;
+
+        // Remove any non-digit characters (like +, -, spaces)
+        $raw = preg_replace('/\D/', '', $this->mobile_number);
+
+        // Return WhatsApp chat link (use exactly as entered with country code)
+        return "https://wa.me/{$raw}";
     }
 }

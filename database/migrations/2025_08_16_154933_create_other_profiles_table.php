@@ -16,7 +16,7 @@ class CreateOtherProfilesTable extends Migration
 
             // Personal info
             $table->enum('gender', ['male', 'female'])->nullable();
-            $table->date('date_of_birth')->nullable();
+            $table->string('date_of_birth', 15)->nullable();
             $table->string('profile_image')->nullable();  
                 
             // About section
@@ -30,6 +30,7 @@ class CreateOtherProfilesTable extends Migration
             $table->string('state')->nullable();
             $table->string('city')->nullable();
             $table->string('business_name')->nullable();
+            $table->date('date_of_establishment')->nullable();
         
                
             // Bank details
