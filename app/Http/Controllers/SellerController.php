@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\EmailVerificationCodeMail;
+use App\Mail\PasswordResetCodeMail;
 use App\Models\Seller;
 use App\Models\SellerProfileView;
 use Carbon\Carbon;
@@ -196,10 +197,10 @@ class SellerController extends Controller
         $emailSent = true;
 
         try {
-            Mail::raw("Your password reset code is: $resetCode", function ($message) use ($seller) {
-                $message->to($seller->email)
-                    ->subject('Password Reset Code');
-            });
+            Mail::to($seller->email)->send(new PasswordResetCodeMail($resetCode, $seller->name));
+        } catch (\Exception $e) {
+            \Log::error("Email failed: " . $e->getMessage());
+            $emailSent = false;
         } catch (\Exception $e) {
             \Log::error("Email failed: " . $e->getMessage());
             $emailSent = false;
@@ -256,38 +257,25 @@ class SellerController extends Controller
 
         $seller = Seller::where('email', $request->email)->first();
 
-        if (! $seller) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Seller not found.',
-            ], 404);
-        }
-
         $newResetCode                   = rand(100000, 999999);
         $seller->password_reset_code    = $newResetCode;
         $seller->password_reset_sent_at = now();
         $seller->save();
 
-        try {
-            Mail::raw("Your password reset code is: $newResetCode", function ($message) use ($seller) {
-                $message->to($seller->email)
-                    ->subject('Password Reset Code (Resent)');
-            });
+        $emailSent = true;
 
-            return response()->json([
-                'status'       => 'success',
-                'message'      => 'Reset code resent successfully.',
-                'email_status' => 'sent',
-            ]);
+        try {
+            Mail::to($seller->email)->send(new PasswordResetCodeMail($newResetCode, $seller->name, 'resent'));
         } catch (\Exception $e) {
             \Log::error("Failed to resend password reset code: " . $e->getMessage());
-
-            return response()->json([
-                'status'       => 'success', // still success because code was saved
-                'message'      => 'Code updated, but email failed to send.',
-                'email_status' => 'failed',
-            ]);
+            $emailSent = false;
         }
+
+        return response()->json([
+            'status'       => 'success', // code saved anyway
+            'message'      => $emailSent ? 'Reset code resent successfully.' : 'Code updated, but email failed to send.',
+            'email_status' => $emailSent ? 'sent' : 'failed',
+        ]);
     }
 
     public function resetPassword(Request $request)
@@ -333,7 +321,7 @@ class SellerController extends Controller
                 'errors' => [
                     'email' => 'Email does not exist',
                 ],
-            ], 404); // 404 for not found
+            ], 404);
         }
 
         if (! Hash::check($request->password, $seller->password)) {
