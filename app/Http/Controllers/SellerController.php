@@ -329,7 +329,11 @@ class SellerController extends Controller
 
         if (! $seller) {
             Log::warning('Seller not found');
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            return response()->json([
+                'errors' => [
+                    'email' => 'Email does not exist',
+                ],
+            ], 404); // 404 for not found
         }
 
         if (! Hash::check($request->password, $seller->password)) {
@@ -337,12 +341,18 @@ class SellerController extends Controller
                 'input_password' => $request->password,
                 'hashed'         => $seller->password,
             ]);
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            return response()->json([
+                'errors' => [
+                    'password' => 'Incorrect password',
+                ],
+            ], 401);
         }
 
         if (! $seller->verified) {
             Log::warning('Seller not verified', ['email' => $request->email]);
-            return response()->json(['message' => 'Please verify your email before logging in.'], 403);
+            return response()->json([
+                'message' => 'Please verify your email before logging in.',
+            ], 403);
         }
 
         $token = $seller->createToken('seller_token')->plainTextToken;
