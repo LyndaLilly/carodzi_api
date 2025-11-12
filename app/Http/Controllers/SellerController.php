@@ -197,7 +197,7 @@ class SellerController extends Controller
         $emailSent = true;
 
         try {
-            Mail::to($seller->email)->send(new PasswordResetCodeMail($resetCode, $seller->name));
+            Mail::to($seller->email)->send(new PasswordResetCodeMail($resetCode, $seller->firstname . ' ' . $seller->lastname));
         } catch (\Exception $e) {
             \Log::error("Email failed: " . $e->getMessage());
             $emailSent = false;
@@ -230,16 +230,14 @@ class SellerController extends Controller
             ], 400);
         }
 
-        // ✅ Check if code is expired (older than 30 minutes)
         if (! $seller->password_reset_sent_at || now()->diffInMinutes($seller->password_reset_sent_at) > 30) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Reset code has expired. Please request a new one.',
-            ], 410); // 410 Gone
+            ], 410); 
         }
 
-                                                    // ✅ Code is valid and not expired
-        $seller->password_reset_code        = null; // Clear code
+        $seller->password_reset_code        = null; 
         $seller->password_reset_verified_at = now();
         $seller->save();
 
@@ -265,7 +263,7 @@ class SellerController extends Controller
         $emailSent = true;
 
         try {
-            Mail::to($seller->email)->send(new PasswordResetCodeMail($newResetCode, $seller->name, 'resent'));
+            Mail::to($seller->email)->send(new PasswordResetCodeMail($newResetCode, $seller->firstname . ' ' . $seller->lastname, 'resent'));
         } catch (\Exception $e) {
             \Log::error("Failed to resend password reset code: " . $e->getMessage());
             $emailSent = false;
