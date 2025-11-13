@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\EmailVerificationCodeMail;
 use App\Mail\PasswordResetCodeMail;
+use App\Mail\PasswordResetSuccessMail;
 use App\Models\Seller;
 use App\Models\SellerProfileView;
 use Carbon\Carbon;
@@ -234,10 +235,10 @@ class SellerController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Reset code has expired. Please request a new one.',
-            ], 410); 
+            ], 410);
         }
 
-        $seller->password_reset_code        = null; 
+        $seller->password_reset_code        = null;
         $seller->password_reset_verified_at = now();
         $seller->save();
 
@@ -270,7 +271,7 @@ class SellerController extends Controller
         }
 
         return response()->json([
-            'status'       => 'success', // code saved anyway
+            'status'       => 'success',
             'message'      => $emailSent ? 'Reset code resent successfully.' : 'Code updated, but email failed to send.',
             'email_status' => $emailSent ? 'sent' : 'failed',
         ]);
@@ -297,9 +298,18 @@ class SellerController extends Controller
             ], 403);
         }
 
+        // ✅ Update password
         $seller->password                   = Hash::make($request->password);
-        $seller->password_reset_verified_at = null; // clear
+        $seller->password_reset_verified_at = null;
         $seller->save();
+
+        try {
+            $sellerName = trim(($seller->firstname ?? '') . ' ' . ($seller->lastname ?? ''));
+
+            Mail::to($seller->email)->send(new PasswordResetSuccessMail($sellerName));
+        } catch (\Exception $e) {
+            \Log::error("Password reset confirmation email failed: " . $e->getMessage());
+        }
 
         return response()->json([
             'status'  => 'success',
