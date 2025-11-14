@@ -326,7 +326,7 @@ class BuyerController extends Controller
         try {
             $buyerName = trim(($buyer->firstname));
 
-            Mail::to($seller->email)->send(new BuyerPasswordResetSuccessMail($buyerName));
+            Mail::to($buyer->email)->send(new BuyerPasswordResetSuccessMail($buyerName));
         } catch (\Exception $e) {
             \Log::error("Password reset confirmation email failed: " . $e->getMessage());
         }
