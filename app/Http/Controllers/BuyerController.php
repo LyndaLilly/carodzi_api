@@ -275,7 +275,7 @@ class BuyerController extends Controller
             ], 404);
         }
 
-        $newResetCode                  = rand(100000, 999999);
+        $newResetCode = rand(100000, 999999);
         $buyer->password_reset_code    = $newResetCode;
         $buyer->password_reset_sent_at = now();
         $buyer->save();
@@ -283,7 +283,7 @@ class BuyerController extends Controller
         $emailSent = true;
 
         try {
-            Mail::to($buyer->email)->send(new BuyerEmailResetPasswordCode($buyer->firstname, $newresetCode, 'resent'));
+            Mail::to($buyer->email)->send(new BuyerEmailResetPasswordCode($buyer->firstname, $newResetCode, 'resent'));
             Log::info('Resent verification email.', ['email' => $buyer->email]);
         } catch (\Exception $e) {
             \Log::error("Failed to resend password reset code: " . $e->getMessage());
