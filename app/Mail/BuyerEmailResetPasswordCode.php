@@ -9,13 +9,13 @@ class BuyerEmailResetPasswordCode extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $firstname;
+    public $buyerName;
     public $resetCode;
     public $type;
 
-    public function __construct($firstname, $resetCode, $type = "new")
+    public function __construct($buyerName = '', $resetCode, $type = "new")
     {
-        $this->firstname = $firstname;
+        $this->buyerName = $buyerName;
         $this->resetCode = $resetCode;
         $this->type      = $type;
     }
