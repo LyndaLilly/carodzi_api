@@ -335,7 +335,11 @@ class BuyerController extends Controller
 
         if (! $buyer) {
             Log::warning('buyer not found');
-            return response()->json(['message' => 'Invalid credentials'], 401);
+             return response()->json([
+                'errors' => [
+                    'email' => 'Email does not exist',
+                ],
+            ], 404);
         }
 
         if (! Hash::check($request->password, $buyer->password)) {
@@ -352,7 +356,9 @@ class BuyerController extends Controller
 
         if (! $buyer->verified) {
             Log::warning('buyer not verified', ['email' => $request->email]);
-            return response()->json(['message' => 'Please verify your email before logging in.'], 403);
+            return response()->json([
+                'message' => 'Please verify your email before logging in.',
+            ], 403);
         }
 
         $token = $buyer->createToken('buyer_token')->plainTextToken;
