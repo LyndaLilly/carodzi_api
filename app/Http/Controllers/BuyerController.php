@@ -343,7 +343,11 @@ class BuyerController extends Controller
                 'input_password' => $request->password,
                 'hashed'         => $buyer->password,
             ]);
-            return response()->json(['message' => 'Invalid credentials'], 401);
+             return response()->json([
+                'errors' => [
+                    'password' => 'Incorrect password',
+                ],
+            ], 401);
         }
 
         if (! $buyer->verified) {
