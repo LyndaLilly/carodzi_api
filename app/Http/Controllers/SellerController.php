@@ -256,6 +256,13 @@ class SellerController extends Controller
 
         $seller = Seller::where('email', $request->email)->first();
 
+             if (! $seller) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Seller not found.',
+            ], 404);
+        }
+
         $newResetCode                   = rand(100000, 999999);
         $seller->password_reset_code    = $newResetCode;
         $seller->password_reset_sent_at = now();

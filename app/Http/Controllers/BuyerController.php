@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\BuyerEmailResetPasswordCode;
+use App\Mail\BuyerPasswordResetSuccessMail;
 use App\Mail\EmailVerifyBuyer;
 use App\Models\Buyer;
 use App\Models\BuyerProfile;
@@ -211,10 +212,11 @@ class BuyerController extends Controller
             Mail::to($buyer->email)->send(new BuyerEmailResetPasswordCode($buyer->firstname, $resetCode));
             Log::info('Resent verification email.', ['email' => $buyer->email]);
         } catch (\Exception $e) {
-            Log::error('Failed to resend verification email.', [
-                'email'   => $buyer->email,
-                'message' => $e->getMessage(),
-            ]);
+            \Log::error("Email failed: " . $e->getMessage());
+            $emailSent = false;
+        } catch (\Exception $e) {
+            \Log::error("Email failed: " . $e->getMessage());
+            $emailSent = false;
         }
 
         return response()->json([
@@ -278,20 +280,20 @@ class BuyerController extends Controller
         $buyer->password_reset_sent_at = now();
         $buyer->save();
 
+        $emailSent = true;
+
         try {
-            Mail::to($buyer->email)->send(new BuyerEmailResetPasswordCode($buyer->firstname, $newresetCode));
+            Mail::to($buyer->email)->send(new BuyerEmailResetPasswordCode($buyer->firstname, $newresetCode, 'resent'));
             Log::info('Resent verification email.', ['email' => $buyer->email]);
         } catch (\Exception $e) {
-            Log::error('Failed to resend verification email.', [
-                'email'   => $buyer->email,
-                'message' => $e->getMessage(),
-            ]);
+            \Log::error("Failed to resend password reset code: " . $e->getMessage());
+            $emailSent = false;
         }
 
         return response()->json([
-            'status'       => 'success', // still success because code was saved
-            'message'      => 'Code updated, but email failed to send.',
-            'email_status' => 'failed',
+            'status'       => 'success',
+            'message'      => $emailSent ? 'Reset code resent successfully.' : 'Code updated, but email failed to send.',
+            'email_status' => $emailSent ? 'sent' : 'failed',
         ]);
 
     }
@@ -318,8 +320,16 @@ class BuyerController extends Controller
         }
 
         $buyer->password                   = Hash::make($request->password);
-        $buyer->password_reset_verified_at = null; // clear
+        $buyer->password_reset_verified_at = null; 
         $buyer->save();
+
+        try {
+            $buyerName = trim(($buyer->firstname));
+
+            Mail::to($seller->email)->send(new BuyerPasswordResetSuccessMail($buyerName));
+        } catch (\Exception $e) {
+            \Log::error("Password reset confirmation email failed: " . $e->getMessage());
+        }
 
         return response()->json([
             'status'  => 'success',
@@ -335,7 +345,7 @@ class BuyerController extends Controller
 
         if (! $buyer) {
             Log::warning('buyer not found');
-             return response()->json([
+            return response()->json([
                 'errors' => [
                     'email' => 'Email does not exist',
                 ],
@@ -347,7 +357,7 @@ class BuyerController extends Controller
                 'input_password' => $request->password,
                 'hashed'         => $buyer->password,
             ]);
-             return response()->json([
+            return response()->json([
                 'errors' => [
                     'password' => 'Incorrect password',
                 ],

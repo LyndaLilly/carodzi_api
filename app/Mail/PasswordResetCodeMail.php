@@ -12,7 +12,7 @@ class PasswordResetCodeMail extends Mailable
 
     public $resetCode;
     public $sellerName;
-    public $type; // 'new' or 'resent'
+    public $type; 
 
     public function __construct($resetCode, $sellerName = '', $type = 'new')
     {

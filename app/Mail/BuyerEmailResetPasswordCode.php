@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
@@ -12,16 +11,27 @@ class BuyerEmailResetPasswordCode extends Mailable
 
     public $firstname;
     public $resetCode;
+    public $type;
 
-    public function __construct($firstname, $resetCode)
+    public function __construct($firstname, $resetCode, $type = "new")
     {
         $this->firstname = $firstname;
         $this->resetCode = $resetCode;
+        $this->type      = $type;
     }
 
     public function build()
     {
-        return $this->subject('Verify Your Email')
-                    ->view('emails.buyerpasswordcode');
+        $subject = $this->type === 'resent'
+            ? 'Your Password Reset Code (Resent)'
+            : 'Your Password Reset Code';
+
+        return $this->subject($subject)
+        ->view('emails.buyerpasswordcode')
+        ->with([
+            'resetCode' => $this->resetCode,
+            'buyerName' => $this->buyerName,
+            'type' => $this->type
+        ]);
     }
 }
