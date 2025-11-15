@@ -5,6 +5,8 @@ use App\Models\ProfessionalProfile;
 use App\Models\Seller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ProfessionalProfileController extends Controller
@@ -30,67 +32,100 @@ class ProfessionalProfileController extends Controller
         }
     }
 
-    public function storeProfessional(Request $request)
-    {
-        $rules = [
-            'seller_id'             => 'required|exists:sellers,id',
-            'gender'                => 'required|in:male,female',
-            'date_of_birth'         => 'nullable|string',
-            'about'                 => 'required|string|max:1000',
-            'business_email'        => 'nullable|email',
-            'mobile_number'         => 'required|string',
-            'country'               => 'required|string',
-            'state'                 => 'required|string',
-            'city'                  => 'required|string',
-            'business_name'         => 'required|string|max:255',
-            'experience_years'      => 'required|integer|min:0',
-            'bank_name'             => 'required|string|max:255',
-            'business_bank_name'    => 'required|string|max:255',
-            'business_bank_account' => 'required|string|max:20',
-            'verification_number'   => 'nullable|string|unique:professional_profiles',
-            'profile_image'         => 'nullable|image|max:2048',
-            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        ];
+   public function storeProfessional(Request $request)
+{
+    // 🔍 Log the full incoming request before validation
+    \Log::info('Professional Profile Request Received:', [
+        'all_input' => $request->all(),
+        'has_profile_image' => $request->hasFile('profile_image'),
+        'has_certificate_file' => $request->hasFile('certificate_file'),
+    ]);
 
-        $seller = Seller::with('subcategory')->find($request->seller_id);
-        if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
-            $rules['verification_number'] = 'required|string|unique:professional_profiles';
-        }
+    $rules = [
+        'seller_id'             => 'required|exists:sellers,id',
+        'gender'                => 'required|in:male,female',
+        'date_of_birth'         => 'nullable|string',
+        'about'                 => 'required|string|max:1000',
+        'business_email'        => 'nullable|email',
+        'mobile_number'         => 'required|string',
+        'country'               => 'required|string',
+        'state'                 => 'required|string',
+        'city'                  => 'required|string',
+        'business_name'         => 'required|string|max:255',
+        'experience_years'      => 'required|integer|min:0',
+        'bank_name'             => 'required|string|max:255',
+        'business_bank_name'    => 'required|string|max:255',
+        'business_bank_account' => 'required|string|max:20',
+        'verification_number'   => 'nullable|string|unique:professional_profiles',
+        'profile_image'         => 'nullable|image|max:2048',
+        'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+    ];
 
-        $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $data = $validator->validated();
-
-        if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth'];
-        }
-
-        // Generate WhatsApp link
-        if (! empty($data['mobile_number'])) {
-            $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
-            $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
-        }
-
-        // File uploads
-        if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
-        }
-        if ($request->hasFile('certificate_file')) {
-            $data['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
-        }
-
-        $profile = ProfessionalProfile::create($data);
-        Seller::where('id', $request->seller_id)->update(['profile_updated' => 1]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Professional profile created successfully',
-            'profile' => $profile,
-        ]);
+    $seller = Seller::with('subcategory')->find($request->seller_id);
+    if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
+        $rules['verification_number'] = 'required|string|unique:professional_profiles';
     }
+
+    $validator = Validator::make($request->all(), $rules);
+    if ($validator->fails()) {
+
+        // ❗ Log validation failure
+        \Log::error('Professional Profile Validation Failed:', [
+            'errors' => $validator->errors(),
+            'input'  => $request->all(),
+        ]);
+
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    $data = $validator->validated();
+
+    if (! empty($data['date_of_birth'])) {
+        $data['date_of_birth'] = $data['date_of_birth'];
+    }
+
+    // WhatsApp Link
+    if (! empty($data['mobile_number'])) {
+        $raw = preg_replace('/\D/', '', $data['mobile_number']);
+        $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
+    }
+
+    // Logs for file upload
+    if ($request->hasFile('profile_image')) {
+        \Log::info('Uploading profile_image:', [
+            'mime' => $request->file('profile_image')->getMimeType(),
+            'size' => $request->file('profile_image')->getSize(),
+            'original_name' => $request->file('profile_image')->getClientOriginalName(),
+        ]);
+
+        $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
+    }
+
+    if ($request->hasFile('certificate_file')) {
+        \Log::info('Uploading certificate_file:', [
+            'mime' => $request->file('certificate_file')->getMimeType(),
+            'size' => $request->file('certificate_file')->getSize(),
+            'original_name' => $request->file('certificate_file')->getClientOriginalName(),
+        ]);
+
+        $data['certificate_file'] = $this->uploadFile($request->file('certificate_file'), 'certificates');
+    }
+
+    $profile = ProfessionalProfile::create($data);
+    Seller::where('id', $request->seller_id)->update(['profile_updated' => 1]);
+
+    // 🔵 Final log
+    \Log::info('Professional Profile Created Successfully:', [
+        'profile' => $profile,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Professional profile created successfully',
+        'profile' => $profile,
+    ]);
+}
+
 
     public function updateProfessionalProfile(Request $request)
     {
