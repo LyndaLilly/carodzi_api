@@ -230,7 +230,6 @@ class PromoteController extends Controller
 
         $seller = $request->user();
 
-        // ✅ Prevent duplicate active promotions before payment
         $existingPromotion = Promote::where('seller_id', $seller->id)
             ->where('is_active', true)
             ->where('end_date', '>', now())
@@ -336,11 +335,19 @@ class PromoteController extends Controller
             ]);
         }
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Payment verified successfully, promotion activated.',
+            ]);
+        }
+
         return response()->json([
             'status'    => 'success',
             'message'   => 'Payment verified successfully, promotion activated.',
             'promotion' => $promotion,
         ]);
+
     }
 
     public function handlePaystackWebhook(Request $request)
