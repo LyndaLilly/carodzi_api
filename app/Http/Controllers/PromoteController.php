@@ -335,18 +335,18 @@ class PromoteController extends Controller
             ]);
         }
 
-        if ($request->wantsJson()) {
+    
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Payment verified successfully, promotion activated.',
             ]);
-        }
+        
 
-        return response()->json([
-            'status'    => 'success',
-            'message'   => 'Payment verified successfully, promotion activated.',
-            'promotion' => $promotion,
-        ]);
+        // return response()->json([
+        //     'status'    => 'success',
+        //     'message'   => 'Payment verified successfully, promotion activated.',
+        //     'promotion' => $promotion,
+        // ]);
 
     }
 
