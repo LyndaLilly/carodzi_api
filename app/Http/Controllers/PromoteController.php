@@ -311,18 +311,30 @@ class PromoteController extends Controller
         $promotion = Promote::where('transaction_reference', $reference)->first();
 
         if (! $promotion) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Promotion not found for this transaction reference.',
-            ], 404);
-        }
+            // ✅ FIX 2: Create promotion using Paystack metadata
+            $plan        = $paymentData['metadata']['plan'];
+            $planDetails = config('promote.plans')[$plan];
 
-        // Mark promotion as active & approved
-        $promotion->update([
-            'is_active'   => true,
-            'is_approved' => true,
-            'approved_at' => now(),
-        ]);
+            $promotion = Promote::create([
+                'seller_id'             => $paymentData['metadata']['seller_id'],
+                'plan'                  => $plan,
+                'duration'              => $planDetails['duration'],
+                'start_date'            => now(),
+                'end_date'              => now()->addDays($planDetails['duration']),
+                'is_active'             => true,
+                'is_approved'           => true,
+                'payment_method'        => 'paystack',
+                'transaction_reference' => $reference,
+                'amount'                => $paymentData['amount'] / 100,
+            ]);
+        } else {
+            // Mark existing promotion as active & approved
+            $promotion->update([
+                'is_active'   => true,
+                'is_approved' => true,
+                'approved_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'status'    => 'success',
