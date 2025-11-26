@@ -442,57 +442,116 @@ class OrderController extends Controller
         }
     }
 
-  public function buyerSingleOrder($id)
-{
-    $buyerId = auth()->id();
-    if (! $buyerId) {
-        return response()->json(['error' => 'Unauthorized'], 401);
+    public function buyerSingleOrder($id)
+    {
+        $buyerId = auth()->id();
+        if (! $buyerId) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $order = Order::with([
+            'product.images',
+            'seller.profile',
+            'seller.professionalProfile',
+        ])
+            ->where('buyer_id', $buyerId)
+            ->findOrFail($id);
+
+        // Pick correct profile (professional or other)
+        $seller  = $order->seller;
+        $profile = $seller->is_professional ? $seller->professionalProfile : $seller->profile;
+
+        return response()->json([
+            'success' => true,
+            'order'   => [
+                'id'                      => $order->id,
+                'product'                 => [
+                    'id'          => $order->product->id,
+                    'name'        => $order->product->name,
+                    'description' => $order->product->description,
+                    'price'       => $order->product->price,
+                    'images'      => $order->product->images->map(fn($img) => asset('public/uploads/' . $img->image_path)),
+                ],
+                'quantity'                => $order->quantity,
+                'total_amount'            => $order->total_amount,
+                'payment_status'          => $order->payment_status,
+                'payment_method'          => $order->payment_method,
+                'status'                  => $order->status,
+                'buyer_delivery_location' => $order->buyer_delivery_location,
+                'delivery_fullname'       => $order->delivery_fullname,
+                'delivery_email'          => $order->delivery_email,
+                'delivery_phone'          => $order->delivery_phone,
+                'created_at'              => $order->created_at->format('Y-m-d H:i'),
+                'seller'                  => [
+                    'id'             => $seller->id,
+                    'business_name'  => $profile->business_name ?? null,
+                    'email'          => $seller->email,
+                    'business_email' => $profile->business_email ?? null,
+                    'phone'          => $profile->phone ?? null,
+                    'address'        => $profile->address ?? null,
+                ],
+            ],
+        ]);
     }
 
-    $order = Order::with([
-        'product.images',
-        'seller.profile',
-        'seller.professionalProfile',
-    ])
-    ->where('buyer_id', $buyerId)
-    ->findOrFail($id);
+    public function paystackInit(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|integer|exists:orders,id',
+        ]);
 
-    // Pick correct profile (professional or other)
-    $seller = $order->seller;
-    $profile = $seller->is_professional ? $seller->professionalProfile : $seller->profile;
+        $order = Order::findOrFail($request->order_id);
 
-    return response()->json([
-        'success' => true,
-        'order'   => [
-            'id'                      => $order->id,
-            'product'                 => [
-                'id'          => $order->product->id,
-                'name'        => $order->product->name,
-                'description' => $order->product->description,
-                'price'       => $order->product->price,
-                'images'      => $order->product->images->map(fn($img) => asset('public/uploads/' . $img->image_path)),
-            ],
-            'quantity'                => $order->quantity,
-            'total_amount'            => $order->total_amount,
-            'payment_status'          => $order->payment_status,
-            'payment_method'          => $order->payment_method,
-            'status'                  => $order->status,
-            'buyer_delivery_location' => $order->buyer_delivery_location,
-            'delivery_fullname'       => $order->delivery_fullname,
-            'delivery_email'          => $order->delivery_email,
-            'delivery_phone'          => $order->delivery_phone,
-            'created_at'              => $order->created_at->format('Y-m-d H:i'),
-            'seller'                  => [
-                'id'             => $seller->id,
-                'business_name'  => $profile->business_name ?? null,
-                'email'          => $seller->email,
-                'business_email' => $profile->business_email ?? null,
-                'phone'          => $profile->phone ?? null,
-                'address'        => $profile->address ?? null,
-            ],
-        ],
-    ]);
-}
+        // Ensure only the buyer can initialize payment
+        $buyerId = auth()->id();
+        if (! $buyerId || $order->buyer_id !== $buyerId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
 
+        try {
+            $secretKey = config('services.paystack.secret_key');
+            $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
+
+            $response = Http::withToken($secretKey)->post($baseUrl . '/transaction/initialize', [
+                'email'        => $order->delivery_email,
+                'amount'       => $order->total_amount * 100, // Paystack expects kobo
+                'reference'    => 'ORDER-' . $order->id . '-' . time(),
+                'callback_url' => route('paystack.callback'), // optional if you handle webhooks
+            ]);
+
+            if (! $response->successful()) {
+                \Log::error('Paystack Init HTTP Error', [
+                    'order_id' => $order->id,
+                    'status'   => $response->status(),
+                    'body'     => $response->body(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to initialize Paystack transaction',
+                    'status'  => $response->status(),
+                ], 500);
+            }
+
+            $data = $response->json();
+
+            return response()->json([
+                'success'           => true,
+                'authorization_url' => $data['data']['authorization_url'],
+                'reference'         => $data['data']['reference'],
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('Paystack Init Error', [
+                'order_id' => $order->id,
+                'error'    => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error during initialization',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }
