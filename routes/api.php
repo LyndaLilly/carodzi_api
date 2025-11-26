@@ -170,7 +170,8 @@ Route::middleware('auth:buyer')->group(function () {
       Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
 });
 
-Route::middleware('auth:sanctum')->post('/paystack/order/init', [OrderController::class, 'paystackInit'])->name('paystack.init');
+Route::post('/order/paystack/init', [OrderController::class, 'paystackInit'])->middleware('auth:sanctum');
+
 
 Route::middleware('auth:sanctum')->get('/buyer/orders/{id}', [OrderController::class, 'buyerSingleOrder']);
 
