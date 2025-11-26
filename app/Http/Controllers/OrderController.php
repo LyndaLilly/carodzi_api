@@ -494,84 +494,189 @@ class OrderController extends Controller
         ]);
     }
 
-   public function paystackInit(Request $request)
-{
-    $request->validate([
-        'order_id' => 'required|integer|exists:orders,id',
-    ]);
-
-    $order = Order::findOrFail($request->order_id);
-
-    // Ensure only the buyer can initialize payment
-    $buyerId = auth()->id();
-    if (! $buyerId || $order->buyer_id !== $buyerId) {
-        \Log::warning('Unauthorized Paystack init attempt', [
-            'order_id' => $order->id,
-            'buyer_id' => $buyerId,
+    public function paystackInit(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|integer|exists:orders,id',
         ]);
 
-        return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-    }
+        $order = Order::findOrFail($request->order_id);
 
-    try {
-        $secretKey = config('services.paystack.secret_key');
-        $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
+        // Ensure only the buyer can initialize payment
+        $buyerId = auth()->id();
+        if (! $buyerId || $order->buyer_id !== $buyerId) {
+            \Log::warning('Unauthorized Paystack init attempt', [
+                'order_id' => $order->id,
+                'buyer_id' => $buyerId,
+            ]);
 
-        // --- Debug: log payload being sent to Paystack ---
-        $payload = [
-            'email'        => $order->delivery_email,
-            'amount'       => $order->total_amount * 100, // Paystack expects kobo
-            'reference'    => 'ORDER-' . $order->id . '-' . time(),
-            'callback_url' => route('paystack.callback'),
-        ];
-        \Log::debug('Initializing Paystack transaction', [
-            'order_id' => $order->id,
-            'payload'  => $payload,
-        ]);
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
 
-        $response = Http::withToken($secretKey)->post($baseUrl . '/transaction/initialize', $payload);
+        try {
+            $secretKey = config('services.paystack.secret_key');
+            $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
 
-        // --- Debug: log raw response from Paystack ---
-        \Log::debug('Paystack response', [
-            'order_id' => $order->id,
-            'status'   => $response->status(),
-            'body'     => $response->body(),
-        ]);
+            // --- Debug: log payload being sent to Paystack ---
+            $payload = [
+                'email'        => $order->delivery_email,
+                'amount'       => $order->total_amount * 100, // Paystack expects kobo
+                'reference'    => 'ORDER-' . $order->id . '-' . time(),
+                'callback_url' => route('paystack.callback'),
+            ];
+            \Log::debug('Initializing Paystack transaction', [
+                'order_id' => $order->id,
+                'payload'  => $payload,
+            ]);
 
-        if (! $response->successful()) {
-            \Log::error('Paystack Init HTTP Error', [
+            $response = Http::withToken($secretKey)->post($baseUrl . '/transaction/initialize', $payload);
+
+            // --- Debug: log raw response from Paystack ---
+            \Log::debug('Paystack response', [
                 'order_id' => $order->id,
                 'status'   => $response->status(),
                 'body'     => $response->body(),
             ]);
+
+            if (! $response->successful()) {
+                \Log::error('Paystack Init HTTP Error', [
+                    'order_id' => $order->id,
+                    'status'   => $response->status(),
+                    'body'     => $response->body(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to initialize Paystack transaction',
+                    'status'  => $response->status(),
+                ], 500);
+            }
+
+            $data = $response->json();
+
+            return response()->json([
+                'success'           => true,
+                'authorization_url' => $data['data']['authorization_url'],
+                'reference'         => $data['data']['reference'],
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('Paystack Init Error', [
+                'order_id' => $order->id,
+                'error'    => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to initialize Paystack transaction',
-                'status'  => $response->status(),
+                'message' => 'Server error during initialization',
+                'error'   => $e->getMessage(),
             ], 500);
         }
-
-        $data = $response->json();
-
-        return response()->json([
-            'success'           => true,
-            'authorization_url' => $data['data']['authorization_url'],
-            'reference'         => $data['data']['reference'],
-        ]);
-
-    } catch (\Throwable $e) {
-        \Log::error('Paystack Init Error', [
-            'order_id' => $order->id,
-            'error'    => $e->getMessage(),
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Server error during initialization',
-            'error'   => $e->getMessage(),
-        ], 500);
     }
-}
 
+    public function orderPaystackCallback(Request $request)
+    {
+        // Paystack sends 'reference' as a query parameter
+        $reference = $request->query('reference');
+
+        if (! $reference) {
+            \Log::warning('Paystack callback called without reference', [
+                'request' => $request->all(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Reference missing in callback',
+            ], 400);
+        }
+
+        \Log::info('Paystack callback received', ['reference' => $reference]);
+
+        try {
+            $secretKey = config('services.paystack.secret_key');
+            $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
+
+            // Verify transaction with Paystack
+            $response = Http::withToken($secretKey)
+                ->get("{$baseUrl}/transaction/verify/{$reference}");
+
+            if (! $response->successful()) {
+                \Log::error('Paystack callback verification failed', [
+                    'reference' => $reference,
+                    'status'    => $response->status(),
+                    'body'      => $response->body(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to verify transaction',
+                ], 502);
+            }
+
+            $data = $response->json();
+            if (! isset($data['status']) || $data['status'] !== true) {
+                \Log::warning('Paystack callback verification unsuccessful', [
+                    'reference' => $reference,
+                    'response'  => $data,
+                ]);
+
+                return response()->json([
+                    'success'  => false,
+                    'message'  => 'Transaction verification failed',
+                    'paystack' => $data,
+                ], 400);
+            }
+
+            $tx    = $data['data'] ?? null;
+            $order = Order::where('id', str_replace(['ORDER-', '-', time()], '', $reference))->first();
+
+            if (! $order) {
+                \Log::error('Order not found for Paystack reference', ['reference' => $reference]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            // Update order if transaction successful
+            if ($tx['status'] === 'success') {
+                $order->update([
+                    'payment_status'    => 'paid',
+                    'status'            => 'completed',
+                    'payment_method'    => 'paystack',
+                    // Optional: store reference
+                    'payment_reference' => $reference,
+                ]);
+
+                \Log::info('Order marked as paid via Paystack callback', [
+                    'order_id'  => $order->id,
+                    'reference' => $reference,
+                ]);
+
+                return response()->json([
+                    'success'  => true,
+                    'message'  => 'Payment verified and order updated',
+                    'order_id' => $order->id,
+                ]);
+            }
+
+            return response()->json([
+                'success'  => false,
+                'message'  => 'Transaction not successful',
+                'paystack' => $tx,
+            ], 400);
+
+        } catch (\Throwable $e) {
+            \Log::error('Paystack callback error', [
+                'reference' => $reference,
+                'error'     => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error during Paystack callback',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }
