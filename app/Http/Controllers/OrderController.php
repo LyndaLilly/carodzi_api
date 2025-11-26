@@ -522,12 +522,12 @@ class OrderController extends Controller
                 'email'        => $order->delivery_email,
                 'amount'       => $order->total_amount * 100, // Paystack expects kobo
                 'reference'    => 'ORDER-' . $order->id . '-' . time(),
-                'callback_url' => route('paystack.callback'),
+                 'callback_url' => url('/api/order/paystack/callback'),
             ];
             \Log::debug('Initializing Paystack transaction', [
                 'order_id' => $order->id,
                 'payload'  => $payload,
-            ]);
+            ]); 
 
             $response = Http::withToken($secretKey)->post($baseUrl . '/transaction/initialize', $payload);
 
