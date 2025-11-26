@@ -174,7 +174,6 @@ Route::post('/order/paystack/init', [OrderController::class, 'paystackInit'])->m
 Route::get('/order/paystack/callback', [OrderController::class, 'orderPaystackCallback']);
 
 
-
 Route::middleware('auth:sanctum')->get('/buyer/orders/{id}', [OrderController::class, 'buyerSingleOrder']);
 
 
