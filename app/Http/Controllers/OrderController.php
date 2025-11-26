@@ -522,12 +522,12 @@ class OrderController extends Controller
                 'email'        => $order->delivery_email,
                 'amount'       => $order->total_amount * 100, // Paystack expects kobo
                 'reference'    => 'ORDER-' . $order->id . '-' . time(),
-                 'callback_url' => url('/api/order/paystack/callback'),
+                'callback_url' => url('/api/order/paystack/callback'),
             ];
             \Log::debug('Initializing Paystack transaction', [
                 'order_id' => $order->id,
                 'payload'  => $payload,
-            ]); 
+            ]);
 
             $response = Http::withToken($secretKey)->post($baseUrl . '/transaction/initialize', $payload);
 
@@ -552,6 +552,9 @@ class OrderController extends Controller
             }
 
             $data = $response->json();
+            $order->update([
+                'paystack_reference' => $data['data']['reference'],
+            ]);
 
             return response()->json([
                 'success'           => true,
@@ -575,18 +578,13 @@ class OrderController extends Controller
 
     public function orderPaystackCallback(Request $request)
     {
-        // Paystack sends 'reference' as a query parameter
         $reference = $request->query('reference');
 
         if (! $reference) {
             \Log::warning('Paystack callback called without reference', [
                 'request' => $request->all(),
             ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Reference missing in callback',
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Reference missing in callback'], 400);
         }
 
         \Log::info('Paystack callback received', ['reference' => $reference]);
@@ -595,7 +593,6 @@ class OrderController extends Controller
             $secretKey = config('services.paystack.secret_key');
             $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
 
-            // Verify transaction with Paystack
             $response = Http::withToken($secretKey)
                 ->get("{$baseUrl}/transaction/verify/{$reference}");
 
@@ -605,20 +602,16 @@ class OrderController extends Controller
                     'status'    => $response->status(),
                     'body'      => $response->body(),
                 ]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to verify transaction',
-                ], 502);
+                return response()->json(['success' => false, 'message' => 'Failed to verify transaction'], 502);
             }
 
             $data = $response->json();
+
             if (! isset($data['status']) || $data['status'] !== true) {
                 \Log::warning('Paystack callback verification unsuccessful', [
                     'reference' => $reference,
                     'response'  => $data,
                 ]);
-
                 return response()->json([
                     'success'  => false,
                     'message'  => 'Transaction verification failed',
@@ -627,23 +620,18 @@ class OrderController extends Controller
             }
 
             $tx    = $data['data'] ?? null;
-            $order = Order::where('id', str_replace(['ORDER-', '-', time()], '', $reference))->first();
+            $order = Order::where('paystack_reference', $reference)->first();
 
             if (! $order) {
                 \Log::error('Order not found for Paystack reference', ['reference' => $reference]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Order not found',
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Order not found'], 404);
             }
 
-            // Update order if transaction successful
             if ($tx['status'] === 'success') {
                 $order->update([
                     'payment_status'    => 'paid',
                     'status'            => 'completed',
                     'payment_method'    => 'paystack',
-                    // Optional: store reference
                     'payment_reference' => $reference,
                 ]);
 
