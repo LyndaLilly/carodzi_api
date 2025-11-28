@@ -373,7 +373,7 @@ class ProductUploadController extends Controller
 
     public function getAllProductsForBuyers()
     {
-        $products = ProductUpload::with(['images', 'seller.subcategory'])->latest()->get();
+        $products = ProductUpload::with(['images', 'review', 'seller.subcategory'])->latest()->get();
 
         $products->transform(function ($product) {
             $seller = $product->seller;
@@ -382,11 +382,13 @@ class ProductUploadController extends Controller
             && $seller->subcategory
             && $seller->subcategory->auto_verify == 1;
 
-            // ✅ Add dynamic field
-            $product->is_verified = ($seller && $seller->status == 1 && $requiresVerification);
+            $product->is_verified    = ($seller && $seller->status == 1 && $requiresVerification);
+            $product->average_rating = $product->reviews->where('is_visible', true)->avg('rating') ?? 0;
+            $product->review_count   = $product->reviews->where('is_visible', true)->count();
 
             return $product;
         });
+
 
         return response()->json([
             'success'  => true,

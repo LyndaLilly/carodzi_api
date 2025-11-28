@@ -10,28 +10,26 @@ class ProductUpload extends Model
 
     protected $table = 'productupload';
 
- protected $fillable = [
-    'name',
-    'seller_id',
-    'category_id',
-    'subcategory_id',
-    'brand',
-    'model',
-    'condition',
-    'internal_storage',
-    'ram',
-    'location',
-    'price',
-    'description',
-    'currency',
-    'is_active',
-    'specialization',
-    'availability',
-    'rate',
-    'views', // ✅ added
-];
-
-
+    protected $fillable = [
+        'name',
+        'seller_id',
+        'category_id',
+        'subcategory_id',
+        'brand',
+        'model',
+        'condition',
+        'internal_storage',
+        'ram',
+        'location',
+        'price',
+        'description',
+        'currency',
+        'is_active',
+        'specialization',
+        'availability',
+        'rate',
+        'views', // ✅ added
+    ];
 
     // Automatically include in JSON
     protected $appends = ['is_professional'];
