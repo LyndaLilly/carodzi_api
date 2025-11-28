@@ -373,7 +373,7 @@ class ProductUploadController extends Controller
 
     public function getAllProductsForBuyers()
     {
-        $products = ProductUpload::with(['images', 'review', 'seller.subcategory'])->latest()->get();
+        $products = ProductUpload::with(['images', 'reviews', 'seller.subcategory'])->latest()->get();
 
         $products->transform(function ($product) {
             $seller = $product->seller;
