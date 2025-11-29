@@ -163,12 +163,14 @@ class PublicSellerController extends Controller
             $seller->is_verified = ($seller->status == 1 && $autoVerify);
 
             return [
-                'id'          => $seller->id,
-                'firstname'   => $seller->firstname,
-                'lastname'    => $seller->lastname,
-                'subcategory' => optional($seller->subcategory)->name,
-                'category'    => optional(optional($seller->subcategory)->category)->name,
-                'is_verified' => $seller->is_verified,
+                'id'                  => $seller->id,
+                'firstname'           => $seller->firstname,
+                'lastname'            => $seller->lastname,
+                'subcategory'         => optional($seller->subcategory)->name,
+                'category'            => optional(optional($seller->subcategory)->category)->name,
+                'is_verified'         => $seller->is_verified,
+                'profile'             => $seller->profile,
+                'professionalProfile' => $seller->professionalProfile,
             ];
         });
 
