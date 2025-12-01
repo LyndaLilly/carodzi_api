@@ -177,49 +177,44 @@ class PublicSellerController extends Controller
         return response()->json(['results' => $results]);
     }
 
-   
-
+ 
    public function mostViewedSellers()
-{
-    try {
-        // 🔹 Fetch all sellers (normal and professional) with views >= 5
-        $sellers = Seller::with([
-            'profile',
-            'professionalProfile',
-            'products.images',
-            'subcategory',
-        ])
-        ->where('profile_updated', 1)
-        ->where('views', '>=', 5)
-        ->orderBy('views', 'DESC')
-        ->take(40) // fetch enough
-        ->get();
+    {
+        try {
+            $sellers = Seller::with([
+                'profile',
+                'professionalProfile',
+                'products.images',
+                'subcategory',
+            ])
+                ->where('profile_updated', 1)
+                ->where('views', '>=', 5)
+                ->get();
 
-        // 🔹 Compute is_verified and keep all profile data
-        $sellers->transform(function ($seller) {
-            $autoVerify = optional($seller->subcategory)->auto_verify == 1;
-            $seller->is_verified = ($seller->status == 1 && $autoVerify);
-            $seller->is_professional = ($seller->is_professional == 1);
-            return $seller;
-        });
+         
+            $sellers->transform(function ($seller) {
+                $autoVerify              = $seller->subcategory && $seller->subcategory->auto_verify == 1;
 
-        return response()->json([
-            'success' => true,
-            'sellers' => $sellers, // single array of all sellers
-        ]);
+                 $seller->is_verified = ($autoVerify && $seller->status == 1);
+                return $seller;
+            });
 
-    } catch (\Throwable $e) {
-        \Log::error('❌ Error fetching most viewed sellers', [
-            'message' => $e->getMessage(),
-            'line' => $e->getLine(),
-        ]);
+            return response()->json([
+                'success' => true,
+                'sellers' => $sellers, 
+            ]);
 
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred',
-        ], 500);
+        } catch (\Throwable $e) {
+            \Log::error('❌ Error fetching most viewed sellers', [
+                'message' => $e->getMessage(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred',
+            ], 500);
+        }
     }
-}
-
 
 }
