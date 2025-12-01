@@ -96,7 +96,7 @@ Route::get('/products/most-viewed', [ProductUploadController::class, 'getMostVie
 Route::get('/services/most-viewed', [ProductUploadController::class, 'getMostViewedServices']);
 Route::get('/most-viewed', [ProductUploadController::class, 'getMostViewedAll']);
 
-Route::get('/most-viewed-services', [PublicSellerController::class, 'mostViewedServices']);
+// Route::get('/most-viewed-services', [PublicSellerController::class, 'mostViewedServices']);
 Route::get('/most-viewed-sellers', [PublicSellerController::class, 'mostViewedSellers']);
 
 Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProductView']);
