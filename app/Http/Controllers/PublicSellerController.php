@@ -186,6 +186,7 @@ class PublicSellerController extends Controller
             'subcategory',
         ])
             ->where('profile_updated', 1)
+            ->where('views', '>=', 5)
             ->whereHas('subcategory.category', function ($q) {
                 $q->where('name', 'service');
             })
@@ -214,6 +215,7 @@ class PublicSellerController extends Controller
             'subcategory',
         ])
             ->where('profile_updated', 1)
+            ->where('views', '>=', 5) 
             ->whereHas('subcategory.category', function ($q) {
                 $q->where('name', '!=', 'service');
             })
@@ -221,7 +223,6 @@ class PublicSellerController extends Controller
             ->take(20)
             ->get();
 
-        // Add computed verification
         $sellers->transform(function ($seller) {
             $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
             $seller->is_verified = ($seller->status == 1 && $autoVerify);
