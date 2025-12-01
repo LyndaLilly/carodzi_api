@@ -177,4 +177,61 @@ class PublicSellerController extends Controller
         return response()->json(['results' => $results]);
     }
 
+    public function mostViewedServices()
+    {
+        $sellers = Seller::with([
+            'profile',
+            'professionalProfile',
+            'products.images',
+            'subcategory',
+        ])
+            ->where('profile_updated', 1)
+            ->whereHas('subcategory.category', function ($q) {
+                $q->where('name', 'service');
+            })
+            ->orderBy('views', 'DESC')
+            ->take(20)
+            ->get();
+
+        $sellers->transform(function ($seller) {
+            $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
+            $seller->is_verified = ($seller->status == 1 && $autoVerify);
+            return $seller;
+        });
+
+        return response()->json([
+            'success' => true,
+            'sellers' => $sellers,
+        ]);
+    }
+
+    public function mostViewedSellers()
+    {
+        $sellers = Seller::with([
+            'profile',
+            'professionalProfile',
+            'products.images',
+            'subcategory',
+        ])
+            ->where('profile_updated', 1)
+            ->whereHas('subcategory.category', function ($q) {
+                $q->where('name', '!=', 'service');
+            })
+            ->orderBy('views', 'DESC')
+            ->take(20)
+            ->get();
+
+        // Add computed verification
+        $sellers->transform(function ($seller) {
+            $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
+            $seller->is_verified = ($seller->status == 1 && $autoVerify);
+            return $seller;
+        });
+
+        return response()->json([
+            'success' => true,
+            'sellers' => $sellers,
+        ]);
+    }
+
 }
