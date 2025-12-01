@@ -177,111 +177,49 @@ class PublicSellerController extends Controller
         return response()->json(['results' => $results]);
     }
 
-    // public function mostViewedServices()
-    // {
-    //     $sellers = Seller::with([
-    //         'profile',
-    //         'professionalProfile',
-    //         'products.images',
-    //         'subcategory',
-    //     ])
-    //         ->where('profile_updated', 1)
-    //         ->where('views', '>=', 5)
-    //         ->whereHas('subcategory.category', function ($q) {
-    //             $q->where('name', 'service');
-    //         })
-    //         ->orderBy('views', 'DESC')
-    //         ->take(20)
-    //         ->get();
+   
 
-    //     $sellers->transform(function ($seller) {
-    //         $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
-    //         $seller->is_verified = ($seller->status == 1 && $autoVerify);
-    //         return $seller;
-    //     });
+   public function mostViewedSellers()
+{
+    try {
+        // 🔹 Fetch all sellers (normal and professional) with views >= 5
+        $sellers = Seller::with([
+            'profile',
+            'professionalProfile',
+            'products.images',
+            'subcategory',
+        ])
+        ->where('profile_updated', 1)
+        ->where('views', '>=', 5)
+        ->orderBy('views', 'DESC')
+        ->take(40) // fetch enough
+        ->get();
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'sellers' => $sellers,
-    //     ]);
-    // }
+        // 🔹 Compute is_verified and keep all profile data
+        $sellers->transform(function ($seller) {
+            $autoVerify = optional($seller->subcategory)->auto_verify == 1;
+            $seller->is_verified = ($seller->status == 1 && $autoVerify);
+            $seller->is_professional = ($seller->is_professional == 1);
+            return $seller;
+        });
 
-    // public function mostViewedSellers()
-    // {
-    //     $sellers = Seller::with([
-    //         'profile',
-    //         'professionalProfile',
-    //         'products.images',
-    //         'subcategory',
-    //     ])
-    //         ->where('profile_updated', 1)
-    //         ->where('views', '>=', 5)
-    //         ->whereHas('subcategory.category', function ($q) {
-    //             $q->where('name', '!=', 'service');
-    //         })
-    //         ->orderBy('views', 'DESC')
-    //         ->take(20)
-    //         ->get();
+        return response()->json([
+            'success' => true,
+            'sellers' => $sellers, // single array of all sellers
+        ]);
 
-    //     $sellers->transform(function ($seller) {
-    //         $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
-    //         $seller->is_verified = ($seller->status == 1 && $autoVerify);
-    //         return $seller;
-    //     });
+    } catch (\Throwable $e) {
+        \Log::error('❌ Error fetching most viewed sellers', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+        ]);
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'sellers' => $sellers,
-    //     ]);
-    // }
-
-    public function mostViewedSellers()
-    {
-        try {
-            // 🔹 Fetch all sellers (normal and professional) with views >= 5
-            $sellers = Seller::with([
-                'profile',
-                'professionalProfile',
-                'products.images',
-                'subcategory',
-            ])
-                ->where('profile_updated', 1)
-                ->where('views', '>=', 5)
-                ->orderBy('views', 'DESC')
-                ->take(40) // fetch enough so we can split
-                ->get();
-
-            // 🔹 Compute is_verified and tag is_professional
-            $sellers->transform(function ($seller) {
-                $autoVerify              = optional($seller->subcategory)->auto_verify == 1;
-                $seller->is_verified     = ($seller->status == 1 && $autoVerify);
-                $seller->is_professional = ($seller->is_professional == 1);
-                return $seller;
-            });
-
-            // 🔹 Split into normal sellers vs professional services
-            $mostViewedSellers  = $sellers->where('is_professional', false)->take(20)->values();
-            $mostViewedServices = $sellers->where('is_professional', true)->take(20)->values();
-
-            return response()->json([
-                'success'     => true,
-                'most_viewed' => [
-                    'sellers'  => $mostViewedSellers,
-                    'services' => $mostViewedServices,
-                ],
-            ]);
-
-        } catch (\Throwable $e) {
-            \Log::error('❌ Error fetching unified most viewed list', [
-                'message' => $e->getMessage(),
-                'line'    => $e->getLine(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred',
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred',
+        ], 500);
     }
+}
+
 
 }
