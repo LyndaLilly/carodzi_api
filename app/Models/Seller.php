@@ -4,6 +4,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\DatabaseNotification;
+
 use Laravel\Sanctum\HasApiTokens;
 
 class Seller extends Authenticatable
@@ -99,5 +101,9 @@ class Seller extends Authenticatable
         return $this->hasMany(\App\Models\SellerProfileView::class, 'seller_id');
     }
 
+       public function notifications()
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')->orderBy('created_at', 'desc');
+    }
 
 }
