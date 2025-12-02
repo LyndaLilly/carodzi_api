@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 class WishController extends Controller
 {
-  
+
     private function getImageUrl($path)
     {
         if (! $path) {
@@ -18,31 +18,32 @@ class WishController extends Controller
             return $path;
         }
 
-        return asset('public/uploads/' . $path); 
+        return asset('public/uploads/' . $path);
     }
 
-  
     private function transformWishItem($wish)
     {
-        $product = $wish->product;
-         $seller  = $product->seller;
+        $product = $cart->product;
+        $seller  = $product->seller;
+        $profile = $seller?->profile;
 
         $image = $product->images->first()?->image_path;
         $image = $this->getImageUrl($image);
 
         return [
-            'wish_id'         => $wish->id,
+            'cart_id'         => $cart->id,
             'product_id'      => $product->id,
             'name'            => $product->name,
             'price'           => $product->price,
-            'quantity'        => $wish->quantity,
-            'total'           => $product->price * $wish->quantity,
+            'quantity'        => $cart->quantity,
+            'total'           => $product->price * $cart->quantity,
+            'location'        => $product->location,
             'image'           => $image,
             'seller_id'       => $seller?->id,
-            'seller_name'     => $seller?->business_name,
+            'seller_name'     => $profile?->business_name,
             'seller_email'    => $seller?->email,
-            'seller_phone'    => $seller?->mobile_number,
-            'seller_whatsapp' => $seller?->whatsapp_phone_link,
+            'seller_phone'    => $profile?->mobile_number,
+            'seller_whatsapp' => $profile?->whatsapp_phone_link,
         ];
     }
 
