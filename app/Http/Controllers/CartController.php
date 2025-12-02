@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
- 
+
     private function getImageUrl($path)
     {
         if (! $path) {
@@ -25,6 +25,7 @@ class CartController extends Controller
     {
         $product = $cart->product;
         $seller  = $product->seller;
+        $profile = $seller?->profile;
 
         $image = $product->images->first()?->image_path;
         $image = $this->getImageUrl($image);
@@ -39,10 +40,10 @@ class CartController extends Controller
             'location'        => $product->location,
             'image'           => $image,
             'seller_id'       => $seller?->id,
-            'seller_name'     => $seller?->business_name,
+            'seller_name'     => $profile?->business_name,
             'seller_email'    => $seller?->email,
-            'seller_phone'    => $seller?->mobile_number,
-            'seller_whatsapp' => $seller?->whatsapp_phone_link,
+            'seller_phone'    => $profile?->mobile_number,
+            'seller_whatsapp' => $profile?->whatsapp_phone_link,
         ];
     }
 
