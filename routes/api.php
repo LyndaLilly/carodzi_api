@@ -118,6 +118,9 @@ Route::middleware('auth:sanctum')->get('/seller/notifications', [SellerNotificat
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seller/notifications/{id}/read', [SellerNotificationController::class, 'markAsRead']);
     Route::post('/seller/notifications/read-all', [SellerNotificationController::class, 'markAllAsRead']);
+
+    Route::delete('seller/notifications/{id}', [SellerNotificationController::class, 'delete']);
+    Route::delete('seller/notifications/delete-all', [SellerNotificationController::class, 'deleteAll']);
 });
 
 // 🟢 Product Reviews
@@ -170,15 +173,13 @@ Route::middleware('auth:buyer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
-      Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
+    Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
 });
 
 Route::post('/order/paystack/init', [OrderController::class, 'paystackInit'])->middleware('auth:sanctum');
 Route::get('/order/paystack/callback', [OrderController::class, 'orderPaystackCallback']);
 
-
 Route::middleware('auth:sanctum')->get('/buyer/orders/{id}', [OrderController::class, 'buyerSingleOrder']);
-
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{order}/bitcoin-proof', [OrderController::class, 'uploadBitcoinProof']);
@@ -200,7 +201,6 @@ Route::get('/buyer/{buyerId}/inquiries', [DirectInquiryController::class, 'buyer
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/seller/inquiries/update-status/{id}', [DirectInquiryController::class, 'updateStatus']);
 });
-
 
 //Admins Routes
 
