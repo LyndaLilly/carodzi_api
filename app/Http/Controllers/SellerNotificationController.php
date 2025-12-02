@@ -109,7 +109,6 @@ class SellerNotificationController extends Controller
         }
     }
 
- 
     public function deleteAll(Request $request)
     {
         $seller = $request->user('sanctum');
@@ -119,12 +118,20 @@ class SellerNotificationController extends Controller
         }
 
         try {
-            $count = $seller->notifications()->count();
-            $seller->notifications()->delete();
+            $notifications = $seller->notifications()->get();
+            $count         = $notifications->count();
+
+            if ($count > 0) {
+                // Loop and delete each notification
+                $notifications->each->delete();
+            }
 
             Log::info("Deleted {$count} notifications for seller ID {$seller->id}");
 
-            return response()->json(['message' => 'All notifications deleted', 'deleted_count' => $count]);
+            return response()->json([
+                'message'       => 'All notifications deleted',
+                'deleted_count' => $count,
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to delete all notifications: " . $e->getMessage());
             return response()->json(['error' => 'Failed to delete notifications'], 500);
