@@ -35,6 +35,7 @@ class CartController extends Controller
             'product_id'      => $product->id,
             'name'            => $product->name,
             'price'           => $product->price,
+            'currency'        => $product->currency,
             'quantity'        => $cart->quantity,
             'total'           => $product->price * $cart->quantity,
             'location'        => $product->location,
