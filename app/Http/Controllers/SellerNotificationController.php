@@ -64,7 +64,6 @@ class SellerNotificationController extends Controller
         }
     }
 
-
     public function markAllAsRead(Request $request)
     {
         $seller = $request->user('sanctum');
@@ -84,42 +83,52 @@ class SellerNotificationController extends Controller
     }
 
     public function delete(Request $request, $id)
-{
-    $seller = $request->user('sanctum');
-    if (! $seller) {
-        return response()->json(['error' => 'Unauthenticated'], 401);
-    }
+    {
+        $seller = $request->user('sanctum');
 
-    try {
-        $notification = $seller->notifications()->where('id', $id)->first();
-
-        if (! $notification) {
-            return response()->json(['error' => 'Notification not found'], 404);
+        if (! $seller) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        $notification->delete();
+        try {
+            // Ensure $id is treated as a string (UUID)
+            $notification = $seller->notifications()->where('id', $id)->first();
 
-        return response()->json(['message' => 'Notification deleted']);
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Failed to delete notification'], 500);
+            if (! $notification) {
+                return response()->json(['error' => 'Notification not found'], 404);
+            }
+
+            $notification->delete();
+
+            Log::info("Notification {$id} deleted for seller ID {$seller->id}");
+
+            return response()->json(['message' => 'Notification deleted']);
+        } catch (\Exception $e) {
+            Log::error("Failed to delete notification {$id}: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete notification'], 500);
+        }
     }
-}
 
-public function deleteAll(Request $request)
-{
-    $seller = $request->user('sanctum');
-    if (! $seller) {
-        return response()->json(['error' => 'Unauthenticated'], 401);
+ 
+    public function deleteAll(Request $request)
+    {
+        $seller = $request->user('sanctum');
+
+        if (! $seller) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        try {
+            $count = $seller->notifications()->count();
+            $seller->notifications()->delete();
+
+            Log::info("Deleted {$count} notifications for seller ID {$seller->id}");
+
+            return response()->json(['message' => 'All notifications deleted', 'deleted_count' => $count]);
+        } catch (\Exception $e) {
+            Log::error("Failed to delete all notifications: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete notifications'], 500);
+        }
     }
-
-    try {
-        $seller->notifications()->delete(); // delete all notifications
-
-        return response()->json(['message' => 'All notifications deleted']);
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Failed to delete notifications'], 500);
-    }
-}
-
 
 }
