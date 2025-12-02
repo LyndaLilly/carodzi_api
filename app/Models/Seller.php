@@ -99,9 +99,5 @@ class Seller extends Authenticatable
         return $this->hasMany(\App\Models\SellerProfileView::class, 'seller_id');
     }
 
-       public function notifications()
-    {
-        return $this->morphMany(DatabaseNotification::class, 'notifiable')->orderBy('created_at', 'desc');
-    }
 
 }
