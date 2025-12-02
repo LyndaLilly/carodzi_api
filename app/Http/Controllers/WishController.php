@@ -23,20 +23,19 @@ class WishController extends Controller
 
     private function transformWishItem($wish)
     {
-        $product = $cart->product;
+        $product = $wish->product;
         $seller  = $product->seller;
         $profile = $seller?->profile;
-
-        $image = $product->images->first()?->image_path;
-        $image = $this->getImageUrl($image);
+        $image   = $product->images->first()?->image_path;
+        $image   = $this->getImageUrl($image);
 
         return [
-            'cart_id'         => $cart->id,
+            'wish_id'         => $wish->id,
             'product_id'      => $product->id,
             'name'            => $product->name,
             'price'           => $product->price,
-            'quantity'        => $cart->quantity,
-            'total'           => $product->price * $cart->quantity,
+            'quantity'        => $wish->quantity,
+            'total'           => $product->price * $wish->quantity,
             'location'        => $product->location,
             'image'           => $image,
             'seller_id'       => $seller?->id,
