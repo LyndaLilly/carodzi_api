@@ -35,6 +35,7 @@ class WishController extends Controller
             'name'            => $product->name,
             'price'           => $product->price,
             'currency'        => $product->currency,
+            'description'     => $product->description,
             'quantity'        => $wish->quantity,
             'total'           => $product->price * $wish->quantity,
             'location'        => $product->location,
