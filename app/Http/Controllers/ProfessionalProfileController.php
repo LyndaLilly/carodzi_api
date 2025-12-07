@@ -31,8 +31,7 @@ class ProfessionalProfileController extends Controller
         }
 
         $filename = time() . '_' . uniqid() . '.webp';
-        $image = Image::make($file->getRealPath())->orientate();
-
+        $image    = Image::make($file->getRealPath())->orientate();
 
         $maxWidth  = 1500;
         $maxHeight = 1500;
@@ -45,6 +44,15 @@ class ProfessionalProfileController extends Controller
         $image->encode('webp', 80);
 
         $image->save("{$uploadDir}/{$filename}");
+
+        $finalPath = "{$uploadDir}/{$filename}";
+
+
+        \Log::info("Image Compressed:", [
+            "original_size_kb" => round($file->getSize() / 1024, 2),
+            "new_size_kb"      => round(filesize($finalPath) / 1024, 2),
+            "saved_as"         => $filename,
+        ]);
 
         return "{$subfolder}/{$filename}";
     }
