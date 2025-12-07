@@ -6,7 +6,8 @@ use App\Models\Seller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Facades\Image;
+
 
 
 class ProfessionalProfileController extends Controller
