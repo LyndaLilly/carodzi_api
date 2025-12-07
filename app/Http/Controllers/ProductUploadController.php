@@ -9,6 +9,36 @@ use Illuminate\Validation\ValidationException;
 
 class ProductUploadController extends Controller
 {
+
+    use Intervention\Image\Facades\Image;
+
+    protected function compressAndSaveImage($file, $subfolder, $maxWidth = 1080, $quality = 80)
+    {
+
+        $uploadDir = public_path("uploads/{$subfolder}");
+        if (! file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        $filename = time() . '_' . uniqid() . '.webp';
+        $img      = Image::make($file->getRealPath())
+            ->orientate()
+            ->resize($maxWidth, null, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            })
+            ->encode('webp', $quality);
+
+        $img->save($uploadDir . '/' . $filename);
+
+        \Log::info("Image Compressed:", [
+            'original_size_kb' => round($file->getSize() / 1024, 2),
+            'new_size_kb'      => round(filesize($uploadDir . '/' . $filename) / 1024, 2),
+            'saved_as'         => $filename,
+        ]);
+
+        return "{$subfolder}/{$filename}";
+    }
+
     public function storeProduct(Request $request)
     {
         try {
@@ -54,19 +84,10 @@ class ProductUploadController extends Controller
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $subfolder = 'products';
-                    $uploadDir = public_path("uploads/{$subfolder}");
-
-                    if (! file_exists($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-
-                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                    $image->move($uploadDir, $filename);
-
+                    $path = $this->compressAndSaveImage($image, 'products');
                     ProductUploadImage::create([
                         'productupload_id' => $product->id,
-                        'image_path'       => "{$subfolder}/{$filename}",
+                        'image_path'       => $path,
                     ]);
                 }
             }
@@ -153,22 +174,12 @@ class ProductUploadController extends Controller
                 ], 422);
             }
 
-            // 🖼 Add new images
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $subfolder = 'products';
-                    $uploadDir = public_path("uploads/{$subfolder}");
-
-                    if (! file_exists($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-
-                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                    $image->move($uploadDir, $filename);
-
+                    $path = $this->compressAndSaveImage($image, 'products');
                     ProductUploadImage::create([
                         'productupload_id' => $product->id,
-                        'image_path'       => "{$subfolder}/{$filename}",
+                        'image_path'       => $path,
                     ]);
                 }
             }
@@ -388,7 +399,6 @@ class ProductUploadController extends Controller
 
             return $product;
         });
-
 
         return response()->json([
             'success'  => true,

@@ -6,6 +6,7 @@ use App\Models\OtherProfile;
 use App\Models\Seller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Intervention\Image\Facades\Image;
 
 class OtherProfileController extends Controller
 {
@@ -20,6 +21,39 @@ class OtherProfileController extends Controller
 
         $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
         $file->move($uploadDir, $filename);
+
+        return "{$subfolder}/{$filename}";
+    }
+
+    protected function uploadAndCompressImage($file, $subfolder)
+    {
+        $uploadDir = public_path("uploads/{$subfolder}");
+        if (! file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $filename = time() . '_' . uniqid() . '.webp';
+        $image    = Image::make($file->getRealPath())->orientate();
+
+        $maxWidth  = 1500;
+        $maxHeight = 1500;
+
+        $image->resize($maxWidth, $maxHeight, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        });
+
+        $image->encode('webp', 80);
+
+        $image->save("{$uploadDir}/{$filename}");
+
+        $finalPath = "{$uploadDir}/{$filename}";
+
+        \Log::info("Image Compressed:", [
+            "original_size_kb" => round($file->getSize() / 1024, 2),
+            "new_size_kb"      => round(filesize($finalPath) / 1024, 2),
+            "saved_as"         => $filename,
+        ]);
 
         return "{$subfolder}/{$filename}";
     }
@@ -72,7 +106,7 @@ class OtherProfileController extends Controller
         }
 
         if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
+            $data['profile_image'] = $this->uploadAndCompressImage($request->file('profile_image'), 'profile_images');
         }
 
         $profile = OtherProfile::create($data);
@@ -112,7 +146,7 @@ class OtherProfileController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-         $validated = $validator->validated();
+        $validated = $validator->validated();
 
         if (! empty($data['date_of_birth'])) {
             $data['date_of_birth'] = $data['date_of_birth'];
@@ -129,7 +163,7 @@ class OtherProfileController extends Controller
             if ($profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
                 unlink(public_path("uploads/{$profile->profile_image}"));
             }
-            $validated['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
+            $validated['profile_image'] = $this->uploadAndCompressImage($request->file('profile_image'), 'profile_images');
         } else {
             unset($validated['profile_image']);
         }
