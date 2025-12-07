@@ -9,6 +9,8 @@
          'allowed_origins'  => [
              'https://alebaz.com',
              'https://www.alebaz.com',
+              'https://osita.com.ng',
+             'https://www.osita.com.ng',
 
          ],
 
