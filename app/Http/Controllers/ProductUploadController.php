@@ -6,11 +6,11 @@ use App\Models\ProductUploadImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Intervention\Image\Facades\Image; 
 
 class ProductUploadController extends Controller
 {
 
-    use Intervention\Image\Facades\Image;
 
     protected function compressAndSaveImage($file, $subfolder, $maxWidth = 1080, $quality = 80)
     {
