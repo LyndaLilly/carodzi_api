@@ -22,5 +22,5 @@ Schedule::call(function () {
             'expired_at' => now(),
         ]);
 
-    // Log::info("🧹 Expired {$expired} promotions at " . now());
+    Log::info("🧹 Expired {$expired} promotions at " . now());
 })->everyMinute();
