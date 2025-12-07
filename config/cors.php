@@ -2,13 +2,11 @@
 
      return [
 
-         'paths'                    => ['api/*', 'sanctum/csrf-cookie'],
+         'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-         'allowed_methods'          => ['*'],
+         'allowed_methods'   => ['*'],
 
-         'allowed_origins'          => [
-             'https://osita.com.ng',
-             'https://www.osita.com.ng',
+         'allowed_origins'  => [
              'https://alebaz.com',
              'https://www.alebaz.com',
 
