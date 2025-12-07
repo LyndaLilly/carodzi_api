@@ -1,28 +1,31 @@
  <?php
 
-return [
+     return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+         'paths'                    => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['*'],
+         'allowed_methods'          => ['*'],
 
-    'allowed_origins' => [
-        'https://osita.com.ng',
-        'https://www.osita.com.ng',
-    ],
+         'allowed_origins'          => [
+             'https://osita.com.ng',
+             'https://www.osita.com.ng',
+             'https://alebaz.com',
+             'https://www.alebaz.com',
 
-    // Allow localhost with any port
-    'allowed_origins_patterns' => [
-        '/^http:\/\/localhost(:[0-9]+)?$/',
-        '/^http:\/\/127\.0\.0\.1(:[0-9]+)?$/',
-    ],
+         ],
 
-    'allowed_headers' => ['*'],
+         // Allow localhost with any port
+         'allowed_origins_patterns' => [
+             '/^http:\/\/localhost(:[0-9]+)?$/',
+             '/^http:\/\/127\.0\.0\.1(:[0-9]+)?$/',
+         ],
 
-    'exposed_headers' => [],
+         'allowed_headers'          => ['*'],
 
-    'max_age' => 0,
+         'exposed_headers'          => [],
 
-    'supports_credentials' => true,
+         'max_age'                  => 0,
 
-];
+         'supports_credentials'     => true,
+
+ ];
