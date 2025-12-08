@@ -14,4 +14,6 @@ class SellerCategory extends Model
     {
         return $this->hasMany(SellerSubcategory::class, 'category_id');
     }
+
+
 }

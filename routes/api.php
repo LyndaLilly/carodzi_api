@@ -236,12 +236,16 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
 });
 
+
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/seller/orders', [OrderController::class, 'sellerOrders']);
 });
 
 Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCategories']);
 Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 'getSubcategoriesByCategory']);
+Route::get('/category/{id}/full', [AdminController::class, 'getCategoryWithSubcategoriesAndProducts']);
+
 
 Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/product-category', [ProductCategoryController::class, 'storeCategory']);
