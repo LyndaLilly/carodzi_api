@@ -124,7 +124,7 @@ class ProductCategoryController extends Controller
             'subcategories' => function ($query) {
                 $query->select('id', 'name', 'category_id');
             },
-            'subcategories.products',
+            'subcategories.products.images',
         ])
             ->where('id', $categoryId)
             ->first();
