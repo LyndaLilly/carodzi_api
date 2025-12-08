@@ -65,27 +65,6 @@ class AdminController extends Controller
         ]);
     }
 
-    public function getCategoryWithSubcategoriesAndProducts($categoryId)
-    {
-        $category = SellerCategory::with([
-            'subcategories' => function ($query) {
-                $query->select('id', 'name', 'category_id', 'auto_verify');
-            },
-            'subcategories.products',
-        ])
-            ->where('id', $categoryId)
-            ->first();
-
-        if (! $category) {
-            return response()->json([
-                'message' => 'Category not found',
-            ], 404);
-        }
-
-        return response()->json([
-            'category'      => $category,
-            'subcategories' => $category->subcategories,
-        ]);
-    }
+  
 
 }

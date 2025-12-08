@@ -118,4 +118,27 @@ class ProductCategoryController extends Controller
         ]);
     }
 
+    public function getCategoryWithSubcategoriesAndProducts($categoryId)
+    {
+        $category = ProductCategory::with([
+            'subcategories' => function ($query) {
+                $query->select('id', 'name', 'category_id');
+            },
+            'subcategories.products',
+        ])
+            ->where('id', $categoryId)
+            ->first();
+
+        if (! $category) {
+            return response()->json([
+                'message' => 'Category not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'category'      => $category,
+            'subcategories' => $category->subcategories,
+        ]);
+    }
+
 }

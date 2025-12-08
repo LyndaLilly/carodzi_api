@@ -1,11 +1,12 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class SellerSubcategory extends Model
 {
-    protected $table = 'sellers_subcategory';
+    protected $table = 'sellers_subcategory'; 
 
     // 👇 include auto_verify so it can be mass assigned
     protected $fillable = ['category_id', 'name', 'auto_verify'];
@@ -14,10 +15,4 @@ class SellerSubcategory extends Model
     {
         return $this->belongsTo(SellerCategory::class, 'category_id');
     }
-
-    public function products()
-    {
-        return $this->hasMany(ProductUpload::class, 'subcategory_id');
-    }
-
 }

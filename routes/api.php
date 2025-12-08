@@ -107,6 +107,8 @@ Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct'
 Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
 
+Route::get('/subcategoryfull/{id}/full', [ProductCategoryController::class, 'getCategoryWithSubcategoriesAndProducts']);
+
 Route::get('/public-sellers', [PublicSellerController::class, 'index']);     // list
 Route::get('/public-sellers/{id}', [PublicSellerController::class, 'show']); // single
 Route::get('/homepage-sellers', [PublicSellerController::class, 'homepageSellers']);
@@ -244,7 +246,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCategories']);
 Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 'getSubcategoriesByCategory']);
-Route::get('/subcategoryfull/{id}/full', [AdminController::class, 'getCategoryWithSubcategoriesAndProducts']);
+
 
 
 Route::middleware('auth:admin')->group(function () {
