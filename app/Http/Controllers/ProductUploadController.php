@@ -224,10 +224,9 @@ class ProductUploadController extends Controller
         try {
             $products = ProductUpload::with('images', 'seller')
                 ->whereHas('seller', function ($q) {
-                    $q->where('is_professional', 0); // normal sellers
+                    $q->where('is_professional', 0); 
                 })
                 ->latest()
-                ->take(8)
                 ->get();
 
             Log::info('Popular products fetched', ['count' => $products->count()]);
@@ -256,7 +255,6 @@ class ProductUploadController extends Controller
                 $q->where('is_professional', 1);
             })
             ->latest()
-            ->take(8)
             ->get();
 
         // ✅ Compute verified status for each service
