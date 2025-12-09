@@ -330,7 +330,7 @@ class ProductUploadController extends Controller
                 ->where('subcategory_id', $product->subcategory_id)
                 ->where('id', '!=', $id)
                 ->inRandomOrder()
-                ->take(6)
+                ->take(10)
                 ->get();
 
             Log::info("✅ Recommended products fetched", ['count' => $recommended->count()]);
