@@ -8,8 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Facades\Image;
 
-
-
 class ProfessionalProfileController extends Controller
 {
 
@@ -48,7 +46,6 @@ class ProfessionalProfileController extends Controller
         $image->save("{$uploadDir}/{$filename}");
 
         $finalPath = "{$uploadDir}/{$filename}";
-
 
         \Log::info("Image Compressed:", [
             "original_size_kb" => round($file->getSize() / 1024, 2),
@@ -171,7 +168,9 @@ class ProfessionalProfileController extends Controller
 
         $rules = [
             'gender'                => 'sometimes|required|in:male,female',
-            'date_of_birth'         => 'nullable|string',
+            'date_of_birth'         => $profile->date_of_birth
+                ? 'prohibited'
+                : 'nullable|string',
             'about'                 => 'sometimes|required|string|max:1000',
             'business_email'        => 'nullable|email|unique:professional_profiles,business_email,' . $profile->id,
             'mobile_number'         => 'sometimes|required|string',

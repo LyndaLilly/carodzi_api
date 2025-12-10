@@ -126,7 +126,9 @@ class OtherProfileController extends Controller
 
         $rules = [
             'gender'                => 'sometimes|required|in:male,female',
-            'date_of_birth'         => 'nullable|string',
+            'date_of_birth'         => $profile->date_of_birth
+                ? 'prohibited'
+                : 'nullable|string',
             'about'                 => 'sometimes|required|string|max:1000',
             'business_email'        => 'nullable|email|unique:other_profiles,business_email,' . $profile->id,
             'mobile_number'         => 'sometimes|required|string',
