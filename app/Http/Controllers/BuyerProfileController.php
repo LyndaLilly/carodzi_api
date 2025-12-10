@@ -90,7 +90,9 @@ class BuyerProfileController extends Controller
 
         $rules = [
             'gender'        => 'sometimes|nullable|in:male,female',
-            'date_of_birth' => 'nullable|string',
+            'date_of_birth' => $profile->date_of_birth
+                ? 'prohibited'
+                : 'nullable|string',
             'profile_image' => 'nullable|image|max:2048',
             'about'         => 'sometimes|nullable|string',
             'email'         => 'nullable|email|unique:buyer_profiles,email,' . $profile->id,
