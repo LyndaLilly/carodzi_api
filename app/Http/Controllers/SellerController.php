@@ -186,6 +186,8 @@ class SellerController extends Controller
     {
         $request->validate([
             'email' => 'required|email|exists:sellers,email',
+        ], [
+            'email.exists' => 'Email does not exist.',
         ]);
 
         $seller    = Seller::where('email', $request->email)->first();
@@ -199,18 +201,22 @@ class SellerController extends Controller
 
         try {
             Mail::to($seller->email)->send(new PasswordResetCodeMail($resetCode, $seller->firstname . ' ' . $seller->lastname));
+
+            Log::info('Reset email sent', ['email' => $seller->email]);
+
         } catch (\Exception $e) {
             \Log::error("Email failed: " . $e->getMessage());
-            $emailSent = false;
-        } catch (\Exception $e) {
-            \Log::error("Email failed: " . $e->getMessage());
-            $emailSent = false;
-        }
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Unable to send email at this time.',
+            ], 500);
+
+        } 
 
         return response()->json([
-            'status'       => 'success',
-            'message'      => 'Password reset code saved successfully.',
-            'email_status' => $emailSent ? 'sent' : 'failed',
+            'status'  => 'success',
+            'message' => 'Password reset code sent successfully.',
         ]);
     }
 
@@ -477,67 +483,6 @@ class SellerController extends Controller
                 : $seller->profile,
         ]);
     }
-
-    // public function viewSeller($id)
-    // {
-    //     try {
-    //         $seller = Seller::findOrFail($id);
-    //         $ip     = request()->ip();
-
-    //         // Prevent multiple rapid views from same IP or viewer within 1 hour
-    //         $alreadyViewed = SellerProfileView::where('seller_id', $seller->id)
-    //             ->where(function ($q) use ($ip) {
-    //                 $q->where('ip_address', $ip);
-
-    //                 if (Auth::check()) {
-    //                     $q->orWhere('viewer_id', Auth::id());
-    //                 }
-    //             })
-    //             ->where('created_at', '>', now()->subHours(1))
-    //             ->exists();
-
-    //         if (! $alreadyViewed) {
-    //             SellerProfileView::create([
-    //                 'seller_id'  => $seller->id,
-    //                 'viewer_id'  => Auth::id(),
-    //                 'ip_address' => $ip,
-    //             ]);
-
-    //             // Increment total views in sellers table
-    //             $seller->increment('views');
-    //         }
-
-    //         // Load relationships (profile, etc.)
-    //         $seller->load(['profile', 'professionalProfile', 'subcategory', 'category']);
-
-    //         // Normalize images
-    //         if ($seller->profile && $seller->profile->profile_image) {
-    //             $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
-    //         }
-
-    //         if ($seller->professionalProfile && $seller->professionalProfile->profile_image) {
-    //             $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
-    //         }
-
-    //         // ✅ Include recent profile views (last 3)
-    //         $recentViews = SellerProfileView::where('seller_id', $seller->id)
-    //             ->latest()
-    //             ->take(3)
-    //             ->get(['id', 'ip_address', 'created_at', 'viewer_id']);
-
-    //         return response()->json([
-    //             'status'       => 'success',
-    //             'message'      => 'Seller viewed successfully.',
-    //             'seller'       => $seller,
-    //             'recent_views' => $recentViews,
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status'  => 'error',
-    //             'message' => 'Seller not found.',
-    //         ], 404);
-    //     }
-    // }
 
     public function viewSeller($id)
     {

@@ -195,10 +195,6 @@ class BuyerController extends Controller
 
     public function requestPasswordReset(Request $request)
     {
-        // $request->validate([
-        //     'email' => 'required|email|exists:buyers,email',
-        // ]);
-
         $request->validate([
             'email' => 'required|email|exists:buyers,email',
         ], [
@@ -212,23 +208,24 @@ class BuyerController extends Controller
         $buyer->password_reset_sent_at = now();
         $buyer->save();
 
-        $emailSent = true;
-
         try {
-            Mail::to($buyer->email)->send(new BuyerEmailResetPasswordCode($buyer->firstname, $resetCode));
-            Log::info('Resent verification email.', ['email' => $buyer->email]);
+            Mail::to($buyer->email)
+                ->send(new BuyerEmailResetPasswordCode($buyer->firstname, $resetCode));
+
+            Log::info('Reset email sent', ['email' => $buyer->email]);
+
         } catch (\Exception $e) {
-            \Log::error("Email failed: " . $e->getMessage());
-            $emailSent = false;
-        } catch (\Exception $e) {
-            \Log::error("Email failed: " . $e->getMessage());
-            $emailSent = false;
+            Log::error("Email failed: " . $e->getMessage());
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Unable to send email at this time.',
+            ], 500);
         }
 
         return response()->json([
-            'status'       => 'success',
-            'message'      => 'Password reset code saved successfully.',
-            'email_status' => $emailSent ? 'sent' : 'failed',
+            'status'  => 'success',
+            'message' => 'Password reset code sent successfully.',
         ]);
     }
 
