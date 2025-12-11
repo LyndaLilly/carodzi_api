@@ -195,8 +195,14 @@ class BuyerController extends Controller
 
     public function requestPasswordReset(Request $request)
     {
+        // $request->validate([
+        //     'email' => 'required|email|exists:buyers,email',
+        // ]);
+
         $request->validate([
             'email' => 'required|email|exists:buyers,email',
+        ], [
+            'email.exists' => 'Email does not exist.',
         ]);
 
         $buyer     = Buyer::where('email', $request->email)->first();
@@ -275,7 +281,7 @@ class BuyerController extends Controller
             ], 404);
         }
 
-        $newResetCode = rand(100000, 999999);
+        $newResetCode                  = rand(100000, 999999);
         $buyer->password_reset_code    = $newResetCode;
         $buyer->password_reset_sent_at = now();
         $buyer->save();
@@ -320,7 +326,7 @@ class BuyerController extends Controller
         }
 
         $buyer->password                   = Hash::make($request->password);
-        $buyer->password_reset_verified_at = null; 
+        $buyer->password_reset_verified_at = null;
         $buyer->save();
 
         try {
