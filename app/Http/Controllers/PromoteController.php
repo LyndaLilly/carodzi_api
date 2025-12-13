@@ -423,6 +423,8 @@ class PromoteController extends Controller
 
             return response()->json([
                 'has_active' => (bool) $existingPromotion,
+                'plan'       => $existingPromotion?->plan,
+                'expires_at' => $existingPromotion?->end_date,
                 'message'    => $existingPromotion
                     ? 'Active promotion until ' . $existingPromotion->end_date->format('M d, Y')
                     : null,
