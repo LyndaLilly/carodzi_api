@@ -16,6 +16,7 @@ class Seller extends Authenticatable
         'firstname',
         'lastname',
         'email',
+        'phone',
         'password',
         'role',
         'views',
