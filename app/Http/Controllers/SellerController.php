@@ -24,6 +24,7 @@ class SellerController extends Controller
             'firstname' => 'required|string|max:255',
             'lastname'  => 'required|string|max:255',
             'email'     => 'required|email|unique:sellers,email',
+            'phone'     => 'nullable|string|unique:sellers,phone',
             'password'  => [
                 'required',
                 'string',
@@ -52,6 +53,7 @@ class SellerController extends Controller
             'firstname'               => $request->firstname,
             'lastname'                => $request->lastname,
             'email'                   => $request->email,
+            'phone'                   => $request->phone,
             'password'                => Hash::make($request->password),
             'role'                    => $request->role,
             'verification_code'       => $verificationCode,
@@ -212,7 +214,7 @@ class SellerController extends Controller
                 'message' => 'Unable to send email at this time.',
             ], 500);
 
-        } 
+        }
 
         return response()->json([
             'status'  => 'success',
@@ -332,24 +334,26 @@ class SellerController extends Controller
 
     public function SellerLogin(Request $request)
     {
-        Log::info('Login attempt for: ' . $request->email);
+        Log::info('Login attempt', ['login' => $request->login]);
 
-        $seller = Seller::where('email', $request->email)->first();
+        $request->validate([
+            'login'    => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $seller = Seller::where('email', $request->login)
+            ->orWhere('phone', $request->login)
+            ->first();
 
         if (! $seller) {
-            Log::warning('Seller not found');
             return response()->json([
                 'errors' => [
-                    'email' => 'Email does not exist',
+                    'login' => 'Email or phone number does not exist',
                 ],
             ], 404);
         }
 
         if (! Hash::check($request->password, $seller->password)) {
-            Log::warning('Password mismatch', [
-                'input_password' => $request->password,
-                'hashed'         => $seller->password,
-            ]);
             return response()->json([
                 'errors' => [
                     'password' => 'Incorrect password',
@@ -358,7 +362,6 @@ class SellerController extends Controller
         }
 
         if (! $seller->verified) {
-            Log::warning('Seller not verified', ['email' => $request->email]);
             return response()->json([
                 'message' => 'Please verify your email before logging in.',
             ], 403);
