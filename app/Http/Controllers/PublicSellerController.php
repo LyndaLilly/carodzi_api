@@ -20,7 +20,7 @@ class PublicSellerController extends Controller
                 'professionalProfile',
                 'products.images',
                 'subcategory',
-            ])->where('profile_updated', 1);
+            ]); // ->where('profile_updated', 1);
 
             if ($request->has('sub_category_id')) {
                 $query->where('sub_category_id', $request->sub_category_id);
@@ -72,7 +72,7 @@ class PublicSellerController extends Controller
             'products.images',
             'subcategory',
         ])
-            ->where('profile_updated', 1)
+            // ->where('profile_updated', 1)
             ->findOrFail($id);
 
         // Attach computed is_verified field
@@ -94,7 +94,7 @@ class PublicSellerController extends Controller
             'products.images',
             'subcategory',
         ])
-            ->where('profile_updated', 1)
+            // ->where('profile_updated', 1)
             ->get();
 
         // Attach computed is_verified field
@@ -121,7 +121,7 @@ class PublicSellerController extends Controller
         }
 
         $query = Seller::with(['profile', 'subcategory.category'])
-            ->where('profile_updated', 1)
+            // ->where('profile_updated', 1)
             ->where(function ($q) use ($searchTerm) {
                 $q->whereRaw('LOWER(firstname) LIKE ?', ["%{$searchTerm}%"])
                     ->orWhereRaw('LOWER(lastname) LIKE ?', ["%{$searchTerm}%"])
@@ -186,7 +186,7 @@ class PublicSellerController extends Controller
                 'products.images',
                 'subcategory',
             ])
-                ->where('profile_updated', 1)
+                // ->where('profile_updated', 1)
                 ->where('views', '>=', 5)
                 ->get();
 
