@@ -96,7 +96,7 @@ class ProfessionalProfileController extends Controller
 
         $seller = Seller::with('subcategory')->find($request->seller_id);
         if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
-            $rules['verification_number'] = 'required|string|unique:professional_profiles';
+            $rules['verification_number'] = 'nullable|string|unique:professional_profiles';
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -187,7 +187,7 @@ class ProfessionalProfileController extends Controller
 
         $seller = $request->user()->load('subcategory');
         if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
-            $rules['verification_number'] = 'sometimes|required|string|unique:professional_profiles,verification_number,' . $profile->id;
+            $rules['verification_number'] = 'nullable|string|unique:professional_profiles,verification_number,' . $profile->id;
         }
 
         $validator = Validator::make($request->all(), $rules);
