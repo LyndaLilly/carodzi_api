@@ -330,7 +330,7 @@ class ProductUploadController extends Controller
                 ->where('subcategory_id', $product->subcategory_id)
                 ->where('id', '!=', $id)
                 ->inRandomOrder()
-                ->take(10)
+            
                 ->get();
 
             Log::info("✅ Recommended products fetched", ['count' => $recommended->count()]);
@@ -486,7 +486,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 0);
                 })
                 ->orderByDesc('views')
-                ->take(10)
+               
                 ->get();
 
             return response()->json([
@@ -514,7 +514,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 1); // Professional sellers (services)
                 })
                 ->orderByDesc('views')
-                ->take(10)
+                
                 ->get();
 
             // Add computed verification status
@@ -551,7 +551,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 0);
                 })
                 ->orderByDesc('views')
-                ->take(10)
+              
                 ->get();
 
             // Fetch most viewed services (professionals)
@@ -560,7 +560,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 1);
                 })
                 ->orderByDesc('views')
-                ->take(10)
+               
                 ->get();
 
             // Compute verification flag for services
