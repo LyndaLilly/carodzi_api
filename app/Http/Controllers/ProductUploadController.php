@@ -74,7 +74,7 @@ class ProductUploadController extends Controller
                 $rules = array_merge($rules, [
                     'specialization' => 'nullable|string',
                     'availability'   => 'nullable|string',
-                    'rate'           => 'nullable|string|max:50', // ✅ changed to string
+                    'rate'           => 'nullable|string|max:50', 
                 ]);
             }
 

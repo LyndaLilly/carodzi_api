@@ -85,7 +85,7 @@ class ProfessionalProfileController extends Controller
             'state'                 => 'required|string',
             'city'                  => 'required|string',
             'business_name'         => 'required|string|max:255',
-            'experience_years'      => 'required|integer|min:0',
+            'experience_years'      => 'nullable|integer|min:0',
             'bank_name'             => 'nullable|string|max:255',
             'business_bank_name'    => 'nullable|string|max:255',
             'business_bank_account' => 'nullable|string|max:20',
