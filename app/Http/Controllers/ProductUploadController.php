@@ -52,8 +52,8 @@ class ProductUploadController extends Controller
                 'category_id'    => 'required|exists:product_categories,id',
                 'subcategory_id' => 'required|exists:product_subcategories,id',
                 'location'       => 'required|string',
-                'description'    => 'required|string',
-                'currency'       => 'required|string|max:10',
+                'description'    => 'nullable|string',
+                'currency'       => 'nullable|string|max:10',
                 'images'         => 'required|array|min:1|max:3',
                 'images.*'       => 'image|max:2048',
                 'is_active'      => 'required|boolean',
@@ -61,7 +61,7 @@ class ProductUploadController extends Controller
 
             if ($seller->is_professional == 0) {
                 $rules = array_merge($rules, [
-                    'price'            => 'required|numeric',
+                    'price'            => 'nullable|numeric',
                     'brand'            => 'nullable|string',
                     'model'            => 'nullable|string',
                     'condition'        => 'nullable|string',
@@ -73,8 +73,8 @@ class ProductUploadController extends Controller
             if ($seller->is_professional == 1) {
                 $rules = array_merge($rules, [
                     'specialization' => 'nullable|string',
-                    'availability'   => 'required|string',
-                    'rate'           => 'required|string|max:50', // ✅ changed to string
+                    'availability'   => 'nullable|string',
+                    'rate'           => 'nullable|string|max:50', // ✅ changed to string
                 ]);
             }
 
@@ -126,8 +126,8 @@ class ProductUploadController extends Controller
                 'category_id'    => 'sometimes|exists:product_categories,id',
                 'subcategory_id' => 'sometimes|exists:product_subcategories,id',
                 'location'       => 'sometimes|string',
-                'description'    => 'sometimes|string',
-                'currency'       => 'sometimes|string|max:10',
+                'description'    => 'sometimes|string|nullable',
+                'currency'       => 'sometimes|string|max:10|nullable',
                 'is_active'      => 'sometimes|boolean',
                 'images.*'       => 'image|max:2048',
                 'removed_images' => 'sometimes|array',
@@ -135,7 +135,7 @@ class ProductUploadController extends Controller
 
             if ($seller && $seller->is_professional == 0) {
                 $rules = array_merge($rules, [
-                    'price'            => 'sometimes|numeric',
+                    'price'            => 'sometimes|numeric|nullable',
                     'brand'            => 'sometimes|string|nullable',
                     'model'            => 'sometimes|string|nullable',
                     'condition'        => 'sometimes|string|nullable',
@@ -147,8 +147,8 @@ class ProductUploadController extends Controller
             if ($seller && $seller->is_professional == 1) {
                 $rules = array_merge($rules, [
                     'specialization' => 'sometimes|string|nullable',
-                    'availability'   => 'sometimes|string',
-                    'rate'           => 'sometimes|string|max:50', // ✅ updated from numeric
+                    'availability'   => 'sometimes|string|nullable',
+                    'rate'           => 'sometimes|string|max:50|nullable', 
                 ]);
             }
 
