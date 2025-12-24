@@ -104,6 +104,9 @@ Route::get('/products/{id}/view', [ProductUploadController::class, 'recordProduc
 Route::get('/products/{id}/recommended', [ProductUploadController::class, 'getRecommended']);
 Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct']);
 
+Route::get('/merchant-feed', [ProductUploadController::class, 'merchantFeed']);
+
+
 Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
 

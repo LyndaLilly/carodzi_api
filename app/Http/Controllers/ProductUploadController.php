@@ -6,11 +6,10 @@ use App\Models\ProductUploadImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use Intervention\Image\Facades\Image; 
+use Intervention\Image\Facades\Image;
 
 class ProductUploadController extends Controller
 {
-
 
     protected function compressAndSaveImage($file, $subfolder, $maxWidth = 1080, $quality = 80)
     {
@@ -74,7 +73,7 @@ class ProductUploadController extends Controller
                 $rules = array_merge($rules, [
                     'specialization' => 'nullable|string',
                     'availability'   => 'nullable|string',
-                    'rate'           => 'nullable|string|max:50', 
+                    'rate'           => 'nullable|string|max:50',
                 ]);
             }
 
@@ -148,7 +147,7 @@ class ProductUploadController extends Controller
                 $rules = array_merge($rules, [
                     'specialization' => 'sometimes|string|nullable',
                     'availability'   => 'sometimes|string|nullable',
-                    'rate'           => 'sometimes|string|max:50|nullable', 
+                    'rate'           => 'sometimes|string|max:50|nullable',
                 ]);
             }
 
@@ -224,7 +223,7 @@ class ProductUploadController extends Controller
         try {
             $products = ProductUpload::with('images', 'seller')
                 ->whereHas('seller', function ($q) {
-                    $q->where('is_professional', 0); 
+                    $q->where('is_professional', 0);
                 })
                 ->latest()
                 ->get();
@@ -330,7 +329,7 @@ class ProductUploadController extends Controller
                 ->where('subcategory_id', $product->subcategory_id)
                 ->where('id', '!=', $id)
                 ->inRandomOrder()
-            
+
                 ->get();
 
             Log::info("✅ Recommended products fetched", ['count' => $recommended->count()]);
@@ -486,7 +485,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 0);
                 })
                 ->orderByDesc('views')
-               
+
                 ->get();
 
             return response()->json([
@@ -514,7 +513,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 1); // Professional sellers (services)
                 })
                 ->orderByDesc('views')
-                
+
                 ->get();
 
             // Add computed verification status
@@ -551,7 +550,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 0);
                 })
                 ->orderByDesc('views')
-              
+
                 ->get();
 
             // Fetch most viewed services (professionals)
@@ -560,7 +559,7 @@ class ProductUploadController extends Controller
                     $q->where('is_professional', 1);
                 })
                 ->orderByDesc('views')
-               
+
                 ->get();
 
             // Compute verification flag for services
@@ -587,6 +586,32 @@ class ProductUploadController extends Controller
                 'error'   => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function merchantFeed(Request $request)
+    {
+        // ✅ Check for the secret key
+        if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
+            ->where('is_active', 1)
+            ->get();
+
+        $feed = $products->map(function ($product) {
+            return [
+                'id'          => $product->id,
+                'title'       => $product->name,
+                'description' => $product->description ?? 'No description',
+                'link'        => url("/singleproduct/{$product->id}"),
+                'image_link' => $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : null,
+                'price'        => isset($product->price) ? $product->price . ' ' . ($product->currency) : null,
+                'availability' => $product->is_active ? 'in stock' : 'out of stock',
+            ];
+        });
+
+        return response()->json($feed);
     }
 
 }
