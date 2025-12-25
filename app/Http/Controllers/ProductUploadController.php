@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Intervention\Image\Facades\Image;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductUploadController extends Controller
 {
@@ -616,55 +617,57 @@ class ProductUploadController extends Controller
         return response()->json($feed);
     }
 
-
     public function merchantFeedCsv(Request $request)
-{
-    // Check secret key
-    if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
-        return response()->json(['error' => 'Unauthorized'], 401);
+    {
+        // Check secret key
+        if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $products = ProductUpload::with(['images'])->where('is_active', 1)->get();
+
+        $response = new StreamedResponse(function () use ($products) {
+            $handle = fopen('php://output', 'w');
+
+            // CSV header
+            fputcsv($handle, [
+                'id',
+                'title',
+                'description',
+                'link',
+                'image_link',
+                'price',
+                'availability',
+                'condition',
+                'brand',
+            ]);
+
+            foreach ($products as $product) {
+                $description = $product->description ?? 'No description';
+                // Remove line breaks to prevent CSV breaking
+                $description = str_replace(["\r", "\n"], ' ', $description);
+
+                fputcsv($handle, [
+                    $product->id,
+                    $product->name,
+                    $description,
+                    url("/singleproduct/{$product->id}"),
+                    $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
+                    isset($product->price) ? number_format($product->price, 2) . ' ' . ($product->currency ?? 'NGN') : '0 NGN',
+                    $product->is_active ? 'in stock' : 'out of stock',
+                    'new',
+                    'Alebaz',
+                ]);
+            }
+
+            fclose($handle);
+        });
+
+        // Proper headers for CSV download
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="merchant_feed.csv"');
+
+        return $response;
     }
-
-    $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
-        ->where('is_active', 1)
-        ->get();
-
-    // CSV header
-    $csvHeader = [
-        'id',
-        'title',
-        'description',
-        'link',
-        'image_link',
-        'price',
-        'availability',
-        'condition',
-        'brand'
-    ];
-
-    // Open memory file
-    $fh = fopen('php://output', 'w');
-    // Set headers so browser can download
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="merchant_feed.csv"');
-    fputcsv($fh, $csvHeader);
-
-    foreach ($products as $product) {
-        fputcsv($fh, [
-            $product->id,
-            $product->name,
-            $product->description ?? 'No description',
-            url("/singleproduct/{$product->id}"),
-            $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
-            isset($product->price) ? $product->price . ' ' . $product->currency : '',
-            $product->is_active ? 'in stock' : 'out of stock',
-            'new', // or $product->condition if you store it
-            'Alebaz' // or $product->brand if stored
-        ]);
-    }
-
-    fclose($fh);
-    exit;
-}
-
 
 }
