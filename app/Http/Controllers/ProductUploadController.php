@@ -617,57 +617,65 @@ class ProductUploadController extends Controller
         return response()->json($feed);
     }
 
-    public function merchantFeedCsv(Request $request)
-    {
-        // Check secret key
-        if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+
+
+public function merchantFeedCsv(Request $request)
+{
+    // Check secret key
+    if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    // Only include products that are active and have a valid price > 0
+    $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
+        ->where('is_active', 1)
+        ->whereNotNull('price')
+        ->where('price', '>', 0)
+        ->get();
+
+    $response = new StreamedResponse(function () use ($products) {
+        $handle = fopen('php://output', 'w');
+
+        // Add UTF-8 BOM so Google detects UTF-8 properly
+        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        // CSV header
+        fputcsv($handle, [
+            'id', 'title', 'description', 'link', 'image_link', 'price', 'availability', 'condition', 'brand'
+        ]);
+
+        foreach ($products as $product) {
+            $description = $product->description ?? 'No description';
+            $description = str_replace(["\r", "\n"], ' ', $description);
+
+            $title = $product->name;
+            $title = str_replace(["\r", "\n"], ' ', $title);
+
+            // Ensure valid price format
+            $price = number_format($product->price, 2, '.', '') . ' ' . ($product->currency ?? 'NGN');
+
+            fputcsv($handle, [
+                $product->id,
+                $title,
+                $description,
+                url("/singleproduct/{$product->id}"),
+                $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
+                $price,
+                $product->is_active ? 'in stock' : 'out of stock',
+                'new',
+                'Alebaz'
+            ]);
         }
 
-        $products = ProductUpload::with(['images'])->where('is_active', 1)->get();
+        fclose($handle);
+    });
 
-        $response = new StreamedResponse(function () use ($products) {
-            $handle = fopen('php://output', 'w');
+    $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+    $response->headers->set('Content-Disposition', 'attachment; filename="merchant_feed.csv"');
 
-            // CSV header
-            fputcsv($handle, [
-                'id',
-                'title',
-                'description',
-                'link',
-                'image_link',
-                'price',
-                'availability',
-                'condition',
-                'brand',
-            ]);
+    return $response;
+}
 
-            foreach ($products as $product) {
-                $description = $product->description ?? 'No description';
-                // Remove line breaks to prevent CSV breaking
-                $description = str_replace(["\r", "\n"], ' ', $description);
 
-                fputcsv($handle, [
-                    $product->id,
-                    $product->name,
-                    $description,
-                    url("/singleproduct/{$product->id}"),
-                    $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
-                    isset($product->price) ? number_format($product->price, 2) . ' ' . ($product->currency ?? 'NGN') : '0 NGN',
-                    $product->is_active ? 'in stock' : 'out of stock',
-                    'new',
-                    'Alebaz',
-                ]);
-            }
-
-            fclose($handle);
-        });
-
-        // Proper headers for CSV download
-        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="merchant_feed.csv"');
-
-        return $response;
-    }
 
 }
