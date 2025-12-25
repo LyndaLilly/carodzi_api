@@ -590,7 +590,7 @@ class ProductUploadController extends Controller
 
     public function merchantFeed(Request $request)
     {
-        // ✅ Check for the secret key
+        // Check secret key
         if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -601,13 +601,15 @@ class ProductUploadController extends Controller
 
         $feed = $products->map(function ($product) {
             return [
-                'id'          => $product->id,
+                'id'          => (string) $product->id,
                 'title'       => $product->name,
-                'description' => $product->description ?? 'No description',
+                'description' => strip_tags($product->description ?? 'No description'),
                 'link'        => url("/singleproduct/{$product->id}"),
                 'image_link' => $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : null,
-                'price'        => isset($product->price) ? $product->price . ' ' . ($product->currency) : null,
+                'price'        => isset($product->price) ? number_format($product->price, 2) . ' ' . ($product->currency ?? 'NGN') : '0 NGN',
                 'availability' => $product->is_active ? 'in stock' : 'out of stock',
+                'condition'    => 'new',
+                'brand'        => 'Alebaz',
             ];
         });
 
