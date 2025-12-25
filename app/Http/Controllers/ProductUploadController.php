@@ -621,25 +621,18 @@ class ProductUploadController extends Controller
 
 public function merchantFeedCsv(Request $request)
 {
-    // Check secret key
     if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
         return response()->json(['error' => 'Unauthorized'], 401);
     }
 
-    // Only include products that are active and have a valid price > 0
     $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
         ->where('is_active', 1)
-        ->whereNotNull('price')
-        ->where('price', '>', 0)
         ->get();
 
     $response = new StreamedResponse(function () use ($products) {
         $handle = fopen('php://output', 'w');
 
-        // Add UTF-8 BOM so Google detects UTF-8 properly
-        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        // CSV header
+        // ✅ CSV header
         fputcsv($handle, [
             'id', 'title', 'description', 'link', 'image_link', 'price', 'availability', 'condition', 'brand'
         ]);
@@ -651,16 +644,13 @@ public function merchantFeedCsv(Request $request)
             $title = $product->name;
             $title = str_replace(["\r", "\n"], ' ', $title);
 
-            // Ensure valid price format
-            $price = number_format($product->price, 2, '.', '') . ' ' . ($product->currency ?? 'NGN');
-
             fputcsv($handle, [
                 $product->id,
                 $title,
                 $description,
                 url("/singleproduct/{$product->id}"),
                 $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
-                $price,
+                isset($product->price) ? number_format($product->price, 2) . ' ' . ($product->currency ?? 'NGN') : '0 NGN',
                 $product->is_active ? 'in stock' : 'out of stock',
                 'new',
                 'Alebaz'
@@ -670,11 +660,13 @@ public function merchantFeedCsv(Request $request)
         fclose($handle);
     });
 
-    $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+    // ✅ Add proper UTF-8 content type so Excel detects it
+    $response->headers->set('Content-Type', 'application/csv; charset=UTF-8');
     $response->headers->set('Content-Disposition', 'attachment; filename="merchant_feed.csv"');
 
     return $response;
 }
+
 
 
 
