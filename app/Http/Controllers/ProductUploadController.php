@@ -616,4 +616,55 @@ class ProductUploadController extends Controller
         return response()->json($feed);
     }
 
+
+    public function merchantFeedCsv(Request $request)
+{
+    // Check secret key
+    if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
+        ->where('is_active', 1)
+        ->get();
+
+    // CSV header
+    $csvHeader = [
+        'id',
+        'title',
+        'description',
+        'link',
+        'image_link',
+        'price',
+        'availability',
+        'condition',
+        'brand'
+    ];
+
+    // Open memory file
+    $fh = fopen('php://output', 'w');
+    // Set headers so browser can download
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="merchant_feed.csv"');
+    fputcsv($fh, $csvHeader);
+
+    foreach ($products as $product) {
+        fputcsv($fh, [
+            $product->id,
+            $product->name,
+            $product->description ?? 'No description',
+            url("/singleproduct/{$product->id}"),
+            $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
+            isset($product->price) ? $product->price . ' ' . $product->currency : '',
+            $product->is_active ? 'in stock' : 'out of stock',
+            'new', // or $product->condition if you store it
+            'Alebaz' // or $product->brand if stored
+        ]);
+    }
+
+    fclose($fh);
+    exit;
+}
+
+
 }

@@ -106,6 +106,8 @@ Route::get('/products/{id}', [ProductUploadController::class, 'getSingleProduct'
 
 Route::get('/merchant-feed', [ProductUploadController::class, 'merchantFeed']);
 
+Route::get('/merchant-feed-csv', [ProductUploadController::class, 'merchantFeedCsv']);
+
 
 Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
