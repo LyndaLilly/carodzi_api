@@ -3,7 +3,7 @@
 return [
     'plans' => [
         'basic' => [
-            'price' => 5000,   // NGN
+            'price' => 50,   // NGN
             'duration' => 7,   // days
         ],
         'standard' => [
