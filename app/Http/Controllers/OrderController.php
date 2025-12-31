@@ -429,14 +429,14 @@ class OrderController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Bitcoin payment proof uploaded successfully. Awaiting manual approval.',
+                'message' => 'Ethereum payment proof uploaded successfully. Awaiting manual approval.',
                 'order'   => $order,
             ]);
 
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to upload Bitcoin proof',
+                'message' => 'Failed to upload Ethereum proof',
                 'error'   => $e->getMessage(),
             ], 500);
         }

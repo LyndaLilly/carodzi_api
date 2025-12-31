@@ -169,7 +169,7 @@ class ProfessionalProfileController extends Controller
         $rules = [
             'gender'                => 'sometimes|required|in:male,female',
             'date_of_birth'         => 'nullable|string',
-            'about'                 => 'nullable|string|max:50',
+            'about'                 => 'nullable|string|max:1000',
             'business_email'        => 'nullable|email|unique:professional_profiles,business_email,' . $profile->id,
             'mobile_number'         => 'sometimes|required|string',
             'country'               => 'sometimes|required|string',
