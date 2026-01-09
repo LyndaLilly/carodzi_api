@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Helpers\ExpoPush;
 use App\Models\DirectInquiry;
 use App\Models\Order;
 use App\Models\ProductReview;
@@ -56,6 +57,21 @@ class OrderController extends Controller
             // --- Notify the seller via Laravel Notification ---
             if ($seller) {
                 $seller->notify(new NewOrderNotification($product->name));
+            }
+
+            if ($seller && $seller->push_token) {
+                try {
+                    $response = ExpoPush::send(
+                        $seller->push_token,                        
+                        'New Order Received',                       
+                        "You have a new order for {$product->name}", 
+                        ['order_id' => $order->id]                   
+                    );
+
+                    \Log::info('✅ Push sent', ['response' => $response->body()]);
+                } catch (\Throwable $e) {
+                    \Log::error('❌ Failed to send push', ['error' => $e->getMessage()]);
+                }
             }
 
             \Log::info('✅ Order created successfully', $order->toArray());
