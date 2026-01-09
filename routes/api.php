@@ -136,6 +136,12 @@ Route::middleware('auth:sanctum')->post(
     [SellerNotificationController::class, 'savePushToken']
 );
 
+Route::middleware('auth:sanctum')->get(
+    '/seller/test-push',
+    [SellerNotificationController::class, 'testPush']
+);
+
+
 
 // 🟢 Product Reviews
 Route::middleware('auth:sanctum')->group(function () {

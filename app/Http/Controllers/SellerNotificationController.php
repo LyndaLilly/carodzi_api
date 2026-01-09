@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\ExpoPush;
 
 class SellerNotificationController extends Controller
 {
@@ -157,5 +158,25 @@ class SellerNotificationController extends Controller
             return response()->json(['error' => 'Failed to delete notifications'], 500);
         }
     }
+
+
+
+public function testPush(Request $request)
+{
+    $seller = $request->user('sanctum');
+
+    if (! $seller || ! $seller->expo_push_token) {
+        return response()->json(['error' => 'No push token'], 400);
+    }
+
+    ExpoPush::send(
+        $seller->expo_push_token,
+        'Test Notification',
+        'This is a test push notification 🎉',
+        ['type' => 'test']
+    );
+
+    return response()->json(['message' => 'Push sent']);
+}
 
 }
