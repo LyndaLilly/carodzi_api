@@ -42,6 +42,28 @@ class DirectInquiryController extends Controller
 
             \Log::info('Inquiry saved successfully', ['id' => $inquiry->id]);
 
+            $seller = $inquiry->seller;
+            if ($seller) {
+                // In-app notification
+                $seller->notify(new \App\Notifications\NewDirectInquiryNotification($inquiry));
+
+                // Push notification via ExpoPush
+                if ($seller->expo_push_token) {
+                    try {
+                        \App\Helpers\ExpoPush::send(
+                            $seller->expo_push_token,
+                            'New Inquiry Received',
+                            "You have a new inquiry for {$inquiry->product?->name}",
+                            ['inquiry_id' => $inquiry->id]
+                        );
+                    } catch (\Throwable $e) {
+                        \Log::error('Failed to send push for inquiry', ['error' => $e->getMessage()]);
+                    }
+                }
+            }
+
+            \Log::info('Inquiry saved successfully', ['id' => $inquiry->id]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Your inquiry has been sent successfully!',
