@@ -146,7 +146,7 @@ class OrderController extends Controller
             );
         }
 
-        // 1️⃣ Verify with Paystack
+        // 1️⃣ VERIFY WITH PAYSTACK
         $secretKey = config('services.paystack.secret_key');
         $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
 
@@ -162,7 +162,6 @@ class OrderController extends Controller
                 ['Content-Type' => 'text/html']
             );
         }
-
         // 2️⃣ Check for duplicates
         if (Order::where('payment_reference', $reference)->exists()) {
             return response()->make(
@@ -171,14 +170,13 @@ class OrderController extends Controller
                 ['Content-Type' => 'text/html']
             );
         }
-
-        // 3️⃣ Extract metadata
+        // 3️⃣ EXTRACT METADATA
         $tx   = $data['data'];
         $meta = $tx['metadata'];
 
         $product = ProductUpload::findOrFail($meta['product_id']);
 
-        // 4️⃣ Create order
+        // 4️⃣ CREATE ORDER (ONLY ONCE)
         $order = Order::create([
             'buyer_id'                => $meta['buyer_id'],
             'delivery_fullname'       => $meta['delivery_fullname'],
@@ -198,12 +196,12 @@ class OrderController extends Controller
 
         $this->notifySeller($product, $order);
 
-        // ✅ Success HTML
         return response()->make(
-            '<h2>Payment Successful</h2><p>Your order has been created successfully. You may close this page.</p>',
+            '<h2>Payment Successful and order created</h2><p>You may close this page.</p>',
             200,
             ['Content-Type' => 'text/html']
         );
+
     }
 
     public function uploadBitcoinProof(Request $request, $orderId)
