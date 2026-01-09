@@ -378,27 +378,37 @@ class OrderController extends Controller
 
             $tx = $data['data'] ?? null;
 
-            // Confirm the transaction success and amount/order match if you store amounts
             if ($tx && isset($tx['status']) && $tx['status'] === 'success') {
-                                                                                     // optional: validate amount matches order->total_amount (remember amount returned by Paystack is in kobo)
-                $paystackAmount = isset($tx['amount']) ? $tx['amount'] / 100 : null; // to Naira
-                if ($paystackAmount !== null && (float) $paystackAmount != (float) $order->total_amount) {
-                    \Log::warning('Paystack amount mismatch', [
-                        'order_id'        => $order->id,
-                        'order_amount'    => $order->total_amount,
-                        'paystack_amount' => $paystackAmount,
-                    ]);
-                    // You may still accept but flag it. For now we continue to mark paid.
-                }
-
-                // Mark order as paid
+                // Mark order as paid and completed
                 $order->update([
-                    'payment_status' => 'paid',
-                    'status'         => 'completed',
-                    'payment_method' => 'paystack',
-                    // optionally: store paystack reference somewhere if you have a field for it
-                    //'payment_reference' => $reference,
+                    'payment_status'    => 'paid',
+                    'status'            => 'completed',
+                    'payment_method'    => 'paystack',
+                    'payment_reference' => $reference,
                 ]);
+
+                // --- Notify the seller via push ---
+                $seller = $order->product->seller;
+                if ($seller && $seller->expo_push_token) {
+                    \Log::info('Attempting push after Paystack payment', [
+                        'seller_id'  => $seller->id,
+                        'expo_token' => $seller->expo_push_token,
+                        'order_id'   => $order->id,
+                    ]);
+
+                    try {
+                        $response = ExpoPush::send(
+                            $seller->expo_push_token,
+                            'New Order Received',
+                            "You have a new order for {$order->product->name}",
+                            ['order_id' => $order->id]
+                        );
+
+                        \Log::info('✅ Push sent after payment', ['response' => $response->body()]);
+                    } catch (\Throwable $e) {
+                        \Log::error('❌ Failed to send push after payment', ['error' => $e->getMessage()]);
+                    }
+                }
 
                 return response()->json([
                     'success'  => true,
