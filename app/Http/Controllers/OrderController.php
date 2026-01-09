@@ -99,10 +99,11 @@ class OrderController extends Controller
 
             $payload = [
                 'email'        => $request->delivery_email,
-                'amount'       => $request->total_price * 100, // kobo
+                'amount'       => $request->total_price * 100,
                 'reference'    => $reference,
                 'callback_url' => url('/api/order/paystack/callback'),
                 'metadata'     => [
+                    'buyer_id'                => auth()->id(), // ✅ ADD THIS
                     'delivery_fullname'       => $request->delivery_fullname,
                     'delivery_email'          => $request->delivery_email,
                     'delivery_phone'          => $request->delivery_phone,
@@ -137,57 +138,71 @@ class OrderController extends Controller
         $reference = $request->query('reference');
 
         if (! $reference) {
-            return response()->json(['success' => false, 'message' => 'Reference missing in callback'], 400);
-        }
-
-        try {
-            $secretKey = config('services.paystack.secret_key');
-            $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
-
-            $response = Http::withToken($secretKey)->get("{$baseUrl}/transaction/verify/{$reference}");
-            $data     = $response->json();
-
-            if (! isset($data['status']) || ! $data['status'] || $data['data']['status'] !== 'success') {
-                return response()->json(['success' => false, 'message' => 'Payment failed']);
-            }
-
-            $tx   = $data['data'];
-            $meta = $tx['metadata'];
-
-            $product = ProductUpload::findOrFail($meta['product_id']);
-
-            $order = Order::create([
-                'buyer_id'                => auth()->id(),
-                'delivery_fullname'       => $meta['delivery_fullname'],
-                'delivery_email'          => $meta['delivery_email'],
-                'delivery_phone'          => $meta['delivery_phone'],
-                'buyer_delivery_location' => $meta['buyer_delivery_location'],
-                'product_id'              => $meta['product_id'],
-                'seller_id'               => $product->seller_id,
-                'quantity'                => $meta['quantity'],
-                'price'                   => $meta['price'],
-                'total_amount'            => $meta['total_price'],
-                'payment_method'          => 'paystack',
-                'payment_status'          => 'paid',
-                'status'                  => 'completed',
-                'payment_reference'       => $reference,
-            ]);
-
-            $this->notifySeller($product, $order);
-
-            return response()->json([
-                'success'  => true,
-                'message'  => 'Payment verified and order created',
-                'order_id' => $order->id,
-            ]);
-
-        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error during Paystack callback',
-                'error'   => $e->getMessage(),
-            ], 500);
+                'message' => 'Missing payment reference',
+            ], 400);
         }
+
+        // 1️⃣ VERIFY WITH PAYSTACK
+        $secretKey = config('services.paystack.secret_key');
+        $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
+
+        $response = Http::withToken($secretKey)
+            ->get("{$baseUrl}/transaction/verify/{$reference}");
+
+        $data = $response->json();
+
+        if (
+            ! isset($data['status']) ||
+            ! $data['status'] ||
+            $data['data']['status'] !== 'success'
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment verification failed',
+            ], 400);
+        }
+
+        // 2️⃣ 👉 PUT DUPLICATE CHECK RIGHT HERE 👈
+        if (Order::where('payment_reference', $reference)->exists()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Order already processed',
+            ]);
+        }
+
+        // 3️⃣ EXTRACT METADATA
+        $tx   = $data['data'];
+        $meta = $tx['metadata'];
+
+        $product = ProductUpload::findOrFail($meta['product_id']);
+
+        // 4️⃣ CREATE ORDER (ONLY ONCE)
+        $order = Order::create([
+            'buyer_id'                => $meta['buyer_id'],
+            'delivery_fullname'       => $meta['delivery_fullname'],
+            'delivery_email'          => $meta['delivery_email'],
+            'delivery_phone'          => $meta['delivery_phone'],
+            'buyer_delivery_location' => $meta['buyer_delivery_location'],
+            'product_id'              => $meta['product_id'],
+            'seller_id'               => $product->seller_id,
+            'quantity'                => $meta['quantity'],
+            'price'                   => $meta['price'],
+            'total_amount'            => $meta['total_price'],
+            'payment_method'          => 'paystack',
+            'payment_status'          => 'paid',
+            'status'                  => 'completed',
+            'payment_reference'       => $reference,
+        ]);
+
+        $this->notifySeller($product, $order);
+
+        return response()->json([
+            'success'  => true,
+            'message'  => 'Payment verified and order created',
+            'order_id' => $order->id,
+        ]);
     }
 
     public function uploadBitcoinProof(Request $request, $orderId)
@@ -228,7 +243,9 @@ class OrderController extends Controller
     private function notifySeller($product, $order)
     {
         $seller = $product->seller;
-        if (!$seller) return;
+        if (! $seller) {
+            return;
+        }
 
         $seller->notify(new NewOrderNotification($product->name));
 
