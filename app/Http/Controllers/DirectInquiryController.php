@@ -50,11 +50,17 @@ class DirectInquiryController extends Controller
                 // Push notification via ExpoPush
                 if ($seller->expo_push_token) {
                     try {
+                        $contactMethod = $inquiry->contact_method ?? 'interaction';
+                        $productName   = $inquiry->product?->name ?? 'your product';
+
+                        $message = "A buyer clicked '{$contactMethod}' for {$productName}.";
+
                         \App\Helpers\ExpoPush::send(
                             $seller->expo_push_token,
-                            'New Inquiry Received',
-                            "You have a new inquiry for {$inquiry->product?->name}",
-                            ['inquiry_id' => $inquiry->id]
+                            'Buyer Interest',
+                            $message,
+                            ['product_id' => $inquiry->product_id]
+
                         );
                     } catch (\Throwable $e) {
                         \Log::error('Failed to send push for inquiry', ['error' => $e->getMessage()]);
