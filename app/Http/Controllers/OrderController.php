@@ -139,13 +139,14 @@ class OrderController extends Controller
         $reference = $request->query('reference');
 
         if (! $reference) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing payment reference',
-            ], 400);
+            return response()->make(
+                '<h2>Payment Failed</h2><p>Missing payment reference.</p>',
+                400,
+                ['Content-Type' => 'text/html']
+            );
         }
 
-        // 1️⃣ VERIFY WITH PAYSTACK
+        // 1️⃣ Verify with Paystack
         $secretKey = config('services.paystack.secret_key');
         $baseUrl   = config('services.paystack.base_url', 'https://api.paystack.co');
 
@@ -154,32 +155,30 @@ class OrderController extends Controller
 
         $data = $response->json();
 
-        if (
-            ! isset($data['status']) ||
-            ! $data['status'] ||
-            $data['data']['status'] !== 'success'
-        ) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment verification failed',
-            ], 400);
+        if (! isset($data['status']) || ! $data['status'] || $data['data']['status'] !== 'success') {
+            return response()->make(
+                '<h2>Payment Failed</h2><p>Payment verification failed. Please try again.</p>',
+                400,
+                ['Content-Type' => 'text/html']
+            );
         }
 
-        // 2️⃣ 👉 PUT DUPLICATE CHECK RIGHT HERE 👈
+        // 2️⃣ Check for duplicates
         if (Order::where('payment_reference', $reference)->exists()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Order already processed',
-            ]);
+            return response()->make(
+                '<h2>Payment Already Processed</h2><p>Your order has already been created.</p>',
+                200,
+                ['Content-Type' => 'text/html']
+            );
         }
 
-        // 3️⃣ EXTRACT METADATA
+        // 3️⃣ Extract metadata
         $tx   = $data['data'];
         $meta = $tx['metadata'];
 
         $product = ProductUpload::findOrFail($meta['product_id']);
 
-        // 4️⃣ CREATE ORDER (ONLY ONCE)
+        // 4️⃣ Create order
         $order = Order::create([
             'buyer_id'                => $meta['buyer_id'],
             'delivery_fullname'       => $meta['delivery_fullname'],
@@ -199,11 +198,12 @@ class OrderController extends Controller
 
         $this->notifySeller($product, $order);
 
-        return response()->json([
-            'success'  => true,
-            'message'  => 'Payment verified and order created',
-            'order_id' => $order->id,
-        ]);
+        // ✅ Success HTML
+        return response()->make(
+            '<h2>Payment Successful</h2><p>Your order has been created successfully. You may close this page.</p>',
+            200,
+            ['Content-Type' => 'text/html']
+        );
     }
 
     public function uploadBitcoinProof(Request $request, $orderId)
