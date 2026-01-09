@@ -7,6 +7,26 @@ use Illuminate\Support\Facades\Log;
 class SellerNotificationController extends Controller
 {
 
+    public function savePushToken(Request $request)
+    {
+        $seller = $request->user('sanctum');
+
+        if (! $seller) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $request->validate([
+            'push_token' => 'required|string',
+        ]);
+
+        $seller->expo_push_token = $request->push_token;
+        $seller->save();
+
+        return response()->json([
+            'message' => 'Push token saved',
+        ]);
+    }
+
     public function index(Request $request)
     {
         $seller = $request->user('sanctum'); // explicitly use Sanctum guard

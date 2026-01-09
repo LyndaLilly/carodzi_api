@@ -130,6 +130,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('seller/notifications/delete-all', [SellerNotificationController::class, 'deleteAll']);
 });
 
+
+Route::middleware('auth:sanctum')->post(
+    '/seller/save-push-token',
+    [SellerNotificationController::class, 'savePushToken']
+);
+
+
 // 🟢 Product Reviews
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews', [ProductReviewController::class, 'store']);
