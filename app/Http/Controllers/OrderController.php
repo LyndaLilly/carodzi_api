@@ -59,13 +59,19 @@ class OrderController extends Controller
                 $seller->notify(new NewOrderNotification($product->name));
             }
 
-            if ($seller && $seller->push_token) {
+            if ($seller && $seller->expo_push_token) {
+                \Log::info('Attempting push', [
+                    'seller_id'  => $seller->id,
+                    'expo_token' => $seller->expo_push_token,
+                    'order_id'   => $order->id,
+                ]);
+
                 try {
                     $response = ExpoPush::send(
-                        $seller->push_token,                        
-                        'New Order Received',                       
-                        "You have a new order for {$product->name}", 
-                        ['order_id' => $order->id]                   
+                        $seller->expo_push_token,
+                        'New Order Received',
+                        "You have a new order for {$product->name}",
+                        ['order_id' => $order->id]
                     );
 
                     \Log::info('✅ Push sent', ['response' => $response->body()]);
