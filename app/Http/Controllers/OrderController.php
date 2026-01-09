@@ -6,6 +6,7 @@ use App\Models\DirectInquiry;
 use App\Models\Order;
 use App\Models\ProductReview;
 use App\Models\ProductUpload;
+use App\Notifications\NewOrderNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
