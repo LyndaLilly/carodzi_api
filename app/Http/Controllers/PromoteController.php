@@ -344,20 +344,51 @@ class PromoteController extends Controller
 
     public function handlePaystackWebhook(Request $request)
     {
-        $payload = $request->all();
+        $signature = $request->header('x-paystack-signature');
+        $payload   = $request->getContent();
 
-        if (isset($payload['event']) && $payload['event'] === 'charge.success') {
-            $reference = $payload['data']['reference'];
+        if ($signature !== hash_hmac(
+            'sha512',
+            $payload,
+            config('services.paystack.secret_key')
+        )) {
+            return response()->json(['message' => 'Invalid signature'], 401);
+        }
 
-            $promotion = Promote::where('transaction_reference', $reference)->first();
+        $event = $request->event;
 
-            if ($promotion && ! $promotion->is_active) {
-                $promotion->update([
-                    'is_active'   => true,
-                    'is_approved' => true,
-                    'approved_at' => now(),
-                ]);
+        if ($event === 'charge.success') {
+            $data = $request->data;
+
+            // VERY IMPORTANT CHECK
+            if ($data['status'] !== 'success') {
+                return response()->json(['ignored' => true]);
             }
+
+            $sellerId = $data['metadata']['seller_id'];
+            $plan     = $data['metadata']['plan'];
+            $ref      = $data['reference'];
+
+            // Prevent duplicates
+            if (Promote::where('transaction_reference', $ref)->exists()) {
+                return response()->json(['already_processed' => true]);
+            }
+
+            $planDetails = config('promote.plans')[$plan];
+
+            Promote::create([
+                'seller_id'             => $sellerId,
+                'plan'                  => $plan,
+                'duration'              => $planDetails['duration'],
+                'start_date'            => now(),
+                'end_date'              => now()->addDays($planDetails['duration']),
+                'is_active'             => true,
+                'is_approved'           => true,
+                'payment_method'        => 'paystack',
+                'transaction_reference' => $ref,
+                'amount'                => $data['amount'] / 100,
+                'approved_at'           => now(),
+            ]);
         }
 
         return response()->json(['received' => true]);
