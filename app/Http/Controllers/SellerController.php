@@ -541,4 +541,82 @@ class SellerController extends Controller
         }
     }
 
+    public function updateEmail(Request $request)
+    {
+        $seller = $request->user();
+
+        Log::info('Seller email update', [
+            'seller_id' => $seller->id,
+            'new_email' => $request->email,
+        ]);
+
+        $request->validate([
+            'email' => 'required|email|unique:sellers,email',
+        ]);
+
+        $seller->email = $request->email;
+        $seller->save();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Email updated successfully.',
+            'email'   => $seller->email,
+        ]);
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $seller = $request->user();
+
+        Log::info('Seller password update attempt', [
+            'seller_id' => $seller->id,
+        ]);
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'password'         => [
+                'required',
+                'confirmed',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/',
+            ],
+        ], [
+            'password.regex' =>
+            'Password must be at least 8 characters and include uppercase, lowercase, number and special character.',
+        ]);
+
+        // Check current password
+        if (! Hash::check($request->current_password, $seller->password)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Current password is incorrect.',
+            ], 401);
+        }
+
+        // Prevent same password reuse
+        if (Hash::check($request->password, $seller->password)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'New password cannot be the same as the current password.',
+            ], 422);
+        }
+
+        $seller->password = Hash::make($request->password);
+        $seller->save();
+
+        try {
+            $sellerName = trim($seller->firstname . ' ' . $seller->lastname);
+            Mail::to($seller->email)->send(new PasswordResetSuccessMail($sellerName));
+        } catch (\Exception $e) {
+            Log::error('Password change confirmation email failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Password updated successfully.',
+        ]);
+    }
+
 }

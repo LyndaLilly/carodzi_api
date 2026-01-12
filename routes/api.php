@@ -280,3 +280,9 @@ Route::middleware('auth:admin')->group(function () {
 Route::get('/admin/product-categories', [ProductCategoryController::class, 'index']);
 
 Route::get('/admin/product-subcategories/{categoryId}', [ProductCategoryController::class, 'subcategoriesByCategory']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/seller/update-email', [SellerController::class, 'updateEmail']);
+    Route::post('/seller/update-password', [SellerController::class, 'updatePassword']);
+});
