@@ -177,56 +177,7 @@ class PublicSellerController extends Controller
         return response()->json(['results' => $results]);
     }
 
-    // public function mostViewedSellers()
-    // {
-    //     try {
-    //         $sellers = Seller::with([
-    //             'profile',
-    //             'professionalProfile',
-    //             'products.images',
-    //             'subcategory',
-    //         ])
-    //             // ->where('profile_updated', 1)
-    //             ->where('views', '>=', 5)
-    //             ->get();
-
-    //         // Normalize data: combine profile_image and business_name
-    //         $sellers->transform(function ($seller) {
-    //             $autoVerify          = $seller->subcategory && $seller->subcategory->auto_verify == 1;
-    //             $seller->is_verified = ($autoVerify && $seller->status == 1);
-
-    //             // Determine profile image
-    //             if ($seller->is_professional && $seller->professionalProfile) {
-    //                 $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
-    //                 $seller->business_name = $seller->professionalProfile->business_name ?? null;
-    //             } else if ($seller->profile) {
-    //                 $seller->profile_image = $seller->profile->profile_image ?? null;
-    //                 $seller->business_name = null; // normal sellers usually have no business name
-    //             } else {
-    //                 $seller->profile_image = null;
-    //                 $seller->business_name = null;
-    //             }
-
-    //             return $seller;
-    //         });
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'sellers' => $sellers,
-    //         ]);
-
-    //     } catch (\Throwable $e) {
-    //         \Log::error('❌ Error fetching most viewed sellers', [
-    //             'message' => $e->getMessage(),
-    //             'line'    => $e->getLine(),
-    //         ]);
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'An error occurred',
-    //         ], 500);
-    //     }
-    // }
+  
 
     public function mostViewedSellers()
 {

@@ -490,56 +490,44 @@ class SellerController extends Controller
     public function viewSeller($id)
     {
         try {
-            $seller = Seller::findOrFail($id);
-            $ip     = request()->ip();
+            $seller   = Seller::findOrFail($id);
+            $ip       = request()->ip();
+            $viewerId = Auth::id(); // may be null
 
-            // Only log a view if the viewer is not the seller themselves
-            if (Auth::check() && Auth::id() !== $seller->id) {
-                // Prevent multiple rapid views from same IP or viewer within 1 hour
-                $alreadyViewed = SellerProfileView::where('seller_id', $seller->id)
-                    ->where(function ($q) use ($ip) {
-                        $q->where('ip_address', $ip);
-                        $q->orWhere('viewer_id', Auth::id());
-                    })
-                    ->where('created_at', '>', now()->subHours(1))
-                    ->exists();
-
-                if (! $alreadyViewed) {
-                    SellerProfileView::create([
-                        'seller_id'  => $seller->id,
-                        'viewer_id'  => Auth::id(),
-                        'ip_address' => $ip,
-                    ]);
-
-                    // Increment total views in sellers table
-                    $seller->increment('views');
-                }
+            // Prevent seller viewing themselves
+            if ($viewerId && $viewerId === $seller->id) {
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'Self view ignored.',
+                    'seller'  => $seller,
+                ]);
             }
 
-            // Load relationships (profile, professionalProfile, subcategory, category)
-            $seller->load(['profile', 'professionalProfile', 'subcategory', 'category']);
+            // Prevent multiple views from same IP within 24h
+            $alreadyViewed = SellerProfileView::where('seller_id', $seller->id)
+                ->where('ip_address', $ip)
+                ->where('created_at', '>', now()->subDay())
+                ->exists();
 
-            // Normalize profile images
-            if ($seller->profile && $seller->profile->profile_image) {
-                $seller->profile->profile_image = url('storage/' . $seller->profile->profile_image);
+            if (! $alreadyViewed) {
+                SellerProfileView::create([
+                    'seller_id'  => $seller->id,
+                    'viewer_id'  => $viewerId, // nullable
+                    'ip_address' => $ip,
+                ]);
+
+                $seller->increment('views');
             }
 
-            if ($seller->professionalProfile && $seller->professionalProfile->profile_image) {
-                $seller->professionalProfile->profile_image = url('storage/' . $seller->professionalProfile->profile_image);
-            }
-
-            // Include recent profile views (last 3)
-            $recentViews = SellerProfileView::where('seller_id', $seller->id)
-                ->latest()
-                ->take(3)
-                ->get(['id', 'ip_address', 'created_at', 'viewer_id']);
+            $seller->load(['profile', 'professionalProfile', 'subcategory']);
 
             return response()->json([
-                'status'       => 'success',
-                'message'      => 'Seller viewed successfully.',
-                'seller'       => $seller,
-                'recent_views' => $recentViews,
-            ], 200);
+                'status'  => 'success',
+                'message' => 'Seller viewed successfully.',
+                'views'   => $seller->views,
+                'seller'  => $seller,
+            ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
