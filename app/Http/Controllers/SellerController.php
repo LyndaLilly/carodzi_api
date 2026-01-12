@@ -493,27 +493,20 @@ class SellerController extends Controller
             $seller = Seller::findOrFail($id);
             $ip     = request()->ip();
 
-            // Only log a view if the viewer is not the seller themselves
-            if (Auth::check() && Auth::id() !== $seller->id) {
-                // Prevent multiple rapid views from same IP or viewer within 1 hour
-                $alreadyViewed = SellerProfileView::where('seller_id', $seller->id)
-                    ->where(function ($q) use ($ip) {
-                        $q->where('ip_address', $ip);
-                        $q->orWhere('viewer_id', Auth::id());
-                    })
-                    ->where('created_at', '>', now()->subHours(1))
-                    ->exists();
+            // Remove the Auth::check() requirement
+            $alreadyViewed = SellerProfileView::where('seller_id', $seller->id)
+                ->where('ip_address', $ip)
+                ->where('created_at', '>', now()->subHours(1))
+                ->exists();
 
-                if (! $alreadyViewed) {
-                    SellerProfileView::create([
-                        'seller_id'  => $seller->id,
-                        'viewer_id'  => Auth::id(),
-                        'ip_address' => $ip,
-                    ]);
+            if (! $alreadyViewed) {
+                SellerProfileView::create([
+                    'seller_id'  => $seller->id,
+                    'viewer_id'  => Auth::id() ?? null,
+                    'ip_address' => $ip,
+                ]);
 
-                    // Increment total views in sellers table
-                    $seller->increment('views');
-                }
+                $seller->increment('views');
             }
 
             // Load relationships (profile, professionalProfile, subcategory, category)
