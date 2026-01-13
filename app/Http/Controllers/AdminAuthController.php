@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
@@ -11,20 +10,34 @@ class AdminAuthController extends Controller
     // REGISTER
     public function register(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|unique:admins,email',
+        $validator = Validator::make($request->all(), [
+            'email'    => 'required|email|unique:admins,email',
             'password' => 'required|min:8|confirmed',
         ]);
 
+        if ($validator->fails()) {
+            Log::warning('Validation failed during registration.', $validator->errors()->toArray());
+
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $admin = Admin::create([
-            'email' => $request->email,
+            'email'    => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'admin',
-            'status' => true,
+            'role'     => 'admin',
+            'status'   => true,
         ]);
 
         return response()->json([
-            'message' => 'Admin registered successfully',
+            'status'  => 'success',
+            'message' => $emailMessage,
+            'data'    => [
+                'email' => $admin->email,
+                'role'  => $admin->role,
+            ],
         ], 201);
     }
 
@@ -32,33 +45,44 @@ class AdminAuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required',
         ]);
 
         $admin = Admin::where('email', $request->email)->first();
 
-        if (! $admin || ! Hash::check($request->password, $admin->password)) {
+        if (! $admin) {
             return response()->json([
-                'message' => 'Invalid credentials',
+                'errors' => [
+                    'login' => 'Email  does not exist',
+                ],
+            ], 404);
+        }
+
+        if (! Hash::check($request->password, $admin->password)) {
+            return response()->json([
+                'errors' => [
+                    'password' => 'Incorrect password',
+                ],
             ], 401);
         }
 
-        $token = $admin->createToken('admin-token')->plainTextToken;
+        $token = $admin->createToken('admin_token')->plainTextToken;
 
         return response()->json([
-            'token' => $token,
             'admin' => $admin,
+            'token' => $token,
         ]);
     }
 
     // LOGOUT
-    public function logout(Request $request)
+    public function adminlogout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logged out',
+            'status'  => 'success',
+            'message' => 'Logged out successfully.',
         ]);
     }
 }

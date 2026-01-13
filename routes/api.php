@@ -17,7 +17,6 @@ use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Seller routes
@@ -108,7 +107,6 @@ Route::get('/merchant-feed', [ProductUploadController::class, 'merchantFeed']);
 
 Route::get('/merchant-feed-csv', [ProductUploadController::class, 'merchantFeedCsv']);
 
-
 Route::get('/search', [ProductUploadController::class, 'search']);
 Route::get('/subcategory/{id}', [ProductCategoryController::class, 'showSubcategory']);
 
@@ -130,7 +128,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('seller/notifications/delete-all', [SellerNotificationController::class, 'deleteAll']);
 });
 
-
 Route::middleware('auth:sanctum')->post(
     '/seller/save-push-token',
     [SellerNotificationController::class, 'savePushToken']
@@ -140,8 +137,6 @@ Route::middleware('auth:sanctum')->get(
     '/seller/test-push',
     [SellerNotificationController::class, 'testPush']
 );
-
-
 
 // 🟢 Product Reviews
 Route::middleware('auth:sanctum')->group(function () {
@@ -222,20 +217,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/seller/inquiries/update-status/{id}', [DirectInquiryController::class, 'updateStatus']);
 });
 
-Route::prefix('admin')->group(function () {
-    Route::post('/register', [AdminAuthController::class, 'register']);
-    Route::post('/login', [AdminAuthController::class, 'login']);
-    Route::post('/logout', [AdminAuthController::class, 'logout'])->middleware('auth:sanctum');
-});
-
-Route::middleware(['admin'])->group(function () {
-    Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
-    Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
-    Route::get('/orders', [OrderController::class, 'index']);
-});
-
-
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/seller/orders', [OrderController::class, 'sellerOrders']);
 });
@@ -243,9 +224,19 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCategories']);
 Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 'getSubcategoriesByCategory']);
 
+Route::prefix('admin')->group(function () {
+    Route::post('/register', [AdminAuthController::class, 'register']);
+    Route::post('/login', [AdminAuthController::class, 'login']);
+    Route::middleware('auth:sanctum')->post('/logout', [AdminAuthController::class, 'adminlogout']);
+});
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
+    Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
+    Route::get('/orders', [OrderController::class, 'index']);
+});
 
-Route::middleware('admin')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/product-category', [ProductCategoryController::class, 'storeCategory']);
     Route::put('/admin/product-category/{id}', [ProductCategoryController::class, 'updateCategory']);
     Route::delete('/admin/product-category/{id}', [ProductCategoryController::class, 'deleteCategory']);
@@ -258,7 +249,6 @@ Route::middleware('admin')->group(function () {
 Route::get('/admin/product-categories', [ProductCategoryController::class, 'index']);
 
 Route::get('/admin/product-subcategories/{categoryId}', [ProductCategoryController::class, 'subcategoriesByCategory']);
-
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seller/update-email', [SellerController::class, 'updateEmail']);
