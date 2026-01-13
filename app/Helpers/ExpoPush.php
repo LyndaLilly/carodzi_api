@@ -13,8 +13,10 @@ class ExpoPush
             'sound' => 'default',
             'title' => $title,
             'body'  => $body,
+            'channelId' => 'alebaz-main', 
             'data'  => $data,
         ]);
     }
 }
+
 
