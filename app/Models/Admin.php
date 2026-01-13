@@ -12,22 +12,14 @@ class Admin extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $fillable = [
-        'firstname',
-        'lastname',
         'email',
         'password',
         'role',
         'status',
-        'email_verified_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
-    ];
-
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'status' => 'boolean',
     ];
 }

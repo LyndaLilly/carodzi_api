@@ -222,15 +222,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/seller/inquiries/update-status/{id}', [DirectInquiryController::class, 'updateStatus']);
 });
 
-//Admins Routes
-
-Route::post('/admin/register', [AdminAuthController::class, 'register']);
-
-// Admin login
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
-
-// Admin logout
-Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin');
+Route::prefix('admin')->group(function () {
+    Route::post('/register', [AdminAuthController::class, 'register']);
+    Route::post('/login', [AdminAuthController::class, 'login']);
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->middleware('auth:sanctum');
+});
 
 Route::middleware(['auth:admin'])->group(function () {
     Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
