@@ -239,10 +239,11 @@ Route::middleware('auth:admin')->get('/admin/me', function (Request $request) {
 
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin');
-Route::post('/admin/register', [AdminAuthController::class, 'register'])
-    ->middleware('auth:admin', 'is.superadmin');
+
+Route::post('/admin/register', [AdminAuthController::class, 'register']);
 
 Route::middleware(['auth:admin', 'is.superadmin'])->group(function () {
+
     Route::get('/admin/dashboard', function () {
         return view('admin.dashboard');
     });
