@@ -3,7 +3,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Admin;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -11,27 +10,55 @@ class AdminAuthController extends Controller
 {
     public function register(Request $request)
     {
-        $request->validate([
-            'firstname' => 'required|string|max:255',
-            'lastname'  => 'required|string|max:255',
-            'email'     => 'required|email|unique:admins,email',
-            'password'  => 'required|string|min:8|confirmed',
-            'role'      => 'required|in:super_admin,admin',
+        Log::info('Admin registration attempt', [
+            'email' => $request->email,
         ]);
 
-        $admin = Admin::create([
-            'firstname' => $request->firstname,
-            'lastname'  => $request->lastname,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->password),
-            'role'      => $request->role,
-            'status'    => true,
-        ]);
+        try {
+            $request->validate([
+                'email'    => 'required|email|unique:admins,email',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Admin registration validation failed', [
+                'errors' => $e->errors(),
+                'input'  => $request->except('password', 'password_confirmation'),
+            ]);
 
-        return response()->json([
-            'message' => 'Admin registered successfully',
-            'admin'   => $admin,
-        ], 201);
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        }
+
+        try {
+            $admin = Admin::create([
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+                'role'     => 'admin', // default role
+                'status'   => true,
+            ]);
+
+            Log::info('Admin registered successfully', [
+                'admin_id' => $admin->id,
+                'email'    => $admin->email,
+            ]);
+
+            return response()->json([
+                'message' => 'Admin registered successfully',
+                'admin'   => $admin,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Admin registration failed', [
+                'error' => $e->getMessage(),
+                'input' => $request->except('password', 'password_confirmation'),
+            ]);
+
+            return response()->json([
+                'message' => 'Registration failed',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function login(Request $request)
@@ -69,12 +96,12 @@ class AdminAuthController extends Controller
         ]);
     }
 
-  public function logout(Request $request)
-{
- 
-    $request->user()->currentAccessToken()->delete();
+    public function logout(Request $request)
+    {
 
-    return response()->json(['message' => 'Logged out']);
-}
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json(['message' => 'Logged out']);
+    }
 
 }
