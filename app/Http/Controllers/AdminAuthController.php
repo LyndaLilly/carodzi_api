@@ -70,21 +70,19 @@ class AdminAuthController extends Controller
 
         Log::info('Admin login attempt', ['email' => $credentials['email']]);
 
-        // Find admin by email
         $admin = Admin::where('email', $credentials['email'])->first();
 
-        if (! $admin) {
-            Log::error('Admin not found', ['email' => $credentials['email']]);
+        if (! $admin || ! Hash::check($credentials['password'], $admin->password)) {
+            Log::error('Invalid admin login', ['email' => $credentials['email']]);
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        // Verify password
-        if (! Hash::check($credentials['password'], $admin->password)) {
-            Log::error('Invalid password', ['email' => $credentials['email']]);
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        // Only allow role = admin (skip super_admin checks)
+        if ($admin->role !== 'admin') {
+            Log::warning('Non-admin attempted login', ['email' => $credentials['email'], 'role' => $admin->role]);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Create token (if using Sanctum or Passport)
         $token = $admin->createToken('admin-token')->plainTextToken;
 
         Log::info('Admin logged in successfully', ['email' => $credentials['email']]);
