@@ -243,7 +243,7 @@ Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware
 Route::post('/admin/register', [AdminAuthController::class, 'register']);
 
 Route::middleware(['auth:admin', 'is.superadmin'])->group(function () {
-
+    
     Route::get('/admin/dashboard', function () {
         return view('admin.dashboard');
     });
