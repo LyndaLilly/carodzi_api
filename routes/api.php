@@ -224,32 +224,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //Admins Routes
 
-Route::middleware('auth:admin')->get('/admin/me', function (Request $request) {
-    $admin = $request->user();
-
-    if (! $admin) {
-        return response()->json(['message' => 'Unauthenticated'], 401);
-    }
-
-    return response()->json([
-        'type' => 'admin',
-        'user' => $admin,
-    ]);
-});
-
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
-Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin');
-
 Route::post('/admin/register', [AdminAuthController::class, 'register']);
 
-Route::middleware(['auth:admin', 'is.superadmin'])->group(function () {
-    
-    Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
-    });
+// Admin login
+Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
-    Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
-});
+// Admin logout
+Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin');
 
 Route::middleware(['auth:admin'])->group(function () {
     Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
