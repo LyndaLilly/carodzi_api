@@ -34,7 +34,6 @@ class AdminAuthController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'message' => $emailMessage,
             'data'    => [
                 'email' => $admin->email,
                 'role'  => $admin->role,
