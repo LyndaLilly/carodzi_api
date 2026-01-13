@@ -228,7 +228,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
-Route::middleware(['auth:admin'])->group(function () {
+Route::middleware(['admin'])->group(function () {
     Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
     Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
     Route::get('/orders', [OrderController::class, 'index']);
@@ -245,7 +245,7 @@ Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 
 
 
 
-Route::middleware('auth:admin')->group(function () {
+Route::middleware('admin')->group(function () {
     Route::post('/admin/product-category', [ProductCategoryController::class, 'storeCategory']);
     Route::put('/admin/product-category/{id}', [ProductCategoryController::class, 'updateCategory']);
     Route::delete('/admin/product-category/{id}', [ProductCategoryController::class, 'deleteCategory']);
