@@ -5,6 +5,7 @@ use App\Models\SellerCategory;
 use App\Models\SellerSubcategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; 
 
 class AdminController extends Controller
 {
@@ -78,18 +79,32 @@ class AdminController extends Controller
         ]);
     }
 
-    // GET /sellers/by-subcategory/{subId}
+
+
 public function getSellersBySubcategory($subId)
 {
-    $sellers = DB::table('sellers') // replace 'sellers' with your actual table if different
-        ->where('sub_category_id', $subId)
-        ->select('id', 'firstname', 'lastname') // only fetch firstname and lastname
-        ->get();
+    Log::info("Fetching sellers for subcategory ID: {$subId}"); // log the incoming subcategory ID
 
-    return response()->json([
-        'sellers' => $sellers,
-    ]);
+    try {
+        $sellers = DB::table('sellers')
+            ->where('sub_category_id', $subId) // match your DB column name
+            ->select('id', 'firstname', 'lastname')
+            ->get();
+
+        Log::info("Sellers fetched:", ['count' => $sellers->count(), 'sellers' => $sellers]);
+
+        return response()->json([
+            'sellers' => $sellers
+        ]);
+    } catch (\Exception $e) {
+        Log::error("Error fetching sellers for subcategory ID {$subId}: " . $e->getMessage());
+        
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
+
 
 
 }
