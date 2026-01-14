@@ -68,8 +68,9 @@ class AdminController extends Controller
 
     public function getAllSubcategories()
     {
-        $subcategories = DB::table('sellers_subcategory')
-            ->select('id', 'name', 'auto_verify')
+        $subcategories = DB::table('sellers_subcategory as s')
+            ->join('sellers_category as c', 's.category_id', '=', 'c.id')
+            ->select('s.id', 's.name', 's.auto_verify', 's.category_id', 'c.name as category_name')
             ->get();
 
         return response()->json([
