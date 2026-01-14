@@ -225,7 +225,7 @@ Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCatego
 Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 'getSubcategoriesByCategory']);
 
 Route::get('/admin/seller-subcategories-all', [AdminController::class, 'getAllSubcategories']);
-Route::get('/sellers/by-subcategory/{subId}', [SellerController::class, 'getSellersBySubcategory']);
+Route::get('/sellers/by-subcategory/{subId}', [AdminController::class, 'getSellersBySubcategory']);
 
 
 
