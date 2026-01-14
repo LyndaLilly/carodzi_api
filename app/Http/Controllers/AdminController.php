@@ -83,27 +83,40 @@ class AdminController extends Controller
 
 public function getSellersBySubcategory($subId)
 {
-    Log::info("Fetching sellers for subcategory ID: {$subId}"); // log the incoming subcategory ID
+    Log::info("Fetching sellers for subcategory ID: {$subId}");
 
     try {
-        $sellers = DB::table('sellers')
-            ->where('sub_category_id', $subId) // match your DB column name
-            ->select('id', 'firstname', 'lastname')
+        $sellers = Seller::with(['profile', 'professionalProfile'])
+            ->where('sub_category_id', $subId)
+            ->select('id', 'firstname', 'lastname', 'is_professional')
             ->get();
 
-        Log::info("Sellers fetched:", ['count' => $sellers->count(), 'sellers' => $sellers]);
+        // Combine profile images
+        $sellers = $sellers->map(function($seller) {
+            $seller->profile_image = $seller->is_professional
+                ? optional($seller->professionalProfile)->profile_image
+                : optional($seller->profile)->profile_image;
+
+            unset($seller->profile);
+            unset($seller->professionalProfile);
+
+            return $seller;
+        });
+
+        Log::info("Sellers fetched:", ['count' => $sellers->count()]);
 
         return response()->json([
             'sellers' => $sellers
         ]);
     } catch (\Exception $e) {
         Log::error("Error fetching sellers for subcategory ID {$subId}: " . $e->getMessage());
-        
+
         return response()->json([
             'error' => $e->getMessage()
         ], 500);
     }
 }
+
 
 
 
