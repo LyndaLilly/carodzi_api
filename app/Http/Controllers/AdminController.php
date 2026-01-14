@@ -82,7 +82,7 @@ class AdminController extends Controller
 public function getSellersBySubcategory($subId)
 {
     $sellers = DB::table('sellers') // replace 'sellers' with your actual table if different
-        ->where('subcategory_id', $subId)
+        ->where('sub_category_id', $subId)
         ->select('id', 'firstname', 'lastname') // only fetch firstname and lastname
         ->get();
 
