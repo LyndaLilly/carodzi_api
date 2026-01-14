@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\SellerCategory;
 use App\Models\SellerSubcategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -65,6 +66,15 @@ class AdminController extends Controller
         ]);
     }
 
-  
+    public function getAllSubcategories()
+    {
+        $subcategories = DB::table('sellers_subcategory')
+            ->select('id', 'name', 'auto_verify')
+            ->get();
+
+        return response()->json([
+            'subcategories' => $subcategories,
+        ]);
+    }
 
 }

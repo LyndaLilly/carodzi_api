@@ -224,6 +224,9 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/admin/seller-categories', [AdminController::class, 'getSellerCategories']);
 Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 'getSubcategoriesByCategory']);
 
+Route::get('/admin/seller-subcategories-all', [AdminController::class, 'getAllSubcategories']);
+
+
 Route::prefix('admin')->group(function () {
     Route::post('/register', [AdminAuthController::class, 'register']);
     Route::post('/login', [AdminAuthController::class, 'login']);
