@@ -263,7 +263,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
-Route::post('/storeposts', [BlogController::class, 'storePost']);
+Route::post('/createposts', [BlogController::class, 'storePost']);
 Route::get('/posts', [BlogController::class, 'index']);
 Route::get('/posts/{id}', [BlogController::class, 'show']);
 Route::post('/comments', [BlogController::class, 'comment']);
