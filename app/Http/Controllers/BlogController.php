@@ -1,15 +1,45 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Post;
 use App\Models\Comment;
 use App\Models\Like;
+use App\Models\Post;
 use App\Models\Share;
+use Illuminate\Http\Request;
 
 class BlogController extends Controller
 {
+
+// Create a new post
+  // Create a new post with optional image upload
+public function storePost(Request $request)
+{
+    $request->validate([
+        'title'   => 'required|string|max:255',
+        'content' => 'required|string',
+        'image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // optional file upload
+    ]);
+
+    $imagePath = null;
+
+    // Handle image upload
+    if ($request->hasFile('image')) {
+        $file = $request->file('image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $file->move(public_path('uploads'), $filename);
+        $imagePath = 'uploads/' . $filename; // save relative path
+    }
+
+    $post = Post::create([
+        'title'   => $request->title,
+        'content' => $request->content,
+        'image'   => $imagePath,
+    ]);
+
+    return response()->json($post, 201);
+}
+
+
     // Get all posts with comments, likes, shares
     public function index()
     {
@@ -28,17 +58,17 @@ class BlogController extends Controller
     public function comment(Request $request)
     {
         $request->validate([
-            'post_id' => 'required|exists:posts,id',
-            'comment' => 'required|string',
-            'name' => 'nullable|string',
-            'parent_id' => 'nullable|exists:comments,id'
+            'post_id'   => 'required|exists:posts,id',
+            'comment'   => 'required|string',
+            'name'      => 'nullable|string',
+            'parent_id' => 'nullable|exists:comments,id',
         ]);
 
         $comment = Comment::create([
-            'post_id' => $request->post_id,
+            'post_id'   => $request->post_id,
             'parent_id' => $request->parent_id,
-            'name' => $request->name ?? 'Anonymous',
-            'comment' => $request->comment,
+            'name'      => $request->name ?? 'Anonymous',
+            'comment'   => $request->comment,
         ]);
 
         return response()->json($comment);
@@ -48,16 +78,22 @@ class BlogController extends Controller
     public function like(Request $request)
     {
         $request->validate([
-            'post_id' => 'nullable|exists:posts,id',
+            'post_id'    => 'nullable|exists:posts,id',
             'comment_id' => 'nullable|exists:comments,id',
         ]);
 
         $user_ip = $request->ip();
 
         // Prevent duplicate like
-        $existing = Like::where(function($q) use ($request) {
-            if ($request->post_id) $q->where('post_id', $request->post_id);
-            if ($request->comment_id) $q->where('comment_id', $request->comment_id);
+        $existing = Like::where(function ($q) use ($request) {
+            if ($request->post_id) {
+                $q->where('post_id', $request->post_id);
+            }
+
+            if ($request->comment_id) {
+                $q->where('comment_id', $request->comment_id);
+            }
+
         })->where('user_ip', $user_ip)->first();
 
         if ($existing) {
@@ -65,9 +101,9 @@ class BlogController extends Controller
         }
 
         $like = Like::create([
-            'post_id' => $request->post_id,
+            'post_id'    => $request->post_id,
             'comment_id' => $request->comment_id,
-            'user_ip' => $user_ip,
+            'user_ip'    => $user_ip,
         ]);
 
         return response()->json($like);
@@ -77,12 +113,12 @@ class BlogController extends Controller
     public function share(Request $request)
     {
         $request->validate([
-            'post_id' => 'required|exists:posts,id',
+            'post_id'  => 'required|exists:posts,id',
             'platform' => 'required|string',
         ]);
 
         $share = Share::create([
-            'post_id' => $request->post_id,
+            'post_id'  => $request->post_id,
             'platform' => $request->platform,
         ]);
 
