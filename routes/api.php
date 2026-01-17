@@ -17,7 +17,9 @@ use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
+use App\Http\Controllers\BlogController;
 use Illuminate\Support\Facades\Route;
+
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -259,3 +261,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seller/update-email', [SellerController::class, 'updateEmail']);
     Route::post('/seller/update-password', [SellerController::class, 'updatePassword']);
 });
+
+
+
+Route::get('/posts', [BlogController::class, 'index']);
+Route::get('/posts/{id}', [BlogController::class, 'show']);
+Route::post('/comments', [BlogController::class, 'comment']);
+Route::post('/likes', [BlogController::class, 'like']);
+Route::post('/shares', [BlogController::class, 'share']);
