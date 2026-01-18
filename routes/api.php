@@ -18,7 +18,7 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
 use App\Http\Controllers\BlogController;
-use App\Http\Controllers\Api\NewsletterController;
+use App\Http\Controllers\NewsletterController;
 use Illuminate\Support\Facades\Route;
 
 
