@@ -18,7 +18,9 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\Api\NewsletterController;
 use Illuminate\Support\Facades\Route;
+
 
 
 // Seller routes
@@ -269,3 +271,6 @@ Route::get('/posts/{id}', [BlogController::class, 'show']);
 Route::post('/comments', [BlogController::class, 'comment']);
 Route::post('/likes', [BlogController::class, 'like']);
 Route::post('/shares', [BlogController::class, 'share']);
+
+
+Route::post('/newsletter', [NewsletterController::class, 'subscribe']);

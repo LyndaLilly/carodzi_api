@@ -10,37 +10,34 @@ use Illuminate\Http\Request;
 class BlogController extends Controller
 {
 
-// Create a new post
-  // Create a new post with optional image upload
-public function storePost(Request $request)
-{
-    $request->validate([
-        'title'   => 'required|string|max:255',
-        'content' => 'required|string',
-        'image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // optional file upload
-    ]);
+    // Create a new post with optional image upload
+    public function storePost(Request $request)
+    {
+        $request->validate([
+            'title'   => 'required|string|max:255',
+            'content' => 'required|string',
+            'image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // optional file upload
+        ]);
 
-    $imagePath = null;
+        $imagePath = null;
 
-    // Handle image upload
-    if ($request->hasFile('image')) {
-        $file = $request->file('image');
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $file->move(public_path('uploads'), $filename);
-        $imagePath = 'uploads/' . $filename; // save relative path
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $file     = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads'), $filename);
+            $imagePath = 'uploads/' . $filename;
+        }
+
+        $post = Post::create([
+            'title'   => $request->title,
+            'content' => $request->content,
+            'image'   => $imagePath,
+        ]);
+
+        return response()->json($post, 201);
     }
 
-    $post = Post::create([
-        'title'   => $request->title,
-        'content' => $request->content,
-        'image'   => $imagePath,
-    ]);
-
-    return response()->json($post, 201);
-}
-
-
-    // Get all posts with comments, likes, shares
     public function index()
     {
         $posts = Post::with(['comments.replies', 'likes', 'shares'])->orderBy('created_at', 'desc')->get();
