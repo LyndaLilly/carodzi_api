@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductUpload;
 use App\Models\ProductUploadImage;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -45,6 +46,17 @@ class ProductUploadController extends Controller
             Log::info('Product Upload Request', $request->all());
 
             $seller = \App\Models\Seller::findOrFail($request->seller_id);
+            $productCount = ProductUpload::where('seller_id', $seller->id)->count();
+
+            $hasActiveSubscription = $seller->subscription
+            && $seller->subscription->isValid();
+
+            if ($productCount >= 1 && ! $hasActiveSubscription) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have reached the free upload limit. Please subscribe to upload more products.',
+                ], 403);
+            }
 
             $rules = [
                 'seller_id'      => 'required|exists:sellers,id',
@@ -617,57 +629,52 @@ class ProductUploadController extends Controller
         return response()->json($feed);
     }
 
-
-
-public function merchantFeedCsv(Request $request)
-{
-    if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-
-    $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
-        ->where('is_active', 1)
-        ->get();
-
-    $response = new StreamedResponse(function () use ($products) {
-        $handle = fopen('php://output', 'w');
-
-        // ✅ CSV header
-        fputcsv($handle, [
-            'id', 'title', 'description', 'link', 'image_link', 'price', 'availability', 'condition', 'brand'
-        ]);
-
-        foreach ($products as $product) {
-            $description = $product->description ?? 'No description';
-            $description = str_replace(["\r", "\n"], ' ', $description);
-
-            $title = $product->name;
-            $title = str_replace(["\r", "\n"], ' ', $title);
-
-            fputcsv($handle, [
-                $product->id,
-                $title,
-                $description,
-                url("/singleproduct/{$product->id}"),
-                $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
-                isset($product->price) ? number_format($product->price, 2) . ' ' . ($product->currency ?? 'NGN') : '0 NGN',
-                $product->is_active ? 'in stock' : 'out of stock',
-                'new',
-                'Alebaz'
-            ]);
+    public function merchantFeedCsv(Request $request)
+    {
+        if ($request->query('key') !== env('MERCHANT_FEED_KEY')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        fclose($handle);
-    });
+        $products = ProductUpload::with(['images', 'category', 'subcategory', 'seller'])
+            ->where('is_active', 1)
+            ->get();
 
-    // ✅ Add proper UTF-8 content type so Excel detects it
-    $response->headers->set('Content-Type', 'application/csv; charset=UTF-8');
-    $response->headers->set('Content-Disposition', 'attachment; filename="merchant_feed.csv"');
+        $response = new StreamedResponse(function () use ($products) {
+            $handle = fopen('php://output', 'w');
 
-    return $response;
-}
+            // ✅ CSV header
+            fputcsv($handle, [
+                'id', 'title', 'description', 'link', 'image_link', 'price', 'availability', 'condition', 'brand',
+            ]);
 
+            foreach ($products as $product) {
+                $description = $product->description ?? 'No description';
+                $description = str_replace(["\r", "\n"], ' ', $description);
 
+                $title = $product->name;
+                $title = str_replace(["\r", "\n"], ' ', $title);
 
+                fputcsv($handle, [
+                    $product->id,
+                    $title,
+                    $description,
+                    url("/singleproduct/{$product->id}"),
+                    $product->images->first() ? url("uploads/{$product->images->first()->image_path}") : '',
+                    isset($product->price) ? number_format($product->price, 2) . ' ' . ($product->currency ?? 'NGN') : '0 NGN',
+                    $product->is_active ? 'in stock' : 'out of stock',
+                    'new',
+                    'Alebaz',
+                ]);
+            }
+
+            fclose($handle);
+        });
+
+        // ✅ Add proper UTF-8 content type so Excel detects it
+        $response->headers->set('Content-Type', 'application/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="merchant_feed.csv"');
+
+        return $response;
+    }
 
 }

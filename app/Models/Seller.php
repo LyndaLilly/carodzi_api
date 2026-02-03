@@ -1,11 +1,12 @@
 <?php
 namespace App\Models;
 
+use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\DatabaseNotification;
-
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class Seller extends Authenticatable
@@ -92,6 +93,11 @@ class Seller extends Authenticatable
         return $this->hasMany(\App\Models\ProductUpload::class, 'seller_id', 'id');
     }
 
+    public function productCount(): int
+    {
+        return $this->products()->count();
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class, 'seller_id');
@@ -102,9 +108,23 @@ class Seller extends Authenticatable
         return $this->hasMany(\App\Models\SellerProfileView::class, 'seller_id');
     }
 
-       public function notifications()
+    public function notifications()
     {
         return $this->morphMany(DatabaseNotification::class, 'notifiable')->orderBy('created_at', 'desc');
+    }
+
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        if (! $this->subscription) {
+            return false;
+        }
+
+        return $this->subscription->isValid();
     }
 
 }
