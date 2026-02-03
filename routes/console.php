@@ -4,6 +4,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use App\Models\Promote;
+use App\Models\Subscription;
 
 
 Artisan::command('inspire', function () {
@@ -23,4 +24,16 @@ Schedule::call(function () {
         ]);
 
     Log::info("🧹 Expired {$expired} promotions at " . now());
+})->everyMinute();
+
+
+Schedule::call(function () {
+    $expired = Subscription::where('is_active', true)
+        ->where('expires_at', '<', now())
+        ->update([
+            'is_active'  => false,
+            'expires_at' => now(),
+        ]);
+
+    Log::info("🧹 Expired {$expired} subscriptions at " . now());
 })->everyMinute();
