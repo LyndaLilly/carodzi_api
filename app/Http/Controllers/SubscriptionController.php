@@ -27,7 +27,8 @@ class SubscriptionController extends Controller
             $response = Http::withToken(env('PAYSTACK_SECRET_KEY'))
                 ->post('https://api.paystack.co/transaction/initialize', [
                     'email' => $seller->email,
-                    'amount' => 5000000, // ₦50,000 in kobo
+                    // 'amount' => 5000000, // ₦50,000 in kobo
+                    'amount' => 5000, // ₦50 in kobo
                     'reference' => $reference,
                     'callback_url' => $callbackUrl,
                 ]);
