@@ -1,19 +1,18 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Seller;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
-use Yabacon\Paystack;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SubscriptionController extends Controller
 {
-    protected $paystack;
-
-    public function __construct()
-    {
-        $this->paystack = new Paystack(env('PAYSTACK_SECRET_KEY'));
-    }
-
+    /**
+     * Initialize Paystack Payment
+     */
     public function initializePayment(Request $request)
     {
         $request->validate([
@@ -21,77 +20,86 @@ class SubscriptionController extends Controller
         ]);
 
         $seller = Seller::findOrFail($request->seller_id);
-
         $reference = 'SUBS_' . time() . '_' . uniqid();
-
-        $paymentData = [
-            'amount'       => 5000000, // 50,000 NGN in kobo
-            'email'        => $seller->email,
-            'reference'    => $reference,
-            'callback_url' => route('subscription.verify', ['seller_id' => $seller->id]),
-        ];
+        $callbackUrl = route('subscription.verify', ['seller_id' => $seller->id]);
 
         try {
-            $tran = $this->paystack->transaction->initialize($paymentData);
+            $response = Http::withToken(env('PAYSTACK_SECRET_KEY'))
+                ->post('https://api.paystack.co/transaction/initialize', [
+                    'email' => $seller->email,
+                    'amount' => 5000000, // ₦50,000 in kobo
+                    'reference' => $reference,
+                    'callback_url' => $callbackUrl,
+                ]);
+
+            $data = $response->json();
+
+            if ($data['status']) {
+                return response()->json([
+                    'success' => true,
+                    'authorization_url' => $data['data']['authorization_url'],
+                    'reference' => $data['data']['reference'],
+                ]);
+            }
 
             return response()->json([
-                'success'           => true,
-                'authorization_url' => $tran->data->authorization_url,
-                'reference'         => $tran->data->reference,
-            ]);
+                'success' => false,
+                'message' => $data['message'] ?? 'Failed to initialize payment',
+            ], 400);
         } catch (\Exception $e) {
+            Log::error('Paystack initialization error', ['message' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Payment initialization failed: ' . $e->getMessage(),
+                'message' => 'Payment initialization failed. Check logs.',
             ], 500);
         }
     }
 
+    /**
+     * Verify Paystack Payment
+     */
     public function verifyPayment(Request $request)
     {
-        $seller_id = $request->query('seller_id'); // From Paystack callback
-        $reference = $request->query('reference'); // From Paystack callback
+        $seller_id = $request->query('seller_id');
+        $reference = $request->query('reference');
 
-        $seller = \App\Models\Seller::findOrFail($seller_id);
+        $seller = Seller::findOrFail($seller_id);
 
         try {
-            // Verify transaction with Paystack
-            $tran = $this->paystack->transaction->verify([
-                'reference' => $reference,
-            ]);
+            $response = Http::withToken(env('PAYSTACK_SECRET_KEY'))
+                ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
-            // Check if payment was successful
-            if ($tran->data->status === 'success') {
+            $data = $response->json();
+
+            if ($data['status'] && $data['data']['status'] === 'success') {
                 // Create or update yearly subscription
-                $subscription = \App\Models\Subscription::updateOrCreate(
+                $subscription = Subscription::updateOrCreate(
                     ['seller_id' => $seller->id],
                     [
-                        'plan'       => 'yearly',
-                        'starts_at'  => now(),
+                        'plan' => 'yearly',
+                        'starts_at' => now(),
                         'expires_at' => now()->addYear(),
-                        'is_active'  => true,
+                        'is_active' => true,
                     ]
                 );
 
                 return response()->json([
-                    'success'      => true,
-                    'message'      => 'Payment successful, subscription activated.',
+                    'success' => true,
+                    'message' => 'Payment successful, subscription activated.',
                     'subscription' => $subscription,
                 ]);
             }
 
-            // Payment failed
             return response()->json([
                 'success' => false,
                 'message' => 'Payment not successful.',
-            ]);
-
+            ], 400);
         } catch (\Exception $e) {
+            Log::error('Paystack verification error', ['message' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Payment verification failed: ' . $e->getMessage(),
+                'message' => 'Payment verification failed. Check logs.',
             ], 500);
         }
     }
-
 }
