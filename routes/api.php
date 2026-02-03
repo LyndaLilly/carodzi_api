@@ -280,3 +280,4 @@ Route::get('/subscriptions/expire', [SubscriptionController::class, 'expireSubsc
 
 Route::post('/seller/verify/initiate', [SellerVerificationController::class, 'initiatePayment']);
 Route::get('/seller/verify/callback', [SellerVerificationController::class, 'handleCallback'])->name('seller.verification.callback');
+Route::get('/seller/verify/status', [SellerVerificationController::class, 'checkVerification'])->middleware('auth:sanctum');
