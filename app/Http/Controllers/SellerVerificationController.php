@@ -8,64 +8,53 @@ use Illuminate\Support\Str;
 
 class SellerVerificationController extends Controller
 {
-    // 🔹 Initiate a verification payment
+
     public function initiatePayment(Request $request)
     {
-        try {
-            $seller = $request->user();
+        $request->validate([
+            'seller_id' => 'required|exists:sellers,id',
+        ]);
 
-            $amount    = 5000 * 100;
-            $reference = 'ALEBAZ-SVP-' . Str::upper(Str::random(12));
+        $seller = \App\Models\Seller::find($request->seller_id);
+        $amount = 5000 * 100;
 
-            // Save pending payment record
-            $payment = SellerVerificationPayment::create([
-                'seller_id' => $seller->id,
-                'reference' => $reference,
-                'amount'    => 5000,
-                'status'    => 'pending',
-            ]);
+        // Unique reference
+        $reference = 'ALEBAZ-SVP-' . Str::upper(Str::random(12));
 
-            // Call Paystack
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
-                'Content-Type'  => 'application/json',
-            ])->post(env('PAYSTACK_BASE_URL') . '/transaction/initialize', [
-                'email'        => $seller->email,
-                'amount'       => $amount,
-                'reference'    => $reference,
-                'currency'     => 'NGN',
-                'callback_url' => route('seller.verification.callback'),
-                'metadata'     => [
-                    'seller_id'  => $seller->id,
-                    'payment_id' => $payment->id,
-                ],
-            ]);
+        // Save pending record
+        $payment = SellerVerificationPayment::create([
+            'seller_id' => $seller->id,
+            'reference' => $reference,
+            'amount'    => 5000, // Naira
+            'status'    => 'pending',
+        ]);
 
-            $result = $response->json();
+        // Call Paystack
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+            'Content-Type'  => 'application/json',
+        ])->post(env('PAYSTACK_BASE_URL') . '/transaction/initialize', [
+            'email'        => $seller->email,
+            'amount'       => $amount,
+            'reference'    => $reference,
+            'currency'     => 'NGN',
+            'callback_url' => route('seller.verification.callback'),
+            'metadata'     => [
+                'seller_id'  => $seller->id,
+                'payment_id' => $payment->id,
+            ],
+        ]);
 
-            if (! $result) {
-                return response()->json(['message' => 'No response from Paystack'], 500);
-            }
+        $result = $response->json();
 
-            if ($result['status'] === true) {
-                return response()->json([
-                    'authorization_url' => $result['data']['authorization_url'],
-                    'reference'         => $reference,
-                    'success'           => true,
-                ]);
-            }
-
+        if ($result['status'] === true) {
             return response()->json([
-                'message' => $result['message'] ?? 'Unable to initiate payment',
-            ], 500);
-
-        } catch (\Exception $e) {
-            // Log error for debugging
-            \Log::error('Seller verification payment error: ' . $e->getMessage(), [
-                'stack' => $e->getTraceAsString(),
+                'authorization_url' => $result['data']['authorization_url'],
+                'reference'         => $reference,
             ]);
-            return response()->json(['message' => 'Server error: ' . $e->getMessage()], 500);
         }
+
+        return response()->json(['message' => 'Unable to initiate payment'], 500);
     }
 
     // 🔹 Paystack callback

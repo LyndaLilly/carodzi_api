@@ -130,7 +130,7 @@ class Seller extends Authenticatable
 
     public function verificationPayments()
     {
-        return $this->hasMany(SellerVerificationPayment::class, 'seller_id', 'id');
+        return $this->hasMany(SellerVerificationPayment::class);
     }
 
 }
