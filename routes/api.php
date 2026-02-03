@@ -47,7 +47,6 @@ Route::post('/paystack/webhook', [PromoteController::class, 'handlePaystackWebho
 Route::get('/crypto/price', [PromoteController::class, 'getCryptoPrice']);
 Route::middleware('auth:sanctum')->get('/seller/promote/check', [PromoteController::class, 'checkActive']);
 
-// Admin route to approve crypto promotion (protect with admin middleware)
 Route::post('/promote/{id}/approve', [PromoteController::class, 'approve']);
 Route::get('/promotions/expire', [PromoteController::class, 'expirePromotions']);
 
@@ -281,4 +280,9 @@ Route::post('/newsletter', [NewsletterController::class, 'subscribe']);
 Route::post('/subscription/init', [SubscriptionController::class, 'initializePayment']);
 
 Route::get('/subscription/verify', [SubscriptionController::class, 'verifyPayment'])->name('subscription.verify');
+
+Route::middleware('auth:sanctum')->get('/seller/{sellerId}/check', [SubscriptionController::class, 'checkActive']);
+
+
+Route::get('/subscriptions/expire', [SubscriptionController::class, 'expireSubscriptions']);
 
