@@ -19,6 +19,7 @@ use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\WishController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -274,3 +275,10 @@ Route::post('/shares', [BlogController::class, 'share']);
 
 
 Route::post('/newsletter', [NewsletterController::class, 'subscribe']);
+
+
+
+Route::post('/subscription/init', [SubscriptionController::class, 'initializePayment']);
+
+Route::get('/subscription/verify', [SubscriptionController::class, 'verifyPayment'])->name('subscription.verify');
+
