@@ -16,18 +16,10 @@ class SellerVerificationController extends Controller
         ]);
 
         $seller = \App\Models\Seller::find($request->seller_id);
-        $amount = 5000 * 100;
+        $amount = 5000 * 100; // in Kobo
 
         // Unique reference
         $reference = 'ALEBAZ-SVP-' . Str::upper(Str::random(12));
-
-        // Save pending record
-        $payment = SellerVerificationPayment::create([
-            'seller_id' => $seller->id,
-            'reference' => $reference,
-            'amount'    => 5000, // Naira
-            'status'    => 'pending',
-        ]);
 
         // Call Paystack
         $response = Http::withHeaders([
@@ -40,8 +32,7 @@ class SellerVerificationController extends Controller
             'currency'     => 'NGN',
             'callback_url' => route('seller.verification.callback'),
             'metadata'     => [
-                'seller_id'  => $seller->id,
-                'payment_id' => $payment->id,
+                'seller_id' => $seller->id,
             ],
         ]);
 
@@ -57,7 +48,7 @@ class SellerVerificationController extends Controller
         return response()->json(['message' => 'Unable to initiate payment'], 500);
     }
 
-    // 🔹 Paystack callback
+// 🔹 Paystack callback
     public function handleCallback(Request $request)
     {
         $reference = $request->query('reference');
@@ -75,19 +66,22 @@ class SellerVerificationController extends Controller
         $result = $response->json();
 
         if ($result['status'] === true && $result['data']['status'] === 'success') {
-            // Update payment record
-            $payment = SellerVerificationPayment::where('reference', $reference)->firstOrFail();
+            $sellerId = $result['data']['metadata']['seller_id'];
+            $seller   = \App\Models\Seller::findOrFail($sellerId);
 
-            $payment->update([
+            // Create payment record only now
+            $payment = SellerVerificationPayment::create([
+                'seller_id'  => $seller->id,
+                'reference'  => $reference,
+                'amount'     => 5000, // Naira
                 'status'     => 'success',
                 'paid_at'    => now(),
                 'starts_at'  => now(),
-                'ends_at'    => now()->addYear(), // active for 1 year
+                'ends_at'    => now()->addYear(),
                 'expires_at' => now()->addYear(),
             ]);
 
             // Update seller verified status
-            $seller           = $payment->seller;
             $seller->verified = true;
             $seller->save();
 
@@ -96,6 +90,7 @@ class SellerVerificationController extends Controller
         }
 
         return redirect()->route('seller.dashboard')
-            ->with('error', 'Payment failed or not verified');
+            ->with('error', 'Payment was unsuccessful or cancelled. No record saved.');
     }
+
 }
