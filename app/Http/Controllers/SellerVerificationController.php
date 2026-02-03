@@ -1,60 +1,71 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\SellerVerificationPayment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
-use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class SellerVerificationController extends Controller
 {
     // 🔹 Initiate a verification payment
     public function initiatePayment(Request $request)
     {
-        $seller = $request->user(); // Assuming auth:seller middleware
+        try {
+            $seller = $request->user();
 
-        // Amount in Naira, convert to kobo for Paystack
-        $amount = 5000 * 100; // e.g., 5000 Naira
+            $amount    = 5000 * 100;
+            $reference = 'ALEBAZ-SVP-' . Str::upper(Str::random(12));
 
-        // Unique reference
-        $reference = 'ALEBAZ-SVP-' . Str::upper(Str::random(12));
-
-        // Save pending record
-        $payment = SellerVerificationPayment::create([
-            'seller_id' => $seller->id,
-            'reference' => $reference,
-            'amount' => 5000, // Naira
-            'status' => 'pending',
-        ]);
-
-        // Call Paystack
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
-            'Content-Type' => 'application/json',
-        ])->post(env('PAYSTACK_BASE_URL') . '/transaction/initialize', [
-            'email' => $seller->email,
-            'amount' => $amount,
-            'reference' => $reference,
-            'currency' => 'NGN',
-            'callback_url' => route('seller.verification.callback'),
-            'metadata' => [
+            // Save pending payment record
+            $payment = SellerVerificationPayment::create([
                 'seller_id' => $seller->id,
-                'payment_id' => $payment->id,
-            ],
-        ]);
-
-        $result = $response->json();
-
-        if ($result['status'] === true) {
-            return response()->json([
-                'authorization_url' => $result['data']['authorization_url'],
                 'reference' => $reference,
+                'amount'    => 5000,
+                'status'    => 'pending',
             ]);
-        }
 
-        return response()->json(['message' => 'Unable to initiate payment'], 500);
+            // Call Paystack
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+                'Content-Type'  => 'application/json',
+            ])->post(env('PAYSTACK_BASE_URL') . '/transaction/initialize', [
+                'email'        => $seller->email,
+                'amount'       => $amount,
+                'reference'    => $reference,
+                'currency'     => 'NGN',
+                'callback_url' => route('seller.verification.callback'),
+                'metadata'     => [
+                    'seller_id'  => $seller->id,
+                    'payment_id' => $payment->id,
+                ],
+            ]);
+
+            $result = $response->json();
+
+            if (! $result) {
+                return response()->json(['message' => 'No response from Paystack'], 500);
+            }
+
+            if ($result['status'] === true) {
+                return response()->json([
+                    'authorization_url' => $result['data']['authorization_url'],
+                    'reference'         => $reference,
+                    'success'           => true,
+                ]);
+            }
+
+            return response()->json([
+                'message' => $result['message'] ?? 'Unable to initiate payment',
+            ], 500);
+
+        } catch (\Exception $e) {
+            // Log error for debugging
+            \Log::error('Seller verification payment error: ' . $e->getMessage(), [
+                'stack' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Server error: ' . $e->getMessage()], 500);
+        }
     }
 
     // 🔹 Paystack callback
@@ -62,7 +73,7 @@ class SellerVerificationController extends Controller
     {
         $reference = $request->query('reference');
 
-        if (!$reference) {
+        if (! $reference) {
             return redirect()->route('seller.dashboard')
                 ->with('error', 'Invalid payment reference');
         }
@@ -79,15 +90,15 @@ class SellerVerificationController extends Controller
             $payment = SellerVerificationPayment::where('reference', $reference)->firstOrFail();
 
             $payment->update([
-                'status' => 'success',
-                'paid_at' => now(),
-                'starts_at' => now(),
-                'ends_at' => now()->addYear(),      // active for 1 year
+                'status'     => 'success',
+                'paid_at'    => now(),
+                'starts_at'  => now(),
+                'ends_at'    => now()->addYear(), // active for 1 year
                 'expires_at' => now()->addYear(),
             ]);
 
             // Update seller verified status
-            $seller = $payment->seller;
+            $seller           = $payment->seller;
             $seller->verified = true;
             $seller->save();
 
