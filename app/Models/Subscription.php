@@ -15,6 +15,7 @@ class Subscription extends Model
         'starts_at',
         'expires_at',
         'is_active',
+        'paystack_reference', // add reference
     ];
 
     protected $casts = [
@@ -23,19 +24,14 @@ class Subscription extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relationship: Subscription belongs to a Seller
-     */
     public function seller()
     {
         return $this->belongsTo(Seller::class);
     }
 
-    /**
-     * Check if subscription is still valid
-     */
     public function isValid()
     {
         return $this->is_active && $this->expires_at->isFuture();
     }
 }
+
