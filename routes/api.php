@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerProfileController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\DirectInquiryController;
+use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OtherProfileController;
 use App\Http\Controllers\ProductCategoryController;
@@ -16,13 +18,10 @@ use App\Http\Controllers\PromoteController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerNotificationController;
-use App\Http\Controllers\WishController;
-use App\Http\Controllers\BlogController;
-use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\SellerVerificationController;
+use App\Http\Controllers\WishController;
 use Illuminate\Support\Facades\Route;
-
-
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -231,8 +230,6 @@ Route::get('/admin/seller-subcategories/{categoryId}', [AdminController::class, 
 Route::get('/admin/seller-subcategories-all', [AdminController::class, 'getAllSubcategories']);
 Route::get('/sellers/by-subcategory/{subId}', [AdminController::class, 'getSellersBySubcategory']);
 
-
-
 Route::prefix('admin')->group(function () {
     Route::post('/register', [AdminAuthController::class, 'register']);
     Route::post('/login', [AdminAuthController::class, 'login']);
@@ -264,7 +261,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seller/update-password', [SellerController::class, 'updatePassword']);
 });
 
-
 Route::post('/createposts', [BlogController::class, 'storePost']);
 Route::get('/posts', [BlogController::class, 'index']);
 Route::get('/posts/{id}', [BlogController::class, 'show']);
@@ -272,10 +268,7 @@ Route::post('/comments', [BlogController::class, 'comment']);
 Route::post('/likes', [BlogController::class, 'like']);
 Route::post('/shares', [BlogController::class, 'share']);
 
-
 Route::post('/newsletter', [NewsletterController::class, 'subscribe']);
-
-
 
 Route::post('/subscription/init', [SubscriptionController::class, 'initializePayment']);
 
@@ -283,6 +276,7 @@ Route::get('/subscription/verify', [SubscriptionController::class, 'verifyPaymen
 
 Route::middleware('auth:sanctum')->get('/seller/{sellerId}/check', [SubscriptionController::class, 'checkActive']);
 
-
 Route::get('/subscriptions/expire', [SubscriptionController::class, 'expireSubscriptions']);
 
+Route::post('/seller/verify/initiate', [SellerVerificationController::class, 'initiatePayment']);
+Route::get('/seller/verify/callback', [SellerVerificationController::class, 'handleCallback'])->name('seller.verification.callback');
