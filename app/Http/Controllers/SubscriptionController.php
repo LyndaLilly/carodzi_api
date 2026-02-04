@@ -33,7 +33,7 @@ class SubscriptionController extends Controller
 
         $reference   = 'SUBS_' . time() . '_' . uniqid();
         $callbackUrl = route('subscription.verify', ['seller_id' => $seller->id]);
-        $amount = $request->plan === 'yearly' ? 5000 * 100 : 500 * 100; 
+        $amount      = $request->plan === 'yearly' ? 5000 * 100 : 500 * 100;
 
         try {
             $response = Http::withToken(env('PAYSTACK_SECRET_KEY'))
@@ -70,7 +70,9 @@ class SubscriptionController extends Controller
                 'success'           => true,
                 'authorization_url' => $data['data']['authorization_url'],
                 'reference'         => $data['data']['reference'],
+                'amount'            => $amount, // ✅ add this
             ]);
+
         } catch (\Exception $e) {
             Log::error('Paystack initialization error', ['message' => $e->getMessage()]);
             return response()->json([
@@ -143,7 +145,6 @@ class SubscriptionController extends Controller
             'message'    => $active ? 'Active subscription until ' . $active->expires_at->format('M d, Y') : null,
         ]);
     }
-
 
     public function expireSubscriptions()
     {

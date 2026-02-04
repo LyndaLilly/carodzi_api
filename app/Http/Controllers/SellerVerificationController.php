@@ -1,9 +1,8 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\SellerVerificationPayment;
 use App\Models\Seller;
+use App\Models\SellerVerificationPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -17,8 +16,8 @@ class SellerVerificationController extends Controller
             'seller_id' => 'required|exists:sellers,id',
         ]);
 
-        $seller = Seller::find($request->seller_id);
-        $amount = 5000 * 100; 
+        $seller    = Seller::find($request->seller_id);
+        $amount    = 5000 * 100;
         $reference = 'ALEBAZ-SVP-' . Str::upper(Str::random(12));
 
         // Call Paystack
@@ -49,9 +48,6 @@ class SellerVerificationController extends Controller
 
     public function verifyPayment(Request $request)
     {
-        Log::info('VERIFY PAYMENT START', [
-            'request' => $request->all(),
-        ]);
 
         try {
             $request->validate([
@@ -82,14 +78,14 @@ class SellerVerificationController extends Controller
 
                 // Save payment record now
                 $payment = SellerVerificationPayment::create([
-                    'seller_id'   => $result['data']['metadata']['seller_id'],
-                    'reference'   => $result['data']['reference'],
-                    'amount'      => $result['data']['amount'] / 100, // convert kobo to Naira
-                    'status'      => 'success',
-                    'paid_at'     => now(),
-                    'starts_at'   => now(),
-                    'ends_at'     => now()->addYear(),
-                    'expires_at'  => now()->addYear(),
+                    'seller_id'  => $result['data']['metadata']['seller_id'],
+                    'reference'  => $result['data']['reference'],
+                    'amount'     => $result['data']['amount'] / 100, // convert kobo to Naira
+                    'status'     => 'success',
+                    'paid_at'    => now(),
+                    'starts_at'  => now(),
+                    'ends_at'    => now()->addYear(),
+                    'expires_at' => now()->addYear(),
                 ]);
 
                 $seller = $payment->seller;
@@ -107,10 +103,6 @@ class SellerVerificationController extends Controller
                     'message' => 'Seller verified successfully',
                 ]);
             }
-
-            Log::warning('PAYMENT NOT SUCCESSFUL', [
-                'paystack_result' => $result,
-            ]);
 
             return response()->json([
                 'success' => false,
