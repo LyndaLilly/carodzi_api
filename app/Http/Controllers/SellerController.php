@@ -391,6 +391,7 @@ class SellerController extends Controller
             'profile',
             'professionalProfile',
             'subcategory',
+
         ]);
 
         // Normalize file URLs
@@ -406,12 +407,14 @@ class SellerController extends Controller
                 $seller->professionalProfile->certificate_file = url('storage/' . $seller->professionalProfile->certificate_file);
             }
         }
+ 
+        $seller->payment_verified = $seller->verificationPayments()
+            ->where('status', 'success')
+            ->exists();
 
         return response()->json([
             'seller'  => $seller,
-            'profile' => $seller->is_professional
-                ? $seller->professionalProfile
-                : $seller->profile,
+            'profile' => $seller->is_professional ? $seller->professionalProfile : $seller->profile,
         ]);
     }
 

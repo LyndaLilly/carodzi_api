@@ -1,8 +1,8 @@
 <?php
 namespace App\Models;
 
-use App\Models\Subscription;
 use App\Models\SellerVerificationPayment;
+use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -131,6 +131,13 @@ class Seller extends Authenticatable
     public function verificationPayments()
     {
         return $this->hasMany(SellerVerificationPayment::class);
+    }
+
+    public function isPaymentVerified()
+    {
+        return $this->verificationPayments()
+            ->where('status', 'success')
+            ->exists();
     }
 
 }
