@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class SellerVerificationController extends Controller
 {
-    
+
     public function initiatePayment(Request $request)
     {
         $request->validate([
@@ -55,6 +55,58 @@ class SellerVerificationController extends Controller
         }
 
         return response()->json(['message' => 'Unable to initiate payment'], 500);
+    }
+
+    public function verifyPayment(Request $request)
+    {
+        $request->validate([
+            'reference' => 'required|string',
+        ]);
+
+        $payment = SellerVerificationPayment::where(
+            'reference',
+            $request->reference
+        )->first();
+
+        if (! $payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment record not found',
+            ], 404);
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+        ])->get(env('PAYSTACK_BASE_URL') . "/transaction/verify/{$request->reference}");
+
+        $result = $response->json();
+
+        if (
+            $result['status'] === true &&
+            $result['data']['status'] === 'success'
+        ) {
+            $payment->update([
+                'status'     => 'success',
+                'paid_at'    => now(),
+                'starts_at'  => now(),
+                'ends_at'    => now()->addYear(),
+                'expires_at' => now()->addYear(),
+            ]);
+
+            $seller           = $payment->seller;
+            $seller->verified = true;
+            $seller->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Seller verified successfully',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Payment verification failed',
+        ], 400);
     }
 
     // 🔹 Paystack callback
