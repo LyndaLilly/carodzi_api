@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\SellerVerificationPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SellerVerificationController extends Controller
@@ -59,54 +60,102 @@ class SellerVerificationController extends Controller
 
     public function verifyPayment(Request $request)
     {
-        $request->validate([
-            'reference' => 'required|string',
+        Log::info('VERIFY PAYMENT START', [
+            'request' => $request->all(),
         ]);
 
-        $payment = SellerVerificationPayment::where(
-            'reference',
-            $request->reference
-        )->first();
+        try {
+            $request->validate([
+                'reference' => 'required|string',
+            ]);
 
-        if (! $payment) {
+            Log::info('REFERENCE RECEIVED', [
+                'reference' => $request->reference,
+            ]);
+
+            $payment = SellerVerificationPayment::where(
+                'reference',
+                $request->reference
+            )->first();
+
+            if (! $payment) {
+                Log::warning('PAYMENT NOT FOUND', [
+                    'reference' => $request->reference,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment record not found',
+                ], 404);
+            }
+
+            Log::info('PAYMENT FOUND', [
+                'payment_id' => $payment->id,
+            ]);
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+            ])->get(
+                env('PAYSTACK_BASE_URL') . "/transaction/verify/{$request->reference}"
+            );
+
+            Log::info('PAYSTACK RESPONSE RAW', [
+                'status' => $response->status(),
+                'body'   => $response->json(),
+            ]);
+
+            $result = $response->json();
+
+            if (
+                isset($result['status']) &&
+                $result['status'] === true &&
+                $result['data']['status'] === 'success'
+            ) {
+                Log::info('PAYMENT VERIFIED SUCCESSFULLY');
+
+                $payment->update([
+                    'status'     => 'success',
+                    'paid_at'    => now(),
+                    'starts_at'  => now(),
+                    'ends_at'    => now()->addYear(),
+                    'expires_at' => now()->addYear(),
+                ]);
+
+                $seller = $payment->seller;
+
+                Log::info('SELLER FOUND', [
+                    'seller_id' => $seller?->id,
+                ]);
+
+                $seller->verified = true;
+                $seller->save();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Seller verified successfully',
+                ]);
+            }
+
+            Log::error('PAYMENT VERIFICATION FAILED', [
+                'paystack_result' => $result,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Payment record not found',
-            ], 404);
-        }
+                'message' => 'Payment verification failed',
+            ], 400);
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
-        ])->get(env('PAYSTACK_BASE_URL') . "/transaction/verify/{$request->reference}");
-
-        $result = $response->json();
-
-        if (
-            $result['status'] === true &&
-            $result['data']['status'] === 'success'
-        ) {
-            $payment->update([
-                'status'     => 'success',
-                'paid_at'    => now(),
-                'starts_at'  => now(),
-                'ends_at'    => now()->addYear(),
-                'expires_at' => now()->addYear(),
+        } catch (\Throwable $e) {
+            Log::critical('VERIFY PAYMENT CRASHED', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
             ]);
-
-            $seller           = $payment->seller;
-            $seller->verified = true;
-            $seller->save();
 
             return response()->json([
-                'success' => true,
-                'message' => 'Seller verified successfully',
-            ]);
+                'success' => false,
+                'message' => 'Server error during verification',
+            ], 500);
         }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Payment verification failed',
-        ], 400);
     }
 
     // 🔹 Paystack callback
