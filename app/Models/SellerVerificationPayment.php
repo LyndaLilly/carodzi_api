@@ -18,9 +18,14 @@ class SellerVerificationPayment extends Model
     ];
 
     protected $casts = [
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
+        'starts_at'  => 'datetime',
+        'ends_at'    => 'datetime',
         'expires_at' => 'datetime',
-        'paid_at' => 'datetime',
+        'paid_at'    => 'datetime',
     ];
+
+    public function seller()
+    {
+        return $this->belongsTo(\App\Models\Seller::class, 'seller_id');
+    }
 }
