@@ -23,7 +23,7 @@ Schedule::call(function () {
             'expired_at' => now(),
         ]);
 
-    Log::info("🧹 Expired {$expired} promotions at " . now());
+    // Log::info("🧹 Expired {$expired} promotions at " . now());
 })->everyMinute();
 
 
@@ -35,5 +35,5 @@ Schedule::call(function () {
             'expires_at' => now(),
         ]);
 
-    Log::info("🧹 Expired {$expired} subscriptions at " . now());
+    // Log::info("🧹 Expired {$expired} subscriptions at " . now());
 })->everyMinute();
