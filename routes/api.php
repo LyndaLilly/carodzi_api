@@ -18,8 +18,8 @@ use App\Http\Controllers\PromoteController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerNotificationController;
-use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SellerVerificationController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\WishController;
 use Illuminate\Support\Facades\Route;
 
@@ -236,21 +236,18 @@ Route::prefix('admin')->group(function () {
     Route::middleware('auth:sanctum')->post('/logout', [AdminAuthController::class, 'adminlogout']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
-    Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
-    Route::get('/orders', [OrderController::class, 'index']);
-});
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/admin/product-category', [ProductCategoryController::class, 'storeCategory']);
-    Route::put('/admin/product-category/{id}', [ProductCategoryController::class, 'updateCategory']);
-    Route::delete('/admin/product-category/{id}', [ProductCategoryController::class, 'deleteCategory']);
+Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
+Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
+Route::get('/orders', [OrderController::class, 'index']);
 
-    Route::post('/admin/product-subcategory', [ProductCategoryController::class, 'storeSubcategory']);
-    Route::put('/admin/product-subcategory/{id}', [ProductCategoryController::class, 'updateSubcategory']);
-    Route::delete('/admin/product-subcategory/{id}', [ProductCategoryController::class, 'deleteSubcategory']);
-});
+Route::post('/admin/product-category', [ProductCategoryController::class, 'storeCategory']);
+Route::put('/admin/product-category/{id}', [ProductCategoryController::class, 'updateCategory']);
+Route::delete('/admin/product-category/{id}', [ProductCategoryController::class, 'deleteCategory']);
+
+Route::post('/admin/product-subcategory', [ProductCategoryController::class, 'storeSubcategory']);
+Route::put('/admin/product-subcategory/{id}', [ProductCategoryController::class, 'updateSubcategory']);
+Route::delete('/admin/product-subcategory/{id}', [ProductCategoryController::class, 'deleteSubcategory']);
 
 Route::get('/admin/product-categories', [ProductCategoryController::class, 'index']);
 
