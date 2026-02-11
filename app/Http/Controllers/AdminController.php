@@ -5,7 +5,7 @@ use App\Models\SellerCategory;
 use App\Models\SellerSubcategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -79,32 +79,199 @@ class AdminController extends Controller
         ]);
     }
 
+    public function getSellersBySubcategory($subId)
+    {
+        Log::info("Fetching sellers for subcategory ID: {$subId}"); // log the incoming subcategory ID
 
+        try {
+            $sellers = DB::table('sellers')
+                ->where('sub_category_id', $subId) // match your DB column name
+                ->select('id', 'firstname', 'lastname')
+                ->get();
 
-public function getSellersBySubcategory($subId)
+            Log::info("Sellers fetched:", ['count' => $sellers->count(), 'sellers' => $sellers]);
+
+            return response()->json([
+                'sellers' => $sellers,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error fetching sellers for subcategory ID {$subId}: " . $e->getMessage());
+
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getAllSellers()
+    {
+        \Log::info('Admin fetching all sellers with profiles');
+
+        try {
+            $sellers = \App\Models\Seller::with([
+                'profile',             // OtherProfile
+                'professionalProfile', // ProfessionalProfile
+                'subcategory',
+                'products.images',
+            ])->get();
+
+            // Add computed fields for profile image & business name
+            $sellers->transform(function ($seller) {
+                if ($seller->is_professional && $seller->professionalProfile) {
+                    $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
+                    $seller->business_name = $seller->professionalProfile->business_name ?? null;
+                } elseif ($seller->profile) {
+                    $seller->profile_image = $seller->profile->profile_image ?? null;
+                    $seller->business_name = $seller->profile->business_name ?? null;
+                } else {
+                    $seller->profile_image = null;
+                    $seller->business_name = null;
+                }
+
+                // Optional: attach is_verified field
+                $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
+                $seller->is_verified = ($seller->status == 1 && $autoVerify);
+
+                return $seller;
+            });
+
+            return response()->json([
+                'success' => true,
+                'sellers' => $sellers,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error fetching sellers: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch sellers',
+            ], 500);
+        }
+    }
+
+    public function viewSeller($sellerId)
 {
-    Log::info("Fetching sellers for subcategory ID: {$subId}"); // log the incoming subcategory ID
-
     try {
-        $sellers = DB::table('sellers')
-            ->where('sub_category_id', $subId) // match your DB column name
-            ->select('id', 'firstname', 'lastname')
-            ->get();
+        $seller = \App\Models\Seller::with(['profile', 'professionalProfile', 'subcategory', 'products.images'])
+            ->findOrFail($sellerId);
 
-        Log::info("Sellers fetched:", ['count' => $sellers->count(), 'sellers' => $sellers]);
+        if ($seller->is_professional && $seller->professionalProfile) {
+            $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
+            $seller->business_name = $seller->professionalProfile->business_name ?? null;
+        } elseif ($seller->profile) {
+            $seller->profile_image = $seller->profile->profile_image ?? null;
+            $seller->business_name = $seller->profile->business_name ?? null;
+        } else {
+            $seller->profile_image = null;
+            $seller->business_name = null;
+        }
+
+        $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
+        $seller->is_verified = ($seller->status == 1 && $autoVerify);
 
         return response()->json([
-            'sellers' => $sellers
+            'success' => true,
+            'seller'  => $seller
         ]);
-    } catch (\Exception $e) {
-        Log::error("Error fetching sellers for subcategory ID {$subId}: " . $e->getMessage());
-        
+    } catch (\Throwable $e) {
+        \Log::error("Error viewing seller: {$e->getMessage()}");
         return response()->json([
-            'error' => $e->getMessage()
+            'success' => false,
+            'message' => 'Seller not found'
+        ], 404);
+    }
+}
+
+public function updateSeller(Request $request, $sellerId)
+{
+    try {
+        $seller = \App\Models\Seller::findOrFail($sellerId);
+
+        // Validate basic fields (add more as needed)
+        $validated = $request->validate([
+            'firstname' => 'sometimes|string|max:255',
+            'lastname'  => 'sometimes|string|max:255',
+            'status'    => 'sometimes|boolean',
+            'is_professional' => 'sometimes|boolean',
+            'profile_image'   => 'nullable|image|max:2048',
+            // other seller-specific fields can be added
+        ]);
+
+        // Handle profile image update
+        if ($request->hasFile('profile_image')) {
+
+            // Determine which profile table to update
+            if ($seller->is_professional && $seller->professionalProfile) {
+                $profile = $seller->professionalProfile;
+            } else {
+                $profile = $seller->profile;
+            }
+
+            if ($profile && $profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
+                unlink(public_path("uploads/{$profile->profile_image}"));
+            }
+
+            $filename = time() . '_' . uniqid() . '.webp';
+            $image    = \Intervention\Image\Facades\Image::make($request->file('profile_image')->getRealPath())
+                ->orientate()
+                ->resize(1500, 1500, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                })
+                ->encode('webp', 80);
+
+            $uploadDir = public_path('uploads/profile_images');
+            if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
+            $image->save("{$uploadDir}/{$filename}");
+
+            if ($profile) {
+                $profile->update(['profile_image' => "profile_images/{$filename}"]);
+            }
+        }
+
+        $seller->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Seller updated successfully',
+            'seller'  => $seller->fresh()->load(['profile', 'professionalProfile', 'subcategory'])
+        ]);
+    } catch (\Throwable $e) {
+        \Log::error("Error updating seller: {$e->getMessage()}");
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update seller'
         ], 500);
     }
 }
 
+public function deleteSeller($sellerId)
+{
+    try {
+        $seller = \App\Models\Seller::findOrFail($sellerId);
+
+        // Delete profile images if exist
+        $profiles = [$seller->profile, $seller->professionalProfile];
+        foreach ($profiles as $profile) {
+            if ($profile && $profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
+                unlink(public_path("uploads/{$profile->profile_image}"));
+            }
+        }
+
+        $seller->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Seller deleted successfully'
+        ]);
+    } catch (\Throwable $e) {
+        \Log::error("Error deleting seller: {$e->getMessage()}");
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to delete seller'
+        ], 500);
+    }
+}
 
 
 }

@@ -278,3 +278,19 @@ Route::get('/subscriptions/expire', [SubscriptionController::class, 'expireSubsc
 Route::post('/seller/verify/initiate', [SellerVerificationController::class, 'initiatePayment']);
 Route::get('/seller/verify/callback', [SellerVerificationController::class, 'handleCallback'])->name('seller.verification.callback');
 Route::post('/seller/verify-payment', [SellerVerificationController::class, 'verifyPayment']);
+
+
+Route::prefix('admin')->group(function () {
+
+    // Fetch all sellers (optionally by subcategory)
+    Route::get('sellers', [AdminController::class, 'getAllSellers']);
+
+    // View single seller with profile
+    Route::get('sellers/{sellerId}', [AdminController::class, 'viewSeller']);
+
+    // Update any seller info (admin can update profile, image, etc.)
+    Route::post('sellers/{sellerId}/update', [AdminController::class, 'updateSeller']);
+
+    // Delete seller
+    Route::delete('sellers/{sellerId}', [AdminController::class, 'deleteSeller']);
+});
