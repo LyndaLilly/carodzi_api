@@ -282,15 +282,11 @@ Route::post('/seller/verify-payment', [SellerVerificationController::class, 'ver
 
 Route::prefix('admin')->group(function () {
 
-    // Fetch all sellers (optionally by subcategory)
     Route::get('sellers', [AdminController::class, 'getAllSellers']);
 
-    // View single seller with profile
-    Route::get('sellers/{sellerId}', [AdminController::class, 'viewSeller']);
+    Route::get('sellers/view/{sellerId}', [AdminController::class, 'viewSeller']);
 
-    // Update any seller info (admin can update profile, image, etc.)
     Route::post('sellers/{sellerId}/update', [AdminController::class, 'updateSeller']);
 
-    // Delete seller
     Route::delete('sellers/delete/{sellerId}', [AdminController::class, 'deleteSeller']);
 });
