@@ -286,7 +286,7 @@ Route::prefix('admin')->group(function () {
 
     Route::get('sellers/view/{sellerId}', [AdminController::class, 'viewSeller']);
 
-    Route::post('sellers/{sellerId}/update', [AdminController::class, 'updateSeller']);
+    Route::post('sellers/update/{sellerId}/', [AdminController::class, 'updateSeller']);
 
     Route::delete('sellers/delete/{sellerId}', [AdminController::class, 'deleteSeller']);
 });
