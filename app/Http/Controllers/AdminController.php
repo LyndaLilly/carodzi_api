@@ -329,6 +329,73 @@ class AdminController extends Controller
         }
     }
 
+ public function getAllProducts()
+{
+    try {
+        \Log::info("Fetching all products for admin...");
+
+        $products = ProductUpload::with([
+            'seller:id,firstname,lastname',
+            'seller.profile:id,seller_id,business_name',
+            'seller.professionalProfile:id,seller_id,business_name',
+            'images:id,product_id,image',
+        ])
+            ->select('id', 'seller_id', 'name')
+            ->get();
+
+        \Log::info("Products fetched from DB:", ['count' => $products->count()]);
+
+        $products = $products->map(function ($product) {
+            \Log::info("Mapping product:", ['product_id' => $product->id]);
+
+            // Get first image only
+            $image = optional($product->images->first())->image;
+
+            // Determine business name
+            $seller = $product->seller;
+
+            if (!$seller) {
+                \Log::warning("Product {$product->id} has no seller!");
+            }
+
+            $businessName = null;
+
+            if ($seller?->professionalProfile) {
+                $businessName = $seller->professionalProfile->business_name;
+            } elseif ($seller?->profile) {
+                $businessName = $seller->profile->business_name;
+            }
+
+            return [
+                'id'            => $product->id,
+                'name'          => $product->name,
+                'image'         => $image,
+                'firstname'     => $seller->firstname ?? null,
+                'lastname'      => $seller->lastname ?? null,
+                'business_name' => $businessName,
+            ];
+        });
+
+        \Log::info("Final products array prepared:", ['count' => $products->count()]);
+
+        return response()->json([
+            'success'  => true,
+            'products' => $products,
+        ]);
+
+    } catch (\Throwable $e) {
+        \Log::error("Error fetching admin products: " . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch products',
+        ], 500);
+    }
+}
+
+
     public function getDashboardStats()
     {
         try {
@@ -358,56 +425,6 @@ class AdminController extends Controller
 
   
 
-    public function getAllProducts()
-    {
-        try {
-            $products = ProductUpload::with([
-                'seller:id,firstname,lastname',
-                'seller.profile:id,seller_id,business_name',
-                'seller.professionalProfile:id,seller_id,business_name',
-                'images:id,product_id,image',
-            ])
-                ->select('id', 'seller_id', 'name')
-                ->get()
-                ->map(function ($product) {
-
-                    // Get first image only
-                    $image = optional($product->images->first())->image;
-
-                    // Determine business name
-                    $seller = $product->seller;
-
-                    $businessName = null;
-
-                    if ($seller->professionalProfile) {
-                        $businessName = $seller->professionalProfile->business_name;
-                    } elseif ($seller->profile) {
-                        $businessName = $seller->profile->business_name;
-                    }
-
-                    return [
-                        'id'            => $product->id,
-                        'name'          => $product->name,
-                        'image'         => $image,
-                        'firstname'     => $seller->firstname,
-                        'lastname'      => $seller->lastname,
-                        'business_name' => $businessName,
-                    ];
-                });
-
-            return response()->json([
-                'success'  => true,
-                'products' => $products,
-            ]);
-
-        } catch (\Throwable $e) {
-            \Log::error("Error fetching admin products: " . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch products',
-            ], 500);
-        }
-    }
+   
 
 }
