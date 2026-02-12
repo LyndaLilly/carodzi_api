@@ -302,6 +302,8 @@ Route::prefix('admin')->group(function () {
 
     Route::patch('verify-seller/{id}', [SellerController::class, 'toggleVerification']);
 
+    Route::get('all-products', [AdminController::class, 'getAllProducts']); 
+
     Route::get('dashboard-stats', [AdminController::class, 'getDashboardStats']);
 
 
