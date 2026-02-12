@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SellerCategory;
 use App\Models\SellerSubcategory;
+use App\Models\ProductUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -355,60 +356,58 @@ class AdminController extends Controller
         }
     }
 
-    use App\Models\ProductUpload;
-use Illuminate\Support\Facades\DB;
+  
 
-public function getAllProducts()
-{
-    try {
-        $products = ProductUpload::with([
-            'seller:id,firstname,lastname',
-            'seller.profile:id,seller_id,business_name',
-            'seller.professionalProfile:id,seller_id,business_name',
-            'images:id,product_id,image'
-        ])
-        ->select('id', 'seller_id', 'name')
-        ->get()
-        ->map(function ($product) {
+    public function getAllProducts()
+    {
+        try {
+            $products = ProductUpload::with([
+                'seller:id,firstname,lastname',
+                'seller.profile:id,seller_id,business_name',
+                'seller.professionalProfile:id,seller_id,business_name',
+                'images:id,product_id,image',
+            ])
+                ->select('id', 'seller_id', 'name')
+                ->get()
+                ->map(function ($product) {
 
-            // Get first image only
-            $image = optional($product->images->first())->image;
+                    // Get first image only
+                    $image = optional($product->images->first())->image;
 
-            // Determine business name
-            $seller = $product->seller;
+                    // Determine business name
+                    $seller = $product->seller;
 
-            $businessName = null;
+                    $businessName = null;
 
-            if ($seller->professionalProfile) {
-                $businessName = $seller->professionalProfile->business_name;
-            } elseif ($seller->profile) {
-                $businessName = $seller->profile->business_name;
-            }
+                    if ($seller->professionalProfile) {
+                        $businessName = $seller->professionalProfile->business_name;
+                    } elseif ($seller->profile) {
+                        $businessName = $seller->profile->business_name;
+                    }
 
-            return [
-                'id'            => $product->id,
-                'name'          => $product->name,
-                'image'         => $image,
-                'firstname'     => $seller->firstname,
-                'lastname'      => $seller->lastname,
-                'business_name' => $businessName,
-            ];
-        });
+                    return [
+                        'id'            => $product->id,
+                        'name'          => $product->name,
+                        'image'         => $image,
+                        'firstname'     => $seller->firstname,
+                        'lastname'      => $seller->lastname,
+                        'business_name' => $businessName,
+                    ];
+                });
 
-        return response()->json([
-            'success'  => true,
-            'products' => $products
-        ]);
+            return response()->json([
+                'success'  => true,
+                'products' => $products,
+            ]);
 
-    } catch (\Throwable $e) {
-        \Log::error("Error fetching admin products: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            \Log::error("Error fetching admin products: " . $e->getMessage());
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to fetch products'
-        ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch products',
+            ], 500);
+        }
     }
-}
-
 
 }
