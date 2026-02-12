@@ -150,125 +150,170 @@ class AdminController extends Controller
     }
 
     public function viewSeller($sellerId)
-{
-    try {
-        $seller = \App\Models\Seller::with(['profile', 'professionalProfile', 'subcategory', 'products.images'])
-            ->findOrFail($sellerId);
+    {
+        try {
+            $seller = \App\Models\Seller::with(['profile', 'professionalProfile', 'subcategory', 'products.images'])
+                ->findOrFail($sellerId);
 
-        if ($seller->is_professional && $seller->professionalProfile) {
-            $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
-            $seller->business_name = $seller->professionalProfile->business_name ?? null;
-        } elseif ($seller->profile) {
-            $seller->profile_image = $seller->profile->profile_image ?? null;
-            $seller->business_name = $seller->profile->business_name ?? null;
-        } else {
-            $seller->profile_image = null;
-            $seller->business_name = null;
-        }
-
-        $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
-        $seller->is_verified = ($seller->status == 1 && $autoVerify);
-
-        return response()->json([
-            'success' => true,
-            'seller'  => $seller
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error("Error viewing seller: {$e->getMessage()}");
-        return response()->json([
-            'success' => false,
-            'message' => 'Seller not found'
-        ], 404);
-    }
-}
-
-public function updateSeller(Request $request, $sellerId)
-{
-    try {
-        $seller = \App\Models\Seller::findOrFail($sellerId);
-
-        // Validate basic fields (add more as needed)
-        $validated = $request->validate([
-            'firstname' => 'sometimes|string|max:255',
-            'lastname'  => 'sometimes|string|max:255',
-            'status'    => 'sometimes|boolean',
-            'is_professional' => 'sometimes|boolean',
-            'profile_image'   => 'nullable|image|max:2048',
-            // other seller-specific fields can be added
-        ]);
-
-        // Handle profile image update
-        if ($request->hasFile('profile_image')) {
-
-            // Determine which profile table to update
             if ($seller->is_professional && $seller->professionalProfile) {
-                $profile = $seller->professionalProfile;
+                $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
+                $seller->business_name = $seller->professionalProfile->business_name ?? null;
+            } elseif ($seller->profile) {
+                $seller->profile_image = $seller->profile->profile_image ?? null;
+                $seller->business_name = $seller->profile->business_name ?? null;
             } else {
-                $profile = $seller->profile;
+                $seller->profile_image = null;
+                $seller->business_name = null;
             }
 
-            if ($profile && $profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
-                unlink(public_path("uploads/{$profile->profile_image}"));
-            }
+            $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
+            $seller->is_verified = ($seller->status == 1 && $autoVerify);
 
-            $filename = time() . '_' . uniqid() . '.webp';
-            $image    = \Intervention\Image\Facades\Image::make($request->file('profile_image')->getRealPath())
-                ->orientate()
-                ->resize(1500, 1500, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                })
-                ->encode('webp', 80);
-
-            $uploadDir = public_path('uploads/profile_images');
-            if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
-            $image->save("{$uploadDir}/{$filename}");
-
-            if ($profile) {
-                $profile->update(['profile_image' => "profile_images/{$filename}"]);
-            }
+            return response()->json([
+                'success' => true,
+                'seller'  => $seller,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error("Error viewing seller: {$e->getMessage()}");
+            return response()->json([
+                'success' => false,
+                'message' => 'Seller not found',
+            ], 404);
         }
-
-        $seller->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Seller updated successfully',
-            'seller'  => $seller->fresh()->load(['profile', 'professionalProfile', 'subcategory'])
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error("Error updating seller: {$e->getMessage()}");
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update seller'
-        ], 500);
     }
-}
 
-public function deleteSeller($sellerId)
+    public function updateSeller(Request $request, $sellerId)
+    {
+        try {
+            $seller = \App\Models\Seller::findOrFail($sellerId);
+
+            // Validate basic fields (add more as needed)
+            $validated = $request->validate([
+                'firstname'       => 'sometimes|string|max:255',
+                'lastname'        => 'sometimes|string|max:255',
+                'status'          => 'sometimes|boolean',
+                'is_professional' => 'sometimes|boolean',
+                'profile_image'   => 'nullable|image|max:2048',
+                // other seller-specific fields can be added
+            ]);
+
+            // Handle profile image update
+            if ($request->hasFile('profile_image')) {
+
+                // Determine which profile table to update
+                if ($seller->is_professional && $seller->professionalProfile) {
+                    $profile = $seller->professionalProfile;
+                } else {
+                    $profile = $seller->profile;
+                }
+
+                if ($profile && $profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
+                    unlink(public_path("uploads/{$profile->profile_image}"));
+                }
+
+                $filename = time() . '_' . uniqid() . '.webp';
+                $image    = \Intervention\Image\Facades\Image::make($request->file('profile_image')->getRealPath())
+                    ->orientate()
+                    ->resize(1500, 1500, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode('webp', 80);
+
+                $uploadDir = public_path('uploads/profile_images');
+                if (! file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+
+                $image->save("{$uploadDir}/{$filename}");
+
+                if ($profile) {
+                    $profile->update(['profile_image' => "profile_images/{$filename}"]);
+                }
+            }
+
+            $seller->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Seller updated successfully',
+                'seller'  => $seller->fresh()->load(['profile', 'professionalProfile', 'subcategory']),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error("Error updating seller: {$e->getMessage()}");
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update seller',
+            ], 500);
+        }
+    }
+
+    public function deleteSeller($sellerId)
+    {
+        try {
+            $seller = \App\Models\Seller::findOrFail($sellerId);
+
+            // Delete profile images if exist
+            $profiles = [$seller->profile, $seller->professionalProfile];
+            foreach ($profiles as $profile) {
+                if ($profile && $profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
+                    unlink(public_path("uploads/{$profile->profile_image}"));
+                }
+            }
+
+            $seller->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Seller deleted successfully',
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error("Error deleting seller: {$e->getMessage()}");
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete seller',
+            ], 500);
+        }
+    }
+
+    public function updateSellerCategory(Request $request, $sellerId)
 {
     try {
+        $request->validate([
+            'category_id'     => 'required|exists:sellers_category,id',
+            'sub_category_id' => 'required|exists:sellers_subcategory,id',
+            'is_professional' => 'required|boolean',
+        ]);
+
+        // 🔥 Find seller by ID (admin updating any seller)
         $seller = \App\Models\Seller::findOrFail($sellerId);
 
-        // Delete profile images if exist
-        $profiles = [$seller->profile, $seller->professionalProfile];
-        foreach ($profiles as $profile) {
-            if ($profile && $profile->profile_image && file_exists(public_path("uploads/{$profile->profile_image}"))) {
-                unlink(public_path("uploads/{$profile->profile_image}"));
-            }
-        }
+        // Get subcategory
+        $subCategory = \App\Models\SellerSubcategory::findOrFail($request->sub_category_id);
 
-        $seller->delete();
+        // Reset status when category changes
+        $seller->status = 0;
+
+        $seller->category_id     = $request->category_id;
+        $seller->sub_category_id = $request->sub_category_id;
+        $seller->is_professional = $request->is_professional;
+
+        $seller->save();
+
+        $seller->load(['profile', 'professionalProfile', 'subcategory']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Seller deleted successfully'
+            'message' => 'Seller category updated successfully.',
+            'seller'  => $seller,
         ]);
+
     } catch (\Throwable $e) {
-        \Log::error("Error deleting seller: {$e->getMessage()}");
+        \Log::error("Admin category update error: " . $e->getMessage());
+
         return response()->json([
             'success' => false,
-            'message' => 'Failed to delete seller'
+            'message' => 'Failed to update seller category',
         ], 500);
     }
 }

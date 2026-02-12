@@ -289,4 +289,7 @@ Route::prefix('admin')->group(function () {
     Route::post('sellers/update/{sellerId}/', [AdminController::class, 'updateSeller']);
 
     Route::delete('sellers/delete/{sellerId}', [AdminController::class, 'deleteSeller']);
+    
+    Route::post('update-seller-category/{sellerId}',[AdminController::class, 'updateSellerCategory']);
+
 });
