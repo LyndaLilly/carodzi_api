@@ -15,6 +15,7 @@ use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
 use App\Http\Controllers\AdminProfessionalProfileController;
+use App\Http\Controllers\AdminOtherProfileController;
 use App\Http\Controllers\PromoteController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
