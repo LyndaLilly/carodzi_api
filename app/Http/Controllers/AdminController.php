@@ -328,4 +328,33 @@ class AdminController extends Controller
         }
     }
 
+
+    public function getDashboardStats()
+{
+    try {
+        $totalSellers  = DB::table('sellers')->count();
+        $totalBuyers   = DB::table('buyers')->count();
+        $totalProducts = DB::table('productupload')->count();
+        $totalOrders   = DB::table('orders')->count();
+
+        return response()->json([
+            'success' => true,
+            'stats'   => [
+                'total_sellers'  => $totalSellers,
+                'total_buyers'   => $totalBuyers,
+                'total_products' => $totalProducts,
+                'total_orders'   => $totalOrders,
+            ]
+        ]);
+    } catch (\Throwable $e) {
+        \Log::error("Error fetching dashboard stats: " . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch dashboard stats'
+        ], 500);
+    }
+}
+
+
 }
