@@ -118,14 +118,17 @@ class AdminController extends Controller
             // Add computed fields for profile image & business name
             $sellers->transform(function ($seller) {
                 if ($seller->is_professional && $seller->professionalProfile) {
-                    $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
-                    $seller->business_name = $seller->professionalProfile->business_name ?? null;
+                    $seller->profile_image       = $seller->professionalProfile->profile_image ?? null;
+                    $seller->business_name       = $seller->professionalProfile->business_name ?? null;
+                    $seller->verification_number = $seller->professionalProfile->verification_number ?? null; // 👈 Add this
                 } elseif ($seller->profile) {
-                    $seller->profile_image = $seller->profile->profile_image ?? null;
-                    $seller->business_name = $seller->profile->business_name ?? null;
+                    $seller->profile_image       = $seller->profile->profile_image ?? null;
+                    $seller->business_name       = $seller->profile->business_name ?? null;
+                    $seller->verification_number = null; // no verification number
                 } else {
-                    $seller->profile_image = null;
-                    $seller->business_name = null;
+                    $seller->profile_image       = null;
+                    $seller->business_name       = null;
+                    $seller->verification_number = null;
                 }
 
                 // Optional: attach is_verified field
@@ -161,9 +164,11 @@ class AdminController extends Controller
 
             // Decide which profile to use
             if ($seller->is_professional && $seller->professionalProfile) {
-                $profile = $seller->professionalProfile;
+                $profile                     = $seller->professionalProfile;
+                $seller->verification_number = $profile->verification_number ?? null; // 👈 Add this
             } else {
-                $profile = $seller->profile;
+                $profile                     = $seller->profile;
+                $seller->verification_number = null;
             }
 
             $seller->profile_image = $profile->profile_image ?? null;

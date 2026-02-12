@@ -407,7 +407,7 @@ class SellerController extends Controller
                 $seller->professionalProfile->certificate_file = url('storage/' . $seller->professionalProfile->certificate_file);
             }
         }
- 
+
         $seller->payment_verified = $seller->verificationPayments()
             ->where('status', 'success')
             ->exists();
@@ -619,6 +619,24 @@ class SellerController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    public function toggleVerification($id, Request $request)
+    {
+        $seller = Seller::findOrFail($id);
+        $request->validate([
+            'is_verified' => 'required|boolean',
+        ]);
+
+        $seller->update([
+            'is_verified' => $request->is_verified,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Seller verification status updated successfully',
+            'seller'  => $seller,
         ]);
     }
 

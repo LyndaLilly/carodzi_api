@@ -300,5 +300,8 @@ Route::prefix('admin')->group(function () {
 
     Route::get('other-profile/{sellerId}', [AdminOtherProfileController::class, 'show']);
 
+    Route::patch('verify-seller/{id}', [SellerController::class, 'toggleVerification']);
+
+
 
 });
