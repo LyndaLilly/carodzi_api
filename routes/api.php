@@ -304,6 +304,8 @@ Route::prefix('admin')->group(function () {
 
     Route::get('all-products', [AdminController::class, 'getAllProducts']); 
 
+    Route::get('getorders', [AdminController::class, 'getAllOrders']);
+
     Route::get('dashboard-stats', [AdminController::class, 'getDashboardStats']);
 
 

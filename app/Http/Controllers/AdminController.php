@@ -329,67 +329,137 @@ class AdminController extends Controller
         }
     }
 
-  public function getAllProducts()
+    public function getAllProducts()
+    {
+        try {
+            \Log::info("Fetching all products for admin...");
+
+            $products = ProductUpload::with([
+                'seller:id,firstname,lastname',
+                'seller.profile:id,seller_id,business_name',
+                'seller.professionalProfile:id,seller_id,business_name',
+                'images:id,productupload_id,image_path', // ✅ fixed column name
+            ])
+                ->select('id', 'seller_id', 'name')
+                ->get();
+
+            \Log::info("Products fetched from DB:", ['count' => $products->count()]);
+
+            $products = $products->map(function ($product) {
+                \Log::info("Mapping product:", ['product_id' => $product->id]);
+
+                // Get first image only
+                $image = optional($product->images->first())->image_path;
+
+                // Determine business name
+                $seller = $product->seller;
+
+                $businessName = null;
+
+                if ($seller?->professionalProfile) {
+                    $businessName = $seller->professionalProfile->business_name;
+                } elseif ($seller?->profile) {
+                    $businessName = $seller->profile->business_name;
+                }
+
+                return [
+                    'id'            => $product->id,
+                    'name'          => $product->name,
+                    'image'         => $image,
+                    'firstname'     => $seller->firstname ?? null,
+                    'lastname'      => $seller->lastname ?? null,
+                    'business_name' => $businessName,
+                ];
+            });
+
+            \Log::info("Final products array prepared:", ['count' => $products->count()]);
+
+            return response()->json([
+                'success'  => true,
+                'products' => $products,
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error("Error fetching admin products: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch products',
+            ], 500);
+        }
+    }
+
+    public function getAllOrders()
 {
     try {
-        \Log::info("Fetching all products for admin...");
+        \Log::info("Fetching all orders for admin...");
 
-        $products = ProductUpload::with([
-            'seller:id,firstname,lastname',
-            'seller.profile:id,seller_id,business_name',
-            'seller.professionalProfile:id,seller_id,business_name',
-            'images:id,productupload_id,image_path', // ✅ fixed column name
+        // Load orders with product, product images, seller, and buyer info
+        $orders = \App\Models\Order::with([
+            'product.images',        // Load product images
+            'product.seller',        // Load seller of the product
+            'buyer',                 // Load buyer info
+            'seller.profile',        // Seller profile
+            'seller.professionalProfile', // Seller professional profile
         ])
-            ->select('id', 'seller_id', 'name')
-            ->get();
+        ->latest()
+        ->get();
 
-        \Log::info("Products fetched from DB:", ['count' => $products->count()]);
+        // Transform orders
+        $orders = $orders->map(function ($order) {
 
-        $products = $products->map(function ($product) {
-            \Log::info("Mapping product:", ['product_id' => $product->id]);
+            $product = $order->product;
+            $firstImage = $product?->images->first()?->image_path;
+            $image = $firstImage ? asset('public/uploads/' . $firstImage) : null;
 
-            // Get first image only
-            $image = optional($product->images->first())->image_path;
-
-            // Determine business name
-            $seller = $product->seller;
-
-            $businessName = null;
-
-            if ($seller?->professionalProfile) {
-                $businessName = $seller->professionalProfile->business_name;
-            } elseif ($seller?->profile) {
-                $businessName = $seller->profile->business_name;
-            }
+            $seller = $order->seller;
+            $profile = $seller?->is_professional ? $seller->professionalProfile : $seller?->profile;
 
             return [
-                'id'            => $product->id,
-                'name'          => $product->name,
-                'image'         => $image,
-                'firstname'     => $seller->firstname ?? null,
-                'lastname'      => $seller->lastname ?? null,
-                'business_name' => $businessName,
+                'order_id'       => $order->id,
+                'buyer'          => [
+                    'id'       => $order->buyer?->id,
+                    'name'     => $order->buyer?->firstname . ' ' . $order->buyer?->lastname,
+                    'email'    => $order->buyer?->email,
+                    'phone'    => $order->buyer?->phone,
+                ],
+                'product'        => [
+                    'id'          => $product->id,
+                    'name'        => $product->name,
+                    'price'       => $product->price,
+                    'image'       => $image,
+                ],
+                'seller'         => [
+                    'id'            => $seller?->id,
+                    'business_name' => $profile?->business_name ?? null,
+                    'email'         => $seller?->email,
+                ],
+                'quantity'       => $order->quantity,
+                'total_amount'   => $order->total_amount,
+                'payment_status' => $order->payment_status,
+                'status'         => $order->status,
+                'payment_method' => $order->payment_method,
+                'created_at'     => $order->created_at->format('Y-m-d H:i'),
             ];
         });
 
-        \Log::info("Final products array prepared:", ['count' => $products->count()]);
+        \Log::info("All orders fetched", ['count' => $orders->count()]);
 
         return response()->json([
-            'success'  => true,
-            'products' => $products,
+            'success' => true,
+            'orders'  => $orders,
         ]);
-
     } catch (\Throwable $e) {
-        \Log::error("Error fetching admin products: " . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-        ]);
-
+        \Log::error("Error fetching all orders: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         return response()->json([
             'success' => false,
-            'message' => 'Failed to fetch products',
+            'message' => 'Failed to fetch orders',
         ], 500);
     }
 }
+
 
     public function getDashboardStats()
     {
