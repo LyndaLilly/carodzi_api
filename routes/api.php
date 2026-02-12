@@ -293,4 +293,11 @@ Route::prefix('admin')->group(function () {
 
     Route::post('professional-profile-fill/{sellerId}', [AdminProfessionalProfileController::class, 'fillProfessionalProfile']);
 
+    Route::post('other-profile-fill/{sellerId}', [AdminOtherProfileController::class, 'store']);
+
+    Route::post('other-profile-update/{sellerId}', [AdminOtherProfileController::class, 'update']);
+
+    Route::get('other-profile/{sellerId}', [AdminOtherProfileController::class, 'show']);
+
+
 });
