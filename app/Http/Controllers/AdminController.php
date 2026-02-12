@@ -152,20 +152,24 @@ class AdminController extends Controller
     public function viewSeller($sellerId)
     {
         try {
-            $seller = \App\Models\Seller::with(['profile', 'professionalProfile', 'subcategory', 'products.images'])
-                ->findOrFail($sellerId);
+            $seller = \App\Models\Seller::with([
+                'profile',             // other_profiles
+                'professionalProfile', // professional_profiles
+                'subcategory.category',
+                'products.images',
+            ])->findOrFail($sellerId);
 
+            // Decide which profile to use
             if ($seller->is_professional && $seller->professionalProfile) {
-                $seller->profile_image = $seller->professionalProfile->profile_image ?? null;
-                $seller->business_name = $seller->professionalProfile->business_name ?? null;
-            } elseif ($seller->profile) {
-                $seller->profile_image = $seller->profile->profile_image ?? null;
-                $seller->business_name = $seller->profile->business_name ?? null;
+                $profile = $seller->professionalProfile;
             } else {
-                $seller->profile_image = null;
-                $seller->business_name = null;
+                $profile = $seller->profile;
             }
 
+            $seller->profile_image = $profile->profile_image ?? null;
+            $seller->business_name = $profile->business_name ?? null;
+
+            // Computed verified flag
             $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
             $seller->is_verified = ($seller->status == 1 && $autoVerify);
 
@@ -173,8 +177,9 @@ class AdminController extends Controller
                 'success' => true,
                 'seller'  => $seller,
             ]);
+
         } catch (\Throwable $e) {
-            \Log::error("Error viewing seller: {$e->getMessage()}");
+            \Log::error("Error viewing seller {$sellerId}: {$e->getMessage()}");
             return response()->json([
                 'success' => false,
                 'message' => 'Seller not found',
@@ -277,46 +282,45 @@ class AdminController extends Controller
     }
 
     public function updateSellerCategory(Request $request, $sellerId)
-{
-    try {
-        $request->validate([
-            'category_id'     => 'required|exists:sellers_category,id',
-            'sub_category_id' => 'required|exists:sellers_subcategory,id',
-            'is_professional' => 'required|boolean',
-        ]);
+    {
+        try {
+            $request->validate([
+                'category_id'     => 'required|exists:sellers_category,id',
+                'sub_category_id' => 'required|exists:sellers_subcategory,id',
+                'is_professional' => 'required|boolean',
+            ]);
 
-        // 🔥 Find seller by ID (admin updating any seller)
-        $seller = \App\Models\Seller::findOrFail($sellerId);
+            // 🔥 Find seller by ID (admin updating any seller)
+            $seller = \App\Models\Seller::findOrFail($sellerId);
 
-        // Get subcategory
-        $subCategory = \App\Models\SellerSubcategory::findOrFail($request->sub_category_id);
+            // Get subcategory
+            $subCategory = \App\Models\SellerSubcategory::findOrFail($request->sub_category_id);
 
-        // Reset status when category changes
-        $seller->status = 0;
+            // Reset status when category changes
+            $seller->status = 0;
 
-        $seller->category_id     = $request->category_id;
-        $seller->sub_category_id = $request->sub_category_id;
-        $seller->is_professional = $request->is_professional;
+            $seller->category_id     = $request->category_id;
+            $seller->sub_category_id = $request->sub_category_id;
+            $seller->is_professional = $request->is_professional;
 
-        $seller->save();
+            $seller->save();
 
-        $seller->load(['profile', 'professionalProfile', 'subcategory']);
+            $seller->load(['profile', 'professionalProfile', 'subcategory']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Seller category updated successfully.',
-            'seller'  => $seller,
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Seller category updated successfully.',
+                'seller'  => $seller,
+            ]);
 
-    } catch (\Throwable $e) {
-        \Log::error("Admin category update error: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            \Log::error("Admin category update error: " . $e->getMessage());
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update seller category',
-        ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update seller category',
+            ], 500);
+        }
     }
-}
-
 
 }
