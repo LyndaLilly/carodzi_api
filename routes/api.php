@@ -302,6 +302,4 @@ Route::prefix('admin')->group(function () {
 
     Route::patch('verify-seller/{id}', [SellerController::class, 'toggleVerification']);
 
-
-
 });

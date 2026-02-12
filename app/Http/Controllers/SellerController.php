@@ -629,8 +629,12 @@ class SellerController extends Controller
             'is_verified' => 'required|boolean',
         ]);
 
+        $isVerified = $request->is_verified;
+
+        // Update both is_verified and status columns
         $seller->update([
-            'is_verified' => $request->is_verified,
+            'is_verified' => $isVerified,
+            'status'      => $isVerified ? 1 : 0, // ✅ ensure status changes too
         ]);
 
         return response()->json([
