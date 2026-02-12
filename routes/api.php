@@ -14,6 +14,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProductUploadController;
 use App\Http\Controllers\ProfessionalProfileController;
+use App\Http\Controllers\AdminProfessionalProfileController;
 use App\Http\Controllers\PromoteController;
 use App\Http\Controllers\PublicSellerController;
 use App\Http\Controllers\SellerController;
@@ -236,7 +237,6 @@ Route::prefix('admin')->group(function () {
     Route::middleware('auth:sanctum')->post('/logout', [AdminAuthController::class, 'adminlogout']);
 });
 
-
 Route::post('/admin/seller-category', [AdminController::class, 'createSellerCategory']);
 Route::post('/admin/seller-subcategory', [AdminController::class, 'createSellerSubcategory']);
 Route::get('/orders', [OrderController::class, 'index']);
@@ -279,7 +279,6 @@ Route::post('/seller/verify/initiate', [SellerVerificationController::class, 'in
 Route::get('/seller/verify/callback', [SellerVerificationController::class, 'handleCallback'])->name('seller.verification.callback');
 Route::post('/seller/verify-payment', [SellerVerificationController::class, 'verifyPayment']);
 
-
 Route::prefix('admin')->group(function () {
 
     Route::get('sellers', [AdminController::class, 'getAllSellers']);
@@ -289,7 +288,9 @@ Route::prefix('admin')->group(function () {
     Route::post('sellers/update/{sellerId}/', [AdminController::class, 'updateSeller']);
 
     Route::delete('sellers/delete/{sellerId}', [AdminController::class, 'deleteSeller']);
-    
-    Route::post('update-seller-category/{sellerId}',[AdminController::class, 'updateSellerCategory']);
+
+    Route::post('update-seller-category/{sellerId}', [AdminController::class, 'updateSellerCategory']);
+
+    Route::post('professional-profile-fill/{sellerId}', [AdminProfessionalProfileController::class, 'fillProfessionalProfile']);
 
 });
