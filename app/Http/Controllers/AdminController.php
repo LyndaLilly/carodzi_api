@@ -392,74 +392,73 @@ class AdminController extends Controller
     }
 
     public function getAllOrders()
-{
-    try {
-        \Log::info("Fetching all orders for admin...");
+    {
+        try {
+            \Log::info("Fetching all orders for admin...");
 
-        // Load orders with product, product images, seller, and buyer info
-        $orders = \App\Models\Order::with([
-            'product.images',        // Load product images
-            'product.seller',        // Load seller of the product
-            'buyer',                 // Load buyer info
-            'seller.profile',        // Seller profile
-            'seller.professionalProfile', // Seller professional profile
-        ])
-        ->latest()
-        ->get();
+            // Load orders with product, product images, seller, and buyer info
+            $orders = \App\Models\Order::with([
+                'product.images',             // Load product images
+                'product.seller',             // Load seller of the product
+                'buyer',                      // Load buyer info
+                'seller.profile',             // Seller profile
+                'seller.professionalProfile', // Seller professional profile
+            ])
+                ->latest()
+                ->get();
 
-        // Transform orders
-        $orders = $orders->map(function ($order) {
+            // Transform orders
+            $orders = $orders->map(function ($order) {
 
-            $product = $order->product;
-            $firstImage = $product?->images->first()?->image_path;
-            $image = $firstImage ? asset('public/uploads/' . $firstImage) : null;
+                $product    = $order->product;
+                $firstImage = $product?->images->first()?->image_path;
+                $image      = $firstImage ? asset('public/uploads/' . $firstImage) : null;
 
-            $seller = $order->seller;
-            $profile = $seller?->is_professional ? $seller->professionalProfile : $seller?->profile;
+                $seller  = $order->seller;
+                $profile = $seller?->is_professional ? $seller->professionalProfile : $seller?->profile;
 
-            return [
-                'order_id'       => $order->id,
-                'buyer'          => [
-                    'id'       => $order->buyer?->id,
-                    'name'     => $order->buyer?->firstname . ' ' . $order->buyer?->lastname,
-                    'email'    => $order->buyer?->email,
-                    'phone'    => $order->buyer?->phone,
-                ],
-                'product'        => [
-                    'id'          => $product->id,
-                    'name'        => $product->name,
-                    'price'       => $product->price,
-                    'image'       => $image,
-                ],
-                'seller'         => [
-                    'id'            => $seller?->id,
-                    'business_name' => $profile?->business_name ?? null,
-                    'email'         => $seller?->email,
-                ],
-                'quantity'       => $order->quantity,
-                'total_amount'   => $order->total_amount,
-                'payment_status' => $order->payment_status,
-                'status'         => $order->status,
-                'payment_method' => $order->payment_method,
-                'created_at'     => $order->created_at->format('Y-m-d H:i'),
-            ];
-        });
+                return [
+                    'order_id'       => $order->id,
+                    'buyer'          => [
+                        'id'    => $order->buyer?->id,
+                        'name'  => $order->buyer?->firstname . ' ' . $order->buyer?->lastname,
+                        'email' => $order->buyer?->email,
+                        'phone' => $order->buyer?->phone,
+                    ],
+                    'product'        => [
+                        'id'    => $product->id,
+                        'name'  => $product->name,
+                        'price' => $product->price,
+                        'image' => $image,
+                    ],
+                    'seller'         => [
+                        'id'            => $seller?->id,
+                        'business_name' => $profile?->business_name ?? null,
+                        'email'         => $seller?->email,
+                    ],
+                    'quantity'       => $order->quantity,
+                    'total_amount'   => $order->total_amount,
+                    'payment_status' => $order->payment_status,
+                    'status'         => $order->status,
+                    'payment_method' => $order->payment_method,
+                    'created_at'     => $order->created_at->format('Y-m-d H:i'),
+                ];
+            });
 
-        \Log::info("All orders fetched", ['count' => $orders->count()]);
+            \Log::info("All orders fetched", ['count' => $orders->count()]);
 
-        return response()->json([
-            'success' => true,
-            'orders'  => $orders,
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error("Error fetching all orders: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to fetch orders',
-        ], 500);
+            return response()->json([
+                'success' => true,
+                'orders'  => $orders,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error("Error fetching all orders: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch orders',
+            ], 500);
+        }
     }
-}
-
 
     public function getDashboardStats()
     {

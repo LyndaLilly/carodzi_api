@@ -23,6 +23,8 @@ use App\Http\Controllers\SellerNotificationController;
 use App\Http\Controllers\SellerVerificationController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\WishController;
+use App\Http\Controllers\ChatIntentController;
+
 use Illuminate\Support\Facades\Route;
 
 // Seller routes
@@ -309,4 +311,6 @@ Route::prefix('admin')->group(function () {
     Route::get('dashboard-stats', [AdminController::class, 'getDashboardStats']);
 
 
+
 });
+

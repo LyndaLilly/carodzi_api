@@ -73,18 +73,18 @@ class OtherProfileController extends Controller
             'seller_id'             => 'required|exists:sellers,id',
             'gender'                => 'required|in:male,female',
             'date_of_birth'         => 'nullable|string',
-            'about'                 => 'nullable|string|max:1000',
-            'business_email'        => 'nullable|email',
+            'about'                 => 'required|string|max:1000',
+            'business_email'        => 'required|email',
             'mobile_number'         => 'required|string',
             'country'               => 'required|string',
             'state'                 => 'required|string',
             'city'                  => 'required|string',
             'business_name'         => 'required|string|max:255',
-            'date_of_establishment' => 'nullable|date',
+            'date_of_establishment' => 'required|date',
             'bank_name'             => 'nullable|string|max:255',
             'business_bank_name'    => 'nullable|string|max:255',
             'business_bank_account' => 'nullable|string|max:20',
-            'profile_image'         => 'nullable|image|max:2048',
+            'profile_image'         => 'required|image|max:2048',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -127,7 +127,7 @@ class OtherProfileController extends Controller
         $rules = [
             'gender'                => 'sometimes|required|in:male,female',
             'date_of_birth'         =>  'nullable|string',
-            'about'                 => 'nullable|string|max:1000',
+            'about'                 => 'required|string|max:1000',
             'business_email'        => 'nullable|email|unique:other_profiles,business_email,' . $profile->id,
             'mobile_number'         => 'sometimes|required|string',
             'country'               => 'sometimes|required|string',
@@ -138,7 +138,7 @@ class OtherProfileController extends Controller
             'bank_name'             => 'nullable|string|max:255',
             'business_bank_name'    => 'nullable|string|max:255',
             'business_bank_account' => 'nullable|string|max:20',
-            'profile_image'         => 'nullable|image|max:2048',
+            'profile_image'         => 'required|image|max:2048',
         ];
 
         $validator = Validator::make($request->all(), $rules);
