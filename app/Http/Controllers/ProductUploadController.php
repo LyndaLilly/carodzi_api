@@ -45,13 +45,13 @@ class ProductUploadController extends Controller
         try {
             Log::info('Product Upload Request', $request->all());
 
-            $seller = \App\Models\Seller::findOrFail($request->seller_id);
+            $seller       = \App\Models\Seller::findOrFail($request->seller_id);
             $productCount = ProductUpload::where('seller_id', $seller->id)->count();
 
             $hasActiveSubscription = $seller->subscription
             && $seller->subscription->isValid();
 
-            if ($productCount >= 1 && ! $hasActiveSubscription) {
+            if ($productCount >= 5 && ! $hasActiveSubscription) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You have reached the free upload limit. Please subscribe to upload more products.',
