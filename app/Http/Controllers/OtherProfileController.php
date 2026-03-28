@@ -81,7 +81,7 @@ class OtherProfileController extends Controller
             'city'                  => 'required|string',
             'business_name'         => 'required|string|max:255',
             'date_of_establishment' => 'required|date',
-            'profile_image'         => 'required|image|max:2048',
+            'profile_image'         => 'nullable|image|max:2048',
         ];
 
         $validator = Validator::make($request->all(), $rules, [
@@ -133,7 +133,7 @@ class OtherProfileController extends Controller
             'city'                  => 'sometimes|required|string',
             'business_name'         => 'sometimes|required|string|max:255',
             'date_of_establishment' => 'nullable|date',
-            'profile_image'         => 'required|image|max:2048',
+            'profile_image'         => 'nullable|image|max:2048',
         ];
 
         $validator = Validator::make($request->all(), $rules);
