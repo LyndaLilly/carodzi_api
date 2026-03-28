@@ -81,9 +81,6 @@ class OtherProfileController extends Controller
             'city'                  => 'required|string',
             'business_name'         => 'required|string|max:255',
             'date_of_establishment' => 'required|date',
-            'bank_name'             => 'nullable|string|max:255',
-            'business_bank_name'    => 'nullable|string|max:255',
-            'business_bank_account' => 'nullable|string|max:20',
             'profile_image'         => 'required|image|max:2048',
         ];
 
@@ -135,9 +132,6 @@ class OtherProfileController extends Controller
             'city'                  => 'sometimes|required|string',
             'business_name'         => 'sometimes|required|string|max:255',
             'date_of_establishment' => 'nullable|date',
-            'bank_name'             => 'nullable|string|max:255',
-            'business_bank_name'    => 'nullable|string|max:255',
-            'business_bank_account' => 'nullable|string|max:20',
             'profile_image'         => 'required|image|max:2048',
         ];
 

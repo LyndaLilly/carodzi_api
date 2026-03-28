@@ -25,9 +25,6 @@ class OtherProfile extends Model
         'city',
         'business_name',
         'date_of_establishment',
-        'bank_name',
-        'business_bank_name',
-        'business_bank_account',
     ];
 
     public function seller()

@@ -24,12 +24,9 @@ class ProfessionalProfile extends Model
         'state',
         'city',
         'business_name',
-        // 'verification_number',
         'experience_years',
         'certificate_file',
-        // 'bank_name',
-        // 'business_bank_name',
-        // 'business_bank_account',
+
     ];
 
     public function seller()
