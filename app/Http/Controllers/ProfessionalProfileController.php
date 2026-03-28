@@ -86,18 +86,18 @@ class ProfessionalProfileController extends Controller
             'city'                  => 'required|string',
             'business_name'         => 'required|string|max:255',
             'experience_years'      => 'required|integer|min:0',
-            'bank_name'             => 'nullable|string|max:255',
-            'business_bank_name'    => 'nullable|string|max:255',
-            'business_bank_account' => 'nullable|string|max:20',
-            'verification_number'   => 'nullable|string|unique:professional_profiles',
+            // 'bank_name'             => 'nullable|string|max:255',
+            // 'business_bank_name'    => 'nullable|string|max:255',
+            // 'business_bank_account' => 'nullable|string|max:20',
+            // 'verification_number'   => 'nullable|string|unique:professional_profiles',
             'profile_image'         => 'required|image|max:2048',
             'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
 
         $seller = Seller::with('subcategory')->find($request->seller_id);
-        if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
-            $rules['verification_number'] = 'nullable|string|unique:professional_profiles';
-        }
+        // if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
+        //     $rules['verification_number'] = 'nullable|string|unique:professional_profiles';
+        // }
 
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
@@ -177,18 +177,18 @@ class ProfessionalProfileController extends Controller
             'city'                  => 'sometimes|required|string',
             'business_name'         => 'sometimes|required|string|max:255',
             'experience_years'      => 'sometimes|required|integer|min:0',
-            'bank_name'             => 'nullable|string|max:255',
-            'business_bank_name'    => 'nullable|string|max:255',
-            'business_bank_account' => 'nullable|string|max:20',
-            'verification_number'   => 'nullable|string|unique:professional_profiles,verification_number,' . $profile->id,
+            // 'bank_name'             => 'nullable|string|max:255',
+            // 'business_bank_name'    => 'nullable|string|max:255',
+            // 'business_bank_account' => 'nullable|string|max:20',
+            // 'verification_number'   => 'nullable|string|unique:professional_profiles,verification_number,' . $profile->id,
             'profile_image'         => 'sometimes|required|image|max:2048',
             'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
 
         $seller = $request->user()->load('subcategory');
-        if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
-            $rules['verification_number'] = 'nullable|string|unique:professional_profiles,verification_number,' . $profile->id;
-        }
+        // if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
+        //     $rules['verification_number'] = 'nullable|string|unique:professional_profiles,verification_number,' . $profile->id;
+        // }
 
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
