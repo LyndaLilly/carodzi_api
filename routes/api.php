@@ -27,6 +27,13 @@ use App\Http\Controllers\ChatIntentController;
 
 use Illuminate\Support\Facades\Route;
 
+Route::get('/app-version', function () {
+    return response()->json([
+        'min_version' => '54.0.7',
+        'force_update' => true,
+    ]);
+});
+
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
 Route::post('/sellers/verify-email', [SellerController::class, 'verifyEmail']);
