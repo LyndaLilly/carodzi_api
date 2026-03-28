@@ -67,7 +67,6 @@ class ProfessionalProfileController extends Controller
 
     public function storeProfessional(Request $request)
     {
-        // 🔍 Log the full incoming request before validation
         \Log::info('Professional Profile Request Received:', [
             'all_input'            => $request->all(),
             'has_profile_image'    => $request->hasFile('profile_image'),
@@ -75,34 +74,26 @@ class ProfessionalProfileController extends Controller
         ]);
 
         $rules = [
-            'seller_id'             => 'required|exists:sellers,id',
-            'gender'                => 'required|in:male,female',
-            'date_of_birth'         => 'nullable|string',
-            'about'                 => 'required|string|max:1000',
-            'business_email'        => 'required|email',
-            'mobile_number'         => 'required|string',
-            'country'               => 'required|string',
-            'state'                 => 'required|string',
-            'city'                  => 'required|string',
-            'business_name'         => 'required|string|max:255',
-            'experience_years'      => 'required|integer|min:0',
-            // 'bank_name'             => 'nullable|string|max:255',
-            // 'business_bank_name'    => 'nullable|string|max:255',
-            // 'business_bank_account' => 'nullable|string|max:20',
-            // 'verification_number'   => 'nullable|string|unique:professional_profiles',
-            'profile_image'         => 'required|image|max:2048',
-            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'seller_id'        => 'required|exists:sellers,id',
+            'gender'           => 'required|in:male,female',
+            'date_of_birth'    => 'nullable|string',
+            'about'            => 'required|string|max:1000',
+            'business_email'   => 'required|email|unique:professional_profiles,business_email',
+            'mobile_number'    => 'required|string',
+            'country'          => 'required|string',
+            'state'            => 'required|string',
+            'city'             => 'required|string',
+            'business_name'    => 'required|string|max:255',
+            'experience_years' => 'required|integer|min:0',
+            'profile_image'    => 'required|image|max:2048',
+            'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
 
-        $seller = Seller::with('subcategory')->find($request->seller_id);
-        // if ($seller && $seller->subcategory && $seller->subcategory->auto_verify == 1) {
-        //     $rules['verification_number'] = 'nullable|string|unique:professional_profiles';
-        // }
+        $validator = Validator::make($request->all(), $rules, [
+            'business_email.unique' => 'This email is already in use. Please use another email.',
+        ]);
 
-        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
-
-            // ❗ Log validation failure
             \Log::error('Professional Profile Validation Failed:', [
                 'errors' => $validator->errors(),
                 'input'  => $request->all(),
@@ -113,17 +104,11 @@ class ProfessionalProfileController extends Controller
 
         $data = $validator->validated();
 
-        if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth'];
-        }
-
-        // WhatsApp Link
         if (! empty($data['mobile_number'])) {
             $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
             $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
 
-        // Logs for file upload
         if ($request->hasFile('profile_image')) {
             \Log::info('Uploading profile_image:', [
                 'mime'          => $request->file('profile_image')->getMimeType(),
@@ -131,9 +116,10 @@ class ProfessionalProfileController extends Controller
                 'original_name' => $request->file('profile_image')->getClientOriginalName(),
             ]);
 
-            $data['profile_image'] = $this->uploadAndCompressImage($request->file('profile_image'), 'profile_images');
-
-            // $data['profile_image'] = $this->uploadFile($request->file('profile_image'), 'profile_images');
+            $data['profile_image'] = $this->uploadAndCompressImage(
+                $request->file('profile_image'),
+                'profile_images'
+            );
         }
 
         if ($request->hasFile('certificate_file')) {
@@ -143,13 +129,15 @@ class ProfessionalProfileController extends Controller
                 'original_name' => $request->file('certificate_file')->getClientOriginalName(),
             ]);
 
-            $data['certificate_file'] = $this->uploadAndCompressImage($request->file('certificate_file'), 'certificates');
+            $data['certificate_file'] = $this->uploadAndCompressImage(
+                $request->file('certificate_file'),
+                'certificates'
+            );
         }
 
         $profile = ProfessionalProfile::create($data);
         Seller::where('id', $request->seller_id)->update(['profile_updated' => 1]);
 
-        // 🔵 Final log
         \Log::info('Professional Profile Created Successfully:', [
             'profile' => $profile,
         ]);
@@ -167,22 +155,22 @@ class ProfessionalProfileController extends Controller
         $profile  = ProfessionalProfile::where('seller_id', $sellerId)->firstOrFail();
 
         $rules = [
-            'gender'                => 'sometimes|required|in:male,female',
-            'date_of_birth'         => 'nullable|string',
-            'about'                 => 'sometimes|required|string|max:1000',
-            'business_email'        => 'nullable|email|unique:professional_profiles,business_email,' . $profile->id,
-            'mobile_number'         => 'sometimes|required|string',
-            'country'               => 'sometimes|required|string',
-            'state'                 => 'sometimes|required|string',
-            'city'                  => 'sometimes|required|string',
-            'business_name'         => 'sometimes|required|string|max:255',
-            'experience_years'      => 'sometimes|required|integer|min:0',
+            'gender'           => 'sometimes|required|in:male,female',
+            'date_of_birth'    => 'nullable|string',
+            'about'            => 'sometimes|required|string|max:1000',
+            'business_email'   => 'nullable|email|unique:professional_profiles,business_email,' . $profile->id,
+            'mobile_number'    => 'sometimes|required|string',
+            'country'          => 'sometimes|required|string',
+            'state'            => 'sometimes|required|string',
+            'city'             => 'sometimes|required|string',
+            'business_name'    => 'sometimes|required|string|max:255',
+            'experience_years' => 'sometimes|required|integer|min:0',
             // 'bank_name'             => 'nullable|string|max:255',
             // 'business_bank_name'    => 'nullable|string|max:255',
             // 'business_bank_account' => 'nullable|string|max:20',
             // 'verification_number'   => 'nullable|string|unique:professional_profiles,verification_number,' . $profile->id,
-            'profile_image'         => 'sometimes|required|image|max:2048',
-            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'profile_image'    => 'sometimes|required|image|max:2048',
+            'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
 
         $seller = $request->user()->load('subcategory');

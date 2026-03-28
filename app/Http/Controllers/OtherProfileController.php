@@ -74,7 +74,7 @@ class OtherProfileController extends Controller
             'gender'                => 'required|in:male,female',
             'date_of_birth'         => 'nullable|string',
             'about'                 => 'required|string|max:1000',
-            'business_email'        => 'required|email',
+            'business_email'        => 'required|email|unique:other_profiles,business_email',
             'mobile_number'         => 'required|string',
             'country'               => 'required|string',
             'state'                 => 'required|string',
@@ -84,7 +84,9 @@ class OtherProfileController extends Controller
             'profile_image'         => 'required|image|max:2048',
         ];
 
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($request->all(), $rules, [
+            'business_email.unique' => 'This email is already in use. Please use another email.',
+        ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -92,18 +94,17 @@ class OtherProfileController extends Controller
 
         $data = $validator->validated();
 
-        if (! empty($data['date_of_birth'])) {
-            $data['date_of_birth'] = $data['date_of_birth'];
-        }
-
-        // Generate WhatsApp link
+        // WhatsApp link
         if (! empty($data['mobile_number'])) {
             $raw                         = preg_replace('/\D/', '', $data['mobile_number']);
             $data['whatsapp_phone_link'] = "https://wa.me/{$raw}";
         }
 
         if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $this->uploadAndCompressImage($request->file('profile_image'), 'profile_images');
+            $data['profile_image'] = $this->uploadAndCompressImage(
+                $request->file('profile_image'),
+                'profile_images'
+            );
         }
 
         $profile = OtherProfile::create($data);
@@ -123,7 +124,7 @@ class OtherProfileController extends Controller
 
         $rules = [
             'gender'                => 'sometimes|required|in:male,female',
-            'date_of_birth'         =>  'nullable|string',
+            'date_of_birth'         => 'nullable|string',
             'about'                 => 'required|string|max:1000',
             'business_email'        => 'nullable|email|unique:other_profiles,business_email,' . $profile->id,
             'mobile_number'         => 'sometimes|required|string',
