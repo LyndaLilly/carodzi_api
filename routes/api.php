@@ -31,7 +31,7 @@ Route::get('/app-version', function () {
     return response()->json([
         'min_build_version' => 19,
         'latest_version' => '1.0.18',
-        'force_update' => true,
+        'force_update' => false,
         'update_notes' => [
             'Faster and smoother experience',
         ],
