@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/app-version', function () {
     return response()->json([
         'min_build_version' => 19,
-        'latest_version' => '1.0.18',
+        'latest_version' => '1.0.20',
         'force_update' => false,
         'update_notes' => [
             'Faster and smoother experience',
