@@ -27,16 +27,16 @@ use App\Http\Controllers\ChatIntentController;
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/app-version', function () {
-    return response()->json([
-        'min_build_version' => 19,
-        'latest_version' => '1.0.20',
-        'force_update' => false,
-        'update_notes' => [
-            'Faster and smoother experience',
-        ],
-    ]);
-});
+// Route::get('/app-version', function () {
+//     return response()->json([
+//         'min_build_version' => 19,
+//         'latest_version' => '1.0.20',
+//         'force_update' => false,
+//         'update_notes' => [
+//             'Faster and smoother experience',
+//         ],
+//     ]);
+// });
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
