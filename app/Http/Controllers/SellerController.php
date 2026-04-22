@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -642,6 +644,73 @@ class SellerController extends Controller
             'message' => 'Seller verification status updated successfully',
             'seller'  => $seller,
         ]);
+    }
+
+
+    public function deleteAccount(Request $request)
+    {
+        $seller = $request->user();
+
+        if (!$seller) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // ✅ 1. Delete profiles safely (even if none exists)
+            \DB::table('professional_profiles')
+                ->where('seller_id', $seller->id)
+                ->delete();
+
+            \DB::table('other_profiles')
+                ->where('seller_id', $seller->id)
+                ->delete();
+
+            // ✅ 2. Get all seller products
+            $products = \App\Models\ProductUpload::where('seller_id', $seller->id)->get();
+
+            foreach ($products as $product) {
+
+                // Delete images (DB)
+                $images = \App\Models\ProductUploadImage::where('productupload_id', $product->id)->get();
+
+                foreach ($images as $image) {
+                    // OPTIONAL: delete physical file
+                    $path = public_path("uploads/" . $image->image_path);
+                    if (file_exists($path)) {
+                        unlink($path);
+                    }
+
+                    $image->delete();
+                }
+
+                // Delete product
+                $product->delete();
+            }
+
+            // ✅ 3. Delete seller
+            $seller->delete();
+
+            \DB::commit();
+
+            return response()->json([
+                'message' => 'Account deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+
+            \Log::error('Delete account failed', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to delete account'
+            ], 500);
+        }
     }
 
 }

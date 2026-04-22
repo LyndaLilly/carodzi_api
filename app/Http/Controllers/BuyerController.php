@@ -9,6 +9,8 @@ use App\Models\BuyerProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -401,6 +403,134 @@ class BuyerController extends Controller
             'buyer'   => $buyer,
             'profile' => $profile,
         ]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $buyer = $request->user();
+
+        if (!$buyer) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => [
+                'required',
+                'min:8',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/',
+            ],
+        ], [
+            'new_password.regex' => 'Password must include uppercase, lowercase, number, and special character.'
+        ]);
+
+        // Check if current password is correct
+        if (!Hash::check($request->current_password, $buyer->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Current password is incorrect.'
+            ], 400);
+        }
+
+        try {
+            $buyer->password = Hash::make($request->new_password);
+            $buyer->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Password changed successfully.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Password change failed', [
+                'error' => $e->getMessage(),
+                'buyer_id' => $buyer->id
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to change password.'
+            ], 500);
+        }
+    }
+
+
+
+    public function deleteAccount(Request $request)
+    {
+        $buyer = $request->user();
+
+        if (!$buyer) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $buyerId = $buyer->id;
+
+            // ===============================
+            // 1. DELETE BUYER PROFILE (if exists)
+            // ===============================
+            BuyerProfile::where('buyer_id', $buyerId)->delete();
+
+            // ===============================
+            // 2. DELETE CARTS (safe even if empty)
+            // ===============================
+            DB::table('carts')
+                ->where('buyer_id', $buyerId)
+                ->delete();
+
+            // ===============================
+            // 3. DELETE WISHES (safe even if empty)
+            // ===============================
+            DB::table('wishes')
+                ->where('buyer_id', $buyerId)
+                ->delete();
+
+            // ===============================
+            // 4. DELETE ORDERS
+            // ===============================
+            DB::table('orders')
+                ->where('buyer_id', $buyerId)
+                ->delete();
+
+            // ===============================
+            // 5. OPTIONAL: delete reviews (if you have them)
+            // ===============================
+            DB::table('product_reviews')
+                ->where('buyer_id', $buyerId)
+                ->delete();
+
+            // ===============================
+            // 6. FINALLY DELETE BUYER
+            // ===============================
+            $buyer->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Account deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            Log::error('Buyer delete failed', [
+                'error' => $e->getMessage(),
+                'buyer_id' => $buyer->id ?? null
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to delete account'
+            ], 500);
+        }
     }
 
 }

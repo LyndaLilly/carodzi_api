@@ -27,16 +27,7 @@ use App\Http\Controllers\ChatIntentController;
 
 use Illuminate\Support\Facades\Route;
 
-// Route::get('/app-version', function () {
-//     return response()->json([
-//         'min_build_version' => 19,
-//         'latest_version' => '1.0.20',
-//         'force_update' => false,
-//         'update_notes' => [
-//             'Faster and smoother experience',
-//         ],
-//     ]);
-// });
+
 
 // Seller routes
 Route::post('/sellers/register', [SellerController::class, 'registerSeller']);
@@ -48,6 +39,7 @@ Route::post('/sellers/resend-reset-code', [SellerController::class, 'resendPassw
 Route::post('/sellers/reset-password', [SellerController::class, 'resetPassword']);
 Route::post('/sellers/login', [SellerController::class, 'SellerLogin']);
 Route::middleware('auth:sanctum')->post('/seller/logout', [SellerController::class, 'sellerLogout']);
+Route::middleware('auth:sanctum')->delete('/seller/delete-account', [SellerController::class, 'deleteAccount']);
 
 // Seller routes (requires auth)
 Route::middleware('auth:sanctum')->group(function () {
@@ -207,6 +199,13 @@ Route::middleware('auth:buyer')->group(function () {
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::get('/buyer/orders', [OrderController::class, 'buyerOrders']);
     Route::post('/orders/{order}/verify', [OrderController::class, 'verifyPayment']);
+});
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/buyer/update-password', [BuyerController::class, 'changePassword']);
+
+    Route::delete('/buyer/delete-account', [BuyerController::class, 'deleteAccount']);
 });
 
 Route::post('/order/paystack/init', [OrderController::class, 'paystackInit'])->middleware('auth:sanctum');
