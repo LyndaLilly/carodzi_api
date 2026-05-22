@@ -14,9 +14,10 @@ class BlogController extends Controller
     public function storePost(Request $request)
     {
         $request->validate([
-            'title'   => 'required|string|max:255',
-            'content' => 'required|string',
-            'image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // optional file upload
+            'title'        => 'required|string|max:255',
+            'content'      => 'required|string',
+            'image'        => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // optional file upload
+            'creator_name' => 'nullable|string|max:255',
         ]);
 
         $imagePath = null;
@@ -30,9 +31,10 @@ class BlogController extends Controller
         }
 
         $post = Post::create([
-            'title'   => $request->title,
-            'content' => $request->content,
-            'image'   => $imagePath,
+            'title'        => $request->title,
+            'content'      => $request->content,
+            'image'        => $imagePath,
+            'creator_name' => $request->creator_name, // optional
         ]);
 
         return response()->json($post, 201);
