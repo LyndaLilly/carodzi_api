@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 use App\Models\ProductUpload;
 use App\Models\SellerCategory;
 use App\Models\SellerSubcategory;
+use App\Models\SellerVerificationPayment;
+use App\Exports\SellersExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 
 class AdminController extends Controller
 {
@@ -110,31 +114,51 @@ class AdminController extends Controller
 
         try {
             $sellers = \App\Models\Seller::with([
-                'profile',             // OtherProfile
-                'professionalProfile', // ProfessionalProfile
+                'profile',
+                'professionalProfile',
                 'subcategory',
                 'products.images',
             ])->get();
 
-            // Add computed fields for profile image & business name
             $sellers->transform(function ($seller) {
+
+                $latestVerification = SellerVerificationPayment::where(
+                    'seller_id',
+                    $seller->id
+                )->latest()->first();
+
+                // Profile image & business name
                 if ($seller->is_professional && $seller->professionalProfile) {
-                    $seller->profile_image       = $seller->professionalProfile->profile_image ?? null;
-                    $seller->business_name       = $seller->professionalProfile->business_name ?? null;
-                    $seller->verification_number = $seller->professionalProfile->verification_number ?? null; // 👈 Add this
+
+                    $seller->profile_image =
+                    $seller->professionalProfile->profile_image ?? null;
+
+                    $seller->business_name =
+                    $seller->professionalProfile->business_name ?? null;
+
                 } elseif ($seller->profile) {
-                    $seller->profile_image       = $seller->profile->profile_image ?? null;
-                    $seller->business_name       = $seller->profile->business_name ?? null;
-                    $seller->verification_number = null; // no verification number
+
+                    $seller->profile_image =
+                    $seller->profile->profile_image ?? null;
+
+                    $seller->business_name =
+                    $seller->profile->business_name ?? null;
+
                 } else {
-                    $seller->profile_image       = null;
-                    $seller->business_name       = null;
-                    $seller->verification_number = null;
+
+                    $seller->profile_image = null;
+                    $seller->business_name = null;
                 }
 
-                // Optional: attach is_verified field
-                $autoVerify          = optional($seller->subcategory)->auto_verify == 1;
-                $seller->is_verified = ($seller->status == 1 && $autoVerify);
+                // Latest submitted verification number
+                $seller->verification_number =
+                $latestVerification->verification_number ?? null;
+
+                // Verification status
+                $autoVerify = optional($seller->subcategory)->auto_verify == 1;
+
+                $seller->is_verified =
+                    ($seller->status == 1 && $autoVerify);
 
                 return $seller;
             });
@@ -143,8 +167,12 @@ class AdminController extends Controller
                 'success' => true,
                 'sellers' => $sellers,
             ]);
+
         } catch (\Throwable $e) {
-            \Log::error('Error fetching sellers: ' . $e->getMessage());
+
+            \Log::error(
+                'Error fetching sellers: ' . $e->getMessage()
+            );
 
             return response()->json([
                 'success' => false,
@@ -486,5 +514,13 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+public function exportSellers()
+{
+    return Excel::download(
+        new SellersExport(),
+        'sellers.xlsx'
+    );
+}
 
 }

@@ -288,9 +288,11 @@ Route::middleware('auth:sanctum')->get('/seller/{sellerId}/check', [Subscription
 
 Route::get('/subscriptions/expire', [SubscriptionController::class, 'expireSubscriptions']);
 
-Route::post('/seller/verify/initiate', [SellerVerificationController::class, 'initiatePayment']);
-Route::get('/seller/verify/callback', [SellerVerificationController::class, 'handleCallback'])->name('seller.verification.callback');
-Route::post('/seller/verify-payment', [SellerVerificationController::class, 'verifyPayment']);
+// Route::post('/seller/verify/initiate', [SellerVerificationController::class, 'initiatePayment']);
+// Route::get('/seller/verify/callback', [SellerVerificationController::class, 'handleCallback'])->name('seller.verification.callback');
+// Route::post('/seller/verify-payment', [SellerVerificationController::class, 'verifyPayment']);
+
+Route::post('/seller/verify-free', [SellerVerificationController::class, 'verifyFree']);
 
 Route::prefix('admin')->group(function () {
 
@@ -319,8 +321,6 @@ Route::prefix('admin')->group(function () {
     Route::get('getorders', [AdminController::class, 'getAllOrders']);
 
     Route::get('dashboard-stats', [AdminController::class, 'getDashboardStats']);
-
-
+    Route::get('export-sellers', [AdminController::class, 'exportSellers']);
 
 });
-

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +8,7 @@ class SellerVerificationPayment extends Model
     protected $fillable = [
         'seller_id',
         'reference',
+        'verification_number',
         'amount',
         'status',
         'starts_at',
